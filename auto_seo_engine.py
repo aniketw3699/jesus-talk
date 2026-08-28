@@ -82,6 +82,39 @@ TOPIC_POOL = [
     }
 ]
 
+def get_best_available_model(groq_client):
+    """Auto-detects active text generation models available on the API key."""
+    try:
+        models_list = groq_client.models.list()
+        active_models = [m.id for m in models_list.data if getattr(m, 'active', True)]
+        print(f"Active Groq models detected: {active_models}")
+
+        # Preference priority order
+        preferred_order = [
+            "llama-3.3-70b-versatile",
+            "llama-3.1-70b-versatile",
+            "llama-3.1-8b-instant",
+            "llama3-70b-8192",
+            "llama3-8b-8192",
+            "mixtral-8x7b-32768",
+            "gemma2-9b-it"
+        ]
+
+        for candidate in preferred_order:
+            if candidate in active_models:
+                print(f"Selected model: {candidate}")
+                return candidate
+
+        # Fallback to any active non-whisper/non-guard model
+        for m_id in active_models:
+            if "whisper" not in m_id.lower() and "guard" not in m_id.lower():
+                print(f"Selected fallback active model: {m_id}")
+                return m_id
+    except Exception as err:
+        print(f"Model auto-detection failed ({err}), defaulting to standard endpoint.")
+
+    return "llama-3.1-8b-instant"
+
 def load_published_slugs():
     if os.path.exists(SLUGS_FILE):
         try:
@@ -99,7 +132,6 @@ def select_next_topic(published):
     for topic in TOPIC_POOL:
         if topic["slug"] not in published:
             return topic
-    # If all published, create a timestamped fresh angle
     date_str = datetime.now().strftime("%Y-%m-%d")
     base = TOPIC_POOL[len(published) % len(TOPIC_POOL)]
     return {
@@ -110,6 +142,9 @@ def select_next_topic(published):
     }
 
 def generate_full_article(topic):
+    selected_model = get_best_available_model(client)
+    print(f"Requesting generation using model: {selected_model}")
+
     prompt = f"""
 Write an exhaustive, deeply empathetic, comprehensive 1,200+ word Christian spiritual guide and prayer breakdown.
 
@@ -174,7 +209,7 @@ Return STRICTLY raw valid JSON without markdown wrapping. Format:
 }}
 """
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=selected_model,
         messages=[
             {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
             {"role": "user", "content": prompt}
@@ -189,7 +224,6 @@ def render_html_page(data, topic):
     now_iso = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     page_url = f"{DOMAINS_URL}/prayers/{topic['slug']}.html"
 
-    # Build FAQ Schema
     faq_entities = []
     for item in data.get("faq", []):
         faq_entities.append({
@@ -233,7 +267,6 @@ def render_html_page(data, topic):
         ]
     }
 
-    # Render Sections HTML
     sections_html = ""
     for sec in data.get("sections", []):
         sections_html += f"<section class='article-sec'>\n<h2 class='sec-h2'>{sec.get('h2')}</h2>\n"
@@ -271,7 +304,6 @@ def render_html_page(data, topic):
             sections_html += "</div>\n"
         sections_html += "</section>\n"
 
-    # Render FAQ HTML
     faq_html = "<section class='article-sec faq-sec'>\n<h2 class='sec-h2'>Frequently Asked Questions</h2>\n"
     for faq_item in data.get("faq", []):
         faq_html += f"""
@@ -477,7 +509,6 @@ def update_sitemap(published_list):
 
 def main():
     published = load_published_slugs()
-    # Normalize existing format
     published_slug_list = [p['slug'] if isinstance(p, dict) else p for p in published]
     
     topic = select_next_topic(published_slug_list)
@@ -500,7 +531,6 @@ def main():
         "date": datetime.now().strftime("%B %d, %Y")
     }
 
-    # Save as rich dictionary entries
     updated_published = [p for p in published if isinstance(p, dict)]
     updated_published.append(new_entry)
     save_published_slugs(updated_published)
