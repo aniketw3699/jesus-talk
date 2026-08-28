@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -12,6 +12,9 @@ if not GROQ_API_KEY:
     raise ValueError("Missing GROQ_API_KEY environment variable.")
 
 client = Groq(api_key=GROQ_API_KEY)
+
+# Strict Indian Standard Time (IST: UTC + 5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 DOMAINS_URL = "https://jesus-chat-bd89f.web.app"
 SLUGS_FILE = "published_slugs.json"
@@ -130,11 +133,11 @@ def select_next_topic(published):
     for topic in TOPIC_POOL:
         if topic["slug"] not in published:
             return topic
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = datetime.now(IST).strftime("%Y-%m-%d")
     base = TOPIC_POOL[len(published) % len(TOPIC_POOL)]
     return {
         "keyword": f"{base['keyword']} (Spiritual Reflection {date_str})",
-        "slug": f"{base['slug']}-{datetime.now().strftime('%m%d%H%M')}",
+        "slug": f"{base['slug']}-{datetime.now(IST).strftime('%m%d%H%M')}",
         "category": base["category"],
         "primary_verse": base["primary_verse"]
     }
@@ -220,7 +223,8 @@ Return STRICTLY raw valid JSON without markdown wrapping. Format:
     return json.loads(raw_content)
 
 def render_html_page(data, topic):
-    now_iso = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    now_ist = datetime.now(IST)
+    now_iso = now_ist.isoformat()
     page_url = f"{DOMAINS_URL}/prayers/{topic['slug']}.html"
 
     faq_entities = []
@@ -376,7 +380,7 @@ def render_html_page(data, topic):
         <span class="badge">{topic['category']}</span>
         <h1>{data.get('h1', topic['keyword'])}</h1>
         <div class="meta-bar">
-            <span>Published on {datetime.now().strftime('%B %d, %Y')}</span>
+            <span>Published on {now_ist.strftime('%B %d, %Y')}</span>
             <span>•</span>
             <span>{data.get('read_time', '6 min read')}</span>
         </div>
@@ -476,16 +480,17 @@ def update_blogs_hub(published_list):
         f.write(hub_template)
 
 def update_sitemap(published_list):
+    today_ist = datetime.now(IST).strftime('%Y-%m-%d')
     urls = [
         f"""  <url>
     <loc>{DOMAINS_URL}/</loc>
-    <lastmod>{datetime.utcnow().strftime('%Y-%m-%d')}</lastmod>
+    <lastmod>{today_ist}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>""",
         f"""  <url>
     <loc>{DOMAINS_URL}/blogs.html</loc>
-    <lastmod>{datetime.utcnow().strftime('%Y-%m-%d')}</lastmod>
+    <lastmod>{today_ist}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>"""
@@ -493,7 +498,7 @@ def update_sitemap(published_list):
     for item in published_list:
         urls.append(f"""  <url>
     <loc>{DOMAINS_URL}/prayers/{item['slug']}.html</loc>
-    <lastmod>{datetime.utcnow().strftime('%Y-%m-%d')}</lastmod>
+    <lastmod>{today_ist}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>""")
@@ -511,7 +516,7 @@ def main():
     published_slug_list = [p['slug'] if isinstance(p, dict) else p for p in published]
     
     topic = select_next_topic(published_slug_list)
-    print(f"Generating 1,200+ word SEO Prayer Guide for: '{topic['keyword']}'...")
+    print(f"Generating 1,200+ word SEO Prayer Guide (IST Time) for: '{topic['keyword']}'...")
 
     article_data = generate_full_article(topic)
     os.makedirs(PRAYERS_DIR, exist_ok=True)
@@ -527,7 +532,7 @@ def main():
         "excerpt": article_data.get("excerpt", topic["keyword"]),
         "category": topic["category"],
         "read_time": article_data.get("read_time", "6 min read"),
-        "date": datetime.now().strftime("%B %d, %Y")
+        "date": datetime.now(IST).strftime("%B %d, %Y")
     }
 
     updated_published = [p for p in published if isinstance(p, dict)]
@@ -538,7 +543,7 @@ def main():
     update_sitemap(updated_published)
 
     print(f"Successfully created: {article_path}")
-    print("Updated blogs.html and sitemap.xml with FAQ Schema & Rich Subheadings.")
+    print("Updated blogs.html and sitemap.xml with IST timestamps & FAQ Schema.")
 
 if __name__ == "__main__":
     main()
