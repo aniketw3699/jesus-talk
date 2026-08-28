@@ -83,21 +83,21 @@ TOPIC_POOL = [
 ]
 
 def get_best_available_model(groq_client):
-    """Auto-detects active text generation models available on the API key."""
+    """Auto-detects and prioritizes active long-form LLMs available on your key."""
     try:
         models_list = groq_client.models.list()
         active_models = [m.id for m in models_list.data if getattr(m, 'active', True)]
         print(f"Active Groq models detected: {active_models}")
 
-        # Preference priority order
+        # Prioritize high-capacity models from your active list
         preferred_order = [
+            "openai/gpt-oss-120b",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.6-27b",
             "llama-3.3-70b-versatile",
             "llama-3.1-70b-versatile",
-            "llama-3.1-8b-instant",
-            "llama3-70b-8192",
-            "llama3-8b-8192",
-            "mixtral-8x7b-32768",
-            "gemma2-9b-it"
+            "llama-3.1-8b-instant"
         ]
 
         for candidate in preferred_order:
@@ -105,41 +105,16 @@ def get_best_available_model(groq_client):
                 print(f"Selected model: {candidate}")
                 return candidate
 
-        # Fallback to any active non-whisper/non-guard model
+        # Exclude compound routers, guards, and audio models
         for m_id in active_models:
-            if "whisper" not in m_id.lower() and "guard" not in m_id.lower():
+            m_lower = m_id.lower()
+            if not any(x in m_lower for x in ["whisper", "guard", "compound", "orpheus"]):
                 print(f"Selected fallback active model: {m_id}")
                 return m_id
     except Exception as err:
-        print(f"Model auto-detection failed ({err}), defaulting to standard endpoint.")
+        print(f"Model detection note: {err}")
 
-    return "llama-3.1-8b-instant"
-
-def load_published_slugs():
-    if os.path.exists(SLUGS_FILE):
-        try:
-            with open(SLUGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
-
-def save_published_slugs(slugs):
-    with open(SLUGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(slugs, f, indent=2)
-
-def select_next_topic(published):
-    for topic in TOPIC_POOL:
-        if topic["slug"] not in published:
-            return topic
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    base = TOPIC_POOL[len(published) % len(TOPIC_POOL)]
-    return {
-        "keyword": f"{base['keyword']} (Spiritual Reflection {date_str})",
-        "slug": f"{base['slug']}-{datetime.now().strftime('%m%d%H%M')}",
-        "category": base["category"],
-        "primary_verse": base["primary_verse"]
-    }
+    return "openai/gpt-oss-120b"
 
 def generate_full_article(topic):
     selected_model = get_best_available_model(client)
@@ -211,14 +186,15 @@ Return STRICTLY raw valid JSON without markdown wrapping. Format:
     response = client.chat.completions.create(
         model=selected_model,
         messages=[
-            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
+            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist. You output thorough, compassionate, 1200+ word guides rich in biblical exegesis formatted strictly in valid JSON."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
         max_tokens=4096,
         response_format={"type": "json_object"}
     )
-    return json.loads(response.choices[0].message.content)
+    raw_content = response.choices[0].message.content.strip()
+    return json.loads(raw_content)
 
 def render_html_page(data, topic):
     now_iso = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
