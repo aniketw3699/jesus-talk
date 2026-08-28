@@ -363,6 +363,7 @@
       <button class="chip-btn" onclick="sendQuickPrompt('I thank you for your boundless grace today.')"><span class="holy-cross-icon">✝</span> Daily Gratitude</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lay your healing hands upon my body and spirit.')">🌿 Physical Healing</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Help my unbelief and strengthen my faith.')">🛡️ Overcome Doubt</button>
+      <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='blogs.html'">📜 Sacred Blogs</button>
     </div>
 
     <footer class="input-deck">
@@ -541,7 +542,7 @@
         messageInput.focus();
       }
     }
-    
+
     function initFirebaseAuth() {
       if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged((user) => {

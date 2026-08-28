@@ -6,7 +6,6 @@ from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
 
-# Load local environment variable if running locally
 load_dotenv(dotenv_path="./jesus-talk-api/.env")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
@@ -127,6 +126,87 @@ HTML_PAGE_TEMPLATE = """<!DOCTYPE html>
 </body>
 </html>"""
 
+def rebuild_blogs_hub(published_data):
+    cards_html = []
+    for item in reversed(published_data):
+        cards_html.append(f"""
+      <a href="prayers/{item['slug']}.html" class="article-card">
+        <div class="card-meta">
+          <span class="card-category">{item.get('category', 'Sacred Solace')}</span>
+          <span class="card-date">{item.get('date', 'Aug 28, 2026')}</span>
+        </div>
+        <h2 class="card-title">{item['title']}</h2>
+        <p class="card-preview">{item.get('meta_desc', 'Read this authentic biblical reflection and prayer guide.')}</p>
+      </a>""")
+
+    blogs_page_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Sacred Reflections & Prayer Guides | Words of Jesus</title>
+  <meta name="description" content="Explore biblically grounded reflections, meditations, and prayer guides for executive solitude, anxiety, and spiritual restoration." />
+  <link rel="canonical" href="https://jesus-chat-bd89f.web.app/blogs.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {{
+      --bg-cream: #f6f2ea;
+      --gold-deep: #8f651c;
+      --gold-vivid: #c99839;
+      --gold-soft: #fbf5e8;
+      --text-dark: #191f28;
+      --text-muted: #536070;
+      --card-bg: #ffffff;
+      --card-border: rgba(184, 134, 40, 0.25);
+    }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--text-dark);
+      line-height: 1.6;
+      padding: max(20px, env(safe-area-inset-top)) 16px 80px 16px;
+      display: flex; justify-content: center;
+    }}
+    .hub-container {{ max-width: 760px; width: 100%; }}
+    .hub-header {{ text-align: center; margin-bottom: 28px; }}
+    .badge-tag {{ display: inline-block; font-size: 11px; font-weight: 700; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }}
+    .hub-title {{ font-family: 'Cinzel', serif; font-size: 26px; color: #1a160f; }}
+    .hub-desc {{ font-size: 13.5px; color: var(--text-muted); margin-top: 4px; }}
+    .nav-back-bar {{ margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }}
+    .back-btn {{ display: inline-flex; align-items: center; gap: 6px; color: var(--gold-deep); text-decoration: none; font-weight: 700; font-size: 13px; background: #ffffff; border: 1px solid var(--card-border); padding: 6px 14px; border-radius: 20px; }}
+    .articles-grid {{ display: flex; flex-direction: column; gap: 14px; }}
+    .article-card {{ background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 18px; padding: 18px 20px; text-decoration: none; color: inherit; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04); transition: all 0.2s ease; display: flex; flex-direction: column; gap: 6px; }}
+    .article-card:hover {{ transform: translateY(-2px); border-color: var(--gold-deep); box-shadow: 0 8px 24px rgba(184, 134, 40, 0.12); }}
+    .card-meta {{ display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; }}
+    .card-category {{ font-weight: 800; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px; }}
+    .card-date {{ color: var(--text-muted); font-weight: 500; }}
+    .card-title {{ font-family: 'Cinzel', serif; font-size: 16.5px; color: #1a160f; font-weight: 700; line-height: 1.4; }}
+    .card-preview {{ font-size: 13px; color: var(--text-muted); line-height: 1.5; }}
+  </style>
+</head>
+<body>
+  <main class="hub-container">
+    <div class="nav-back-bar">
+      <a href="index.html" class="back-btn">🕊️ Return to Sanctuary</a>
+    </div>
+    <header class="hub-header">
+      <span class="badge-tag">Sacred Archive</span>
+      <h1 class="hub-title">WORDS OF GRACE</h1>
+      <p class="hub-desc">Biblical reflections, prayer guides, and spiritual counsel.</p>
+    </header>
+    <section class="articles-grid">
+      {"".join(cards_html)}
+    </section>
+  </main>
+</body>
+</html>"""
+
+    with open("blogs.html", "w", encoding="utf-8") as f:
+        f.write(blogs_page_html)
+
 def run_autonomous_generator():
     os.makedirs("prayers", exist_ok=True)
     history_file = "published_slugs.json"
@@ -140,7 +220,6 @@ def run_autonomous_generator():
     published_slugs = [item.get("slug") for item in published_data]
     current_count = len(published_slugs)
 
-    # 50/50 Dual Archetype Rotation
     if current_count % 2 == 0:
         target_archetype = "Archetype A (High-Net-Worth / Achiever / Executive Emptiness, Leadership Solitude, Burnout, Letting Go of Control)"
         category_name = "Executive Solace & Inner Peace"
@@ -150,7 +229,6 @@ def run_autonomous_generator():
 
     print(f"Selecting new topic for: {target_archetype}")
 
-    # Prompt 1: Autonomous Topic Selection
     topic_prompt = f"""You are an elite programmatic SEO architect for a Christian spiritual web sanctuary.
 We are targeting {target_archetype}.
 Existing already-published slugs: {published_slugs[-30:]}
@@ -174,11 +252,9 @@ Return JSON ONLY:
     topic_meta = json.loads(topic_res.choices[0].message.content)
     slug = re.sub(r'[^a-z0-9\-]', '', topic_meta["slug"].lower().replace(' ', '-'))
 
-    # Avoid duplicate overwrite
     if slug in published_slugs:
         slug = f"{slug}-{int(datetime.now().timestamp())}"
 
-    # Prompt 2: Deep SEO Article Generation
     article_prompt = f"""Write an authentic, deeply comforting, and authoritative Christian meditation and prayer article for the topic: '{topic_meta["title"]}'.
 Scripture foundation: {topic_meta["scripture_reference"]}.
 Tone: Deeply empathetic, sacred, non-judgmental, addressing soul vulnerability.
@@ -225,35 +301,36 @@ Return JSON ONLY:
         faq_html=faq_html
     )
 
-    # Write article file
     file_path = f"prayers/{slug}.html"
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(final_html)
 
-    # Save to history
     published_data.append({
         "slug": slug,
         "title": topic_meta["title"],
         "category": category_name,
-        "date": datetime.now().strftime("%Y-%m-%d")
+        "meta_desc": article_data["meta_desc"],
+        "date": datetime.now().strftime("%b %d, %Y")
     })
     with open(history_file, "w", encoding="utf-8") as f:
         json.dump(published_data, f, indent=2)
 
-    # Rebuild complete sitemap.xml
+    rebuild_blogs_hub(published_data)
+
     sitemap_entries = [
-        "  <url>\n    <loc>https://jesus-chat-bd89f.web.app/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>"
+        "  <url>\n    <loc>https://jesus-chat-bd89f.web.app/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>",
+        "  <url>\n    <loc>https://jesus-chat-bd89f.web.app/blogs.html</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.9</priority>\n  </url>"
     ]
     for item in published_data:
         sitemap_entries.append(
-            f"  <url>\n    <loc>https://jesus-chat-bd89f.web.app/prayers/{item['slug']}.html</loc>\n    <lastmod>{item.get('date', '2026-08-28')}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
+            f"  <url>\n    <loc>https://jesus-chat-bd89f.web.app/prayers/{item['slug']}.html</loc>\n    <lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
         )
 
     sitemap_xml = f"""<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{os.linesep.join(sitemap_entries)}\n</urlset>"""
     with open("sitemap.xml", "w", encoding="utf-8") as f:
         f.write(sitemap_xml)
 
-    print(f"Successfully published: prayers/{slug}.html and updated sitemap.xml")
+    print(f"Successfully published: prayers/{slug}.html, updated blogs.html, and rebuilt sitemap.xml")
 
 if __name__ == "__main__":
     run_autonomous_generator()
