@@ -644,7 +644,9 @@
     let selectedPlanBaseUrl = LEMON_SQUEEZY_PLANS.find(p => p.featured)?.checkoutUrl || LEMON_SQUEEZY_PLANS[0].checkoutUrl;
     let currentUser = null;
     let currentUserName = "beloved";
-    let userCredits = 5;
+    let userCredits = localStorage.getItem("jesus_user_credits") !== null 
+      ? parseInt(localStorage.getItem("jesus_user_credits")) 
+      : 5;
     let isSubscribed = false;
 
     let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
@@ -723,7 +725,12 @@
             authBtn.textContent = "Sign Out";
             messageInput.placeholder = "Speak your heart...";
 
-            userCredits = 5;
+            if (localStorage.getItem("jesus_user_credits") === null) {
+              userCredits = 5;
+              localStorage.setItem("jesus_user_credits", userCredits);
+            } else {
+              userCredits = parseInt(localStorage.getItem("jesus_user_credits"));
+            }
             updateCreditUI();
 
             currentActiveTimeSlot = getCurrentTimeSlot();
@@ -1276,8 +1283,9 @@
           appendBotBubble(data.reply);
           if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
           
-          if (!isSubscribed) {
+        if (!isSubscribed) {
             userCredits = Math.max(0, userCredits - 1);
+            localStorage.setItem("jesus_user_credits", userCredits);
             updateCreditUI();
           }
 
