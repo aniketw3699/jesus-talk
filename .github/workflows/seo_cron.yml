@@ -2,8 +2,11 @@ name: Programmatic SEO Auto-Generator
 
 on:
   schedule:
-    - cron: '0 0,12 * * *' # Runs at 00:00 & 12:00 UTC
+    - cron: '0 0,12 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   generate_and_deploy:
