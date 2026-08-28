@@ -2,36 +2,44 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://jesus-chat-bd89f.web.app/</loc>
+    <lastmod>2026-08-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://jesus-chat-bd89f.web.app/blogs.html</loc>
+    <lastmod>2026-08-28</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://jesus-chat-bd89f.web.app/prayers/finding-true-rest-when-success-feels-empty.html</loc>
     <lastmod>2026-08-28</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://jesus-chat-bd89f.web.app/prayers/finding-peace-heart-broken-hope-lost.html</loc>
     <lastmod>2026-08-28</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://jesus-chat-bd89f.web.app/prayers/surrender-control-finding-peace-leadership-empty.html</loc>
     <lastmod>2026-08-28</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://jesus-chat-bd89f.web.app/prayers/finding-gods-peace-during-panic-attacks-biblical-hope.html</loc>
     <lastmod>2026-08-28</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://jesus-chat-bd89f.web.app/prayers/prayer-for-peace-of-mind-and-clarity-in-chaos.html</loc>
+    <lastmod>2026-08-28</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 </urlset>
