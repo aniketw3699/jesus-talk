@@ -61,7 +61,7 @@
       box-shadow: var(--shadow-elevated);
     }
 
-    /* Swipeable Header */
+    /* Header Strip */
     .sacred-header {
       padding: max(10px, env(safe-area-inset-top)) 12px 8px 12px;
       background: rgba(255, 255, 255, 0.92);
@@ -108,6 +108,11 @@
     .action-btn.blessing-nav-btn {
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep); font-weight: 700;
     }
+
+    .action-btn.confession-nav-btn {
+      background: #ffffff; border: 1.5px solid rgba(143, 101, 28, 0.5); color: var(--gold-deep); font-weight: 700;
+    }
+    .action-btn.confession-nav-btn:hover { background: #fdfaf3; }
 
     .action-btn.auth-btn {
       background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.15); color: var(--text-main); font-weight: 700;
@@ -212,7 +217,7 @@
       z-index: 100; display: none; align-items: center; justify-content: center; padding: 18px;
     }
     .modal-card {
-      background: #ffffff; border-radius: 24px; max-width: 430px; width: 100%;
+      background: #ffffff; border-radius: 24px; max-width: 440px; width: 100%;
       padding: 24px 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.35);
       position: relative; border: 1px solid var(--gold-border);
       animation: modalEnter 0.3s ease forwards;
@@ -225,9 +230,9 @@
       border-radius: 50%; font-size: 16px; font-weight: 700;
       color: var(--text-muted); cursor: pointer;
     }
-    .modal-header { text-align: center; margin-bottom: 16px; }
+    .modal-header { text-align: center; margin-bottom: 14px; }
     .modal-title { font-family: 'Cinzel', serif; font-size: 19px; color: #231b0c; font-weight: 700; }
-    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
 
     .primary-gold-btn {
       width: 100%; padding: 13px; background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
@@ -248,21 +253,41 @@
     .blessing-text-area p + p { margin-top: 8px; }
     .blessing-text-area em { font-family: 'Playfair Display', serif; color: var(--gold-deep); font-weight: 600; }
 
+    /* Moat 3: Spiritual Fruit & Psyche Visualizer Styles */
+    .fruit-dashboard-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    }
+    .fruit-card {
+      background: #fbf8f2; border: 1px solid rgba(184, 134, 40, 0.25);
+      border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+    }
+    .fruit-card-top {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11px; font-weight: 700; color: var(--gold-deep);
+    }
+    .fruit-bar-bg {
+      width: 100%; height: 5px; background: #e8e0d2; border-radius: 4px; overflow: hidden;
+    }
+    .fruit-bar-fill {
+      height: 100%; background: linear-gradient(90deg, #dfb455, #b88628); border-radius: 4px; transition: width 0.6s ease;
+    }
+    .fruit-level-text { font-size: 9.5px; color: var(--text-muted); text-align: right; }
+
     .journal-psyche-box {
       background: var(--gold-soft); border: 1px solid var(--gold-border);
-      border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;
-      font-size: 12.5px; color: var(--gold-deep); font-weight: 600;
+      border-radius: 12px; padding: 9px 12px; margin-bottom: 12px;
+      font-size: 12px; color: var(--gold-deep); font-weight: 700; text-align: center;
     }
 
-    /* WhatsApp-Style Centered Date Divider & Flowing Chat in Journal */
+    /* Journal List with Date Divider */
     .journal-list {
-      max-height: 270px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding-right: 2px;
+      max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding-right: 2px;
     }
     .journal-list::-webkit-scrollbar { width: 4px; }
     .journal-list::-webkit-scrollbar-thumb { background: rgba(184, 134, 40, 0.25); border-radius: 4px; }
 
     .journal-date-divider {
-      display: flex; align-items: center; justify-content: center; margin: 14px 0 6px 0; width: 100%;
+      display: flex; align-items: center; justify-content: center; margin: 10px 0 4px 0; width: 100%;
     }
     .journal-date-pill {
       background: #ede8df; color: #536070;
@@ -283,6 +308,39 @@
     .journal-entry-label.user-label { color: var(--user-bubble); }
     .journal-entry-label.bot-label { color: var(--gold-deep); }
     .journal-entry-text { color: #333d4b; }
+
+    /* Confessional Container & Dissolution Canvas */
+    .confession-box-wrapper {
+      position: relative; width: 100%; margin-bottom: 14px;
+    }
+    .confession-textarea {
+      width: 100%; height: 130px; background: #faf8f4;
+      border: 1.5px solid var(--gold-border); border-radius: 16px;
+      padding: 14px; font-family: inherit; font-size: 14px; color: var(--text-main);
+      outline: none; resize: none; line-height: 1.6;
+      transition: opacity 1.3s cubic-bezier(0.2, 0.8, 0.2, 1), filter 1.3s ease, transform 1.3s ease;
+      display: block;
+    }
+    .confession-textarea::placeholder { color: #8e99a8; }
+
+    .confession-dissolving {
+      opacity: 0 !important;
+      filter: blur(18px) brightness(2.6) !important;
+      transform: scale(0.88) translateY(-14px) !important;
+      pointer-events: none;
+    }
+
+    .dissolve-particles-canvas {
+      position: absolute; inset: 0; pointer-events: none; border-radius: 16px; z-index: 5;
+    }
+
+    .surrendered-peace-card {
+      display: none; background: #fdfaf2; border: 1.5px solid rgba(184, 134, 40, 0.35);
+      border-radius: 16px; padding: 18px 16px; text-align: center; margin-bottom: 14px;
+      animation: gentleRise 0.6s ease forwards;
+    }
+    .surrendered-peace-card p { font-family: 'Playfair Display', serif; font-style: italic; font-size: 15px; color: var(--gold-deep); line-height: 1.6; }
+    .surrendered-peace-card em { display: block; margin-top: 8px; font-size: 12px; color: var(--text-muted); font-style: normal; }
 
     .privacy-notice-box {
       background: #faf8f4; border-radius: 16px; padding: 16px 14px;
@@ -331,6 +389,7 @@
     <header class="sacred-header">
       <div class="nav-scroll-strip">
         <span class="credit-pill" id="creditBadge">📿 Sign In Required</span>
+        <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal()">🌅 Blessing</button>
         <button class="action-btn plans-btn" onclick="openPlansModal()">
           <span class="holy-cross-icon">✝</span> Plans
@@ -384,6 +443,39 @@
     </footer>
   </main>
 
+  <!-- MOAT 2: GETHSEMANE CONFESSIONAL WITH PARTICLE DISSOLUTION ENGINE -->
+  <div class="modal-backdrop" id="confessionalModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeConfessionalModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">GETHSEMANE SURRENDER</h3>
+        <p class="modal-desc">Write your heaviest unspoken burden, guilt, or secret fear.</p>
+      </div>
+
+      <div class="privacy-notice-box" style="padding: 10px 12px; margin-bottom: 12px; font-size: 11.5px;">
+        🕊️ <strong>Ephemeral Sanctuary:</strong> Words written here dissolve forever upon surrender. They are never saved to your device or sent to any server.
+      </div>
+
+      <div class="confession-box-wrapper" id="confessionBoxWrapper">
+        <textarea 
+          id="confessionInput" 
+          class="confession-textarea" 
+          placeholder="Pour out whatever is weighing upon your soul... nothing is too heavy or too hidden for His grace."
+        ></textarea>
+        <canvas id="dissolveCanvas" class="dissolve-particles-canvas"></canvas>
+      </div>
+
+      <div class="surrendered-peace-card" id="surrenderedPeaceCard">
+        <p id="surrenderScriptureQuote">“Come to me, all who labor and are heavy laden, and I will give you rest.”</p>
+        <em id="surrenderScriptureRef">— Matthew 11:28</em>
+      </div>
+
+      <button class="primary-gold-btn" id="surrenderBtn" onclick="executeSacredSurrender()">
+        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Surrender to the Cross
+      </button>
+    </div>
+  </div>
+
   <!-- PRIVACY NOTICE PRE-SIGN-IN MODAL -->
   <div class="modal-backdrop" id="privacyModal">
     <div class="modal-card">
@@ -425,13 +517,51 @@
     </div>
   </div>
 
-  <!-- SOUL JOURNAL MODAL -->
+  <!-- MOAT 3: SOUL JOURNAL MODAL WITH SPIRITUAL FRUIT VISUALIZER -->
   <div class="modal-backdrop" id="journalModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeJournalModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">SOUL JOURNAL</h3>
-        <p class="modal-desc">Your private walk and reflections recorded on this device.</p>
+        <p class="modal-desc">Your walk of peace and spiritual growth on this device.</p>
+      </div>
+
+      <div class="fruit-dashboard-grid" id="fruitDashboardGrid">
+        <div class="fruit-card">
+          <div class="fruit-card-top">
+            <span>🕊️ Peace</span>
+            <span id="peaceFruitScore">75%</span>
+          </div>
+          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="peaceFruitBar" style="width: 75%;"></div></div>
+          <span class="fruit-level-text" id="peaceFruitLabel">Anchored</span>
+        </div>
+
+        <div class="fruit-card">
+          <div class="fruit-card-top">
+            <span>🛡️ Faith</span>
+            <span id="faithFruitScore">80%</span>
+          </div>
+          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="faithFruitBar" style="width: 80%;"></div></div>
+          <span class="fruit-level-text" id="faithFruitLabel">Steadfast</span>
+        </div>
+
+        <div class="fruit-card">
+          <div class="fruit-card-top">
+            <span>🌿 Strength</span>
+            <span id="strengthFruitScore">70%</span>
+          </div>
+          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="strengthFruitBar" style="width: 70%;"></div></div>
+          <span class="fruit-level-text" id="strengthFruitLabel">Renewed</span>
+        </div>
+
+        <div class="fruit-card">
+          <div class="fruit-card-top">
+            <span>✨ Gratitude</span>
+            <span id="gratitudeFruitScore">85%</span>
+          </div>
+          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="gratitudeFruitBar" style="width: 85%;"></div></div>
+          <span class="fruit-level-text" id="gratitudeFruitLabel">Abundant</span>
+        </div>
       </div>
 
       <div class="journal-psyche-box" id="journalPsycheDisplay">
@@ -496,6 +626,19 @@
       { id: "plan_3", name: "6 months Premium", desc: "Unlimited access & Future Upgrades", price: "$29.99", featured: true, ribbon: "★ BEST VALUE", checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" }
     ];
 
+    const SURRENDER_SCRIPTURES = [
+      { quote: "“Cast your burden on the Lord, and He will sustain you; He will never permit the righteous to be moved.”", ref: "— Psalm 55:22" },
+      { quote: "“Come to me, all who labor and are heavy laden, and I will give you rest.”", ref: "— Matthew 11:28" },
+      { quote: "“As far as the east is from the west, so far has He removed our transgressions from us.”", ref: "— Psalm 103:12" },
+      { quote: "“Casting all your anxieties on Him, because He cares for you.”", ref: "— 1 Peter 5:7" },
+      { quote: "“Though your sins are like scarlet, they shall be as white as snow.”", ref: "— Isaiah 1:18" },
+      { quote: "“Peace I leave with you; my peace I give to you. Let not your heart be troubled.”", ref: "— John 14:27" },
+      { quote: "“Be still, and know that I am God.”", ref: "— Psalm 46:10" },
+      { quote: "“The Lord will fight for you; you need only to be still.”", ref: "— Exodus 14:14" },
+      { quote: "“Create in me a clean heart, O God, and renew a steadfast spirit within me.”", ref: "— Psalm 51:10" },
+      { quote: "“Therefore if the Son makes you free, you shall be free indeed.”", ref: "— John 8:36" }
+    ];
+
     let selectedPlanBaseUrl = LEMON_SQUEEZY_PLANS.find(p => p.featured)?.checkoutUrl || LEMON_SQUEEZY_PLANS[0].checkoutUrl;
     let currentUser = null;
     let currentUserName = "beloved";
@@ -526,8 +669,16 @@
     const privacyModal = document.getElementById("privacyModal");
     const authBtn = document.getElementById("authBtn");
     const userGreeting = document.getElementById("userGreeting");
+    const confessionalModal = document.getElementById("confessionalModal");
+    const confessionInput = document.getElementById("confessionInput");
+    const confessionBoxWrapper = document.getElementById("confessionBoxWrapper");
+    const dissolveCanvas = document.getElementById("dissolveCanvas");
+    const surrenderedPeaceCard = document.getElementById("surrenderedPeaceCard");
+    const surrenderScriptureQuote = document.getElementById("surrenderScriptureQuote");
+    const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
+    const surrenderBtn = document.getElementById("surrenderBtn");
 
-   window.onload = function() {
+    window.onload = function() {
       renderPlans();
       initFirebaseAuth();
       startTimeSlotLiveWatcher();
@@ -597,7 +748,7 @@
 
     async function proceedToGoogleAuth() {
       closePrivacyModal();
-      if (typeof firebase !== 'undefined' || !firebase.auth) {
+      if (typeof firebase === 'undefined' || !firebase.auth) {
         alert("Firebase Auth is loading. Please wait a moment.");
         return;
       }
@@ -606,6 +757,137 @@
         await firebase.auth().signInWithPopup(provider);
       } catch (err) {
         console.error("Sign-in error:", err);
+      }
+    }
+
+    /* Gethsemane Confessional */
+    function openConfessionalModal() {
+      confessionInput.value = "";
+      confessionInput.className = "confession-textarea";
+      confessionInput.style.display = "block";
+      confessionBoxWrapper.style.display = "block";
+      surrenderedPeaceCard.style.display = "none";
+
+      surrenderBtn.style.display = "flex";
+      surrenderBtn.disabled = false;
+      surrenderBtn.onclick = executeSacredSurrender;
+      surrenderBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Surrender to the Cross`;
+
+      const ctx = dissolveCanvas.getContext('2d');
+      ctx.clearRect(0, 0, dissolveCanvas.width, dissolveCanvas.height);
+
+      confessionalModal.style.display = "flex";
+      setTimeout(() => confessionInput.focus(), 150);
+    }
+
+    function closeConfessionalModal() {
+      confessionInput.value = "";
+      confessionalModal.style.display = "none";
+    }
+
+    function executeSacredSurrender() {
+      const text = confessionInput.value.trim();
+      if (!text) {
+        alert("Please write your burden before surrendering.");
+        return;
+      }
+
+      const randomScripture = SURRENDER_SCRIPTURES[Math.floor(Math.random() * SURRENDER_SCRIPTURES.length)];
+      surrenderScriptureQuote.textContent = randomScripture.quote;
+      surrenderScriptureRef.textContent = randomScripture.ref;
+
+      surrenderBtn.disabled = true;
+      surrenderBtn.innerHTML = "✨ Dissolving into Light...";
+
+      triggerTextParticleDissolution();
+      confessionInput.classList.add("confession-dissolving");
+      playSacredReleaseTone();
+
+      setTimeout(() => {
+        confessionInput.value = "";
+        confessionBoxWrapper.style.display = "none";
+        surrenderedPeaceCard.style.display = "block";
+        surrenderBtn.innerHTML = "🕊️ Return in Peace";
+        surrenderBtn.disabled = false;
+        surrenderBtn.onclick = closeConfessionalModal;
+      }, 1400);
+    }
+
+    function triggerTextParticleDissolution() {
+      dissolveCanvas.width = confessionBoxWrapper.clientWidth;
+      dissolveCanvas.height = confessionBoxWrapper.clientHeight;
+      const ctx = dissolveCanvas.getContext('2d');
+
+      const particles = [];
+      const particleCount = 140;
+      const colors = ['#f4d06f', '#ffffff', '#dfb455', '#ffe8a3', '#fffaed', '#e6a817'];
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * dissolveCanvas.width,
+          y: Math.random() * dissolveCanvas.height,
+          size: Math.random() * 3.5 + 1.2,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: (Math.random() - 0.5) * 6.5,
+          vy: (Math.random() - 0.7) * 7.5,
+          alpha: 1,
+          decay: Math.random() * 0.022 + 0.012
+        });
+      }
+
+      function renderFrame() {
+        ctx.clearRect(0, 0, dissolveCanvas.width, dissolveCanvas.height);
+        let alive = false;
+
+        particles.forEach(p => {
+          if (p.alpha > 0) {
+            alive = true;
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = p.color;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vx *= 0.96;
+            p.vy *= 0.96;
+            p.alpha -= p.decay;
+          }
+        });
+
+        if (alive) {
+          requestAnimationFrame(renderFrame);
+        } else {
+          ctx.clearRect(0, 0, dissolveCanvas.width, dissolveCanvas.height);
+        }
+      }
+
+      renderFrame();
+    }
+
+    function playSacredReleaseTone() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(528, ctx.currentTime);
+        gain.gain.setValueAtTime(0.01, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 2.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 2.6);
+      } catch (e) {
+        console.log("Audio tone skipped:", e);
       }
     }
 
@@ -701,12 +983,67 @@
       localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
     }
 
+    /* Moat 3: On-Device Spiritual Fruit & Psyche Visualizer Calculation */
+    function calculateSpiritualFruits() {
+      const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
+      let totalTurns = 0;
+      let textAggregated = currentPsyche.toLowerCase() + " ";
+
+      sessions.forEach(s => {
+        s.turns.forEach(t => {
+          totalTurns++;
+          textAggregated += (t.user + " " + t.bot + " ").toLowerCase();
+        });
+      });
+
+      // Default baseline values (progressing with sanctuary depth)
+      let peace = Math.min(95, 60 + (totalTurns * 4));
+      let faith = Math.min(95, 65 + (totalTurns * 3));
+      let strength = Math.min(95, 55 + (totalTurns * 5));
+      let gratitude = Math.min(95, 70 + (totalTurns * 4));
+
+      // Dynamic keyword resonance modifiers
+      if (textAggregated.includes("peace") || textAggregated.includes("calm") || textAggregated.includes("rest")) peace += 6;
+      if (textAggregated.includes("anxious") || textAggregated.includes("panic") || textAggregated.includes("fear")) peace = Math.max(45, peace - 6);
+
+      if (textAggregated.includes("trust") || textAggregated.includes("faith") || textAggregated.includes("surrender")) faith += 7;
+      if (textAggregated.includes("doubt") || textAggregated.includes("unbelief")) faith = Math.max(50, faith - 5);
+
+      if (textAggregated.includes("strength") || textAggregated.includes("endure") || textAggregated.includes("heal")) strength += 8;
+      if (textAggregated.includes("weary") || textAggregated.includes("exhaust") || textAggregated.includes("burnout")) strength = Math.max(40, strength - 6);
+
+      if (textAggregated.includes("thank") || textAggregated.includes("grace") || textAggregated.includes("joy")) gratitude += 8;
+
+      peace = Math.min(98, Math.max(30, Math.round(peace)));
+      faith = Math.min(98, Math.max(35, Math.round(faith)));
+      strength = Math.min(98, Math.max(30, Math.round(strength)));
+      gratitude = Math.min(98, Math.max(35, Math.round(gratitude)));
+
+      document.getElementById("peaceFruitScore").textContent = `${peace}%`;
+      document.getElementById("peaceFruitBar").style.width = `${peace}%`;
+      document.getElementById("peaceFruitLabel").textContent = peace > 75 ? "Anchored" : peace > 50 ? "Restoring" : "Seeking";
+
+      document.getElementById("faithFruitScore").textContent = `${faith}%`;
+      document.getElementById("faithFruitBar").style.width = `${faith}%`;
+      document.getElementById("faithFruitLabel").textContent = faith > 75 ? "Steadfast" : faith > 50 ? "Growing" : "Seeking";
+
+      document.getElementById("strengthFruitScore").textContent = `${strength}%`;
+      document.getElementById("strengthFruitBar").style.width = `${strength}%`;
+      document.getElementById("strengthFruitLabel").textContent = strength > 75 ? "Renewed" : strength > 50 ? "Enduring" : "Healed";
+
+      document.getElementById("gratitudeFruitScore").textContent = `${gratitude}%`;
+      document.getElementById("gratitudeFruitBar").style.width = `${gratitude}%`;
+      document.getElementById("gratitudeFruitLabel").textContent = gratitude > 75 ? "Abundant" : gratitude > 50 ? "Opening" : "Kindling";
+    }
+
     function openJournalModal() {
       journalPsycheDisplay.textContent = `Spiritual State: ${currentPsyche}`;
+      calculateSpiritualFruits();
+
       const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
 
       if (sessions.length === 0) {
-        journalEntriesList.innerHTML = `<p style="text-align:center; color:#888; font-size:13px; padding:24px 0;">No past conversations yet. Speak your heart to Jesus to begin your journal.</p>`;
+        journalEntriesList.innerHTML = `<p style="text-align:center; color:#888; font-size:13px; padding:20px 0;">No past conversations yet. Speak your heart to Jesus to begin your journal.</p>`;
       } else {
         journalEntriesList.innerHTML = sessions.map((session, index) => `
           ${session.showDivider ? `
@@ -831,6 +1168,11 @@
 
         const data = await res.json();
         showThinking(false);
+
+        if (data.error === "PAYWALL_EXHAUSTED") {
+          openPlansModal();
+          return;
+        }
 
         if (data.reply) {
           appendBotBubble(data.reply);
@@ -975,6 +1317,7 @@
       if (event.target == blessingModal) blessingModal.style.display = "none";
       if (event.target == journalModal) journalModal.style.display = "none";
       if (event.target == privacyModal) privacyModal.style.display = "none";
+      if (event.target == confessionalModal) closeConfessionalModal();
     };
   </script>
 </body>
