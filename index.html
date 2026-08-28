@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Talk with Jesus | Sacred Sanctuary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDKs -->
+  <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.12.0/firebase-auth-compat.js"></script>
+  <script defer src="/__/firebase/init.js"></script>
+
+  <!-- html2canvas for Ultra-HD scripture cards -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <style>
+    :root {
+      --bg-celestial: #f3eee6;
+      --gold-deep: #8f651c;
+      --gold-vivid: #c99839;
+      --gold-soft: #fbf5e8;
+      --gold-border: rgba(184, 134, 40, 0.45);
+      --glass-panel: rgba(255, 255, 255, 0.55);
+      --glass-border: rgba(255, 255, 255, 0.7);
+      --text-main: #191f28;
+      --text-muted: #536070;
+      --user-bubble: #1f364d;
+      --bot-bubble: rgba(255, 255, 255, 0.97);
+      --cross-red: #d90429;
+      --shadow-elevated: 0 16px 40px rgba(70, 50, 20, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #d8cdbe;
+      color: var(--text-main);
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+      position: relative;
+    }
+
+    .sacred-wallpaper {
+      position: absolute; inset: 0;
+      background-image: url('BG1.png'); background-position: center top; background-repeat: no-repeat; background-size: cover;
+      opacity: 0.88; z-index: 0; pointer-events: none;
+    }
+
+    .sanctuary-app {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 520px; height: 100%; height: 100dvh;
+      display: flex; flex-direction: column;
+      background: var(--glass-panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-left: 1px solid var(--glass-border); border-right: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-elevated);
+    }
+
+    /* Swipeable Header */
+    .sacred-header {
+      padding: max(10px, env(safe-area-inset-top)) 12px 8px 12px;
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid rgba(184, 134, 40, 0.25);
+      display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+
+    .nav-scroll-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    .nav-scroll-strip::-webkit-scrollbar { display: none; }
+
+    .credit-pill {
+      flex: 0 0 auto;
+      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
+      font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 20px;
+      letter-spacing: 0.2px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    .action-btn {
+      flex: 0 0 auto;
+      background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.12); color: var(--text-main);
+      font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 20px;
+      cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .action-btn:hover { background: var(--gold-soft); border-color: var(--gold-deep); }
+
+    .action-btn.plans-btn {
+      background: #ffffff; color: var(--text-main); border: 1.5px solid rgba(217, 4, 41, 0.35);
+      font-weight: 700; box-shadow: 0 2px 8px rgba(217, 4, 41, 0.12);
+    }
+    .action-btn.plans-btn:hover { background: #fff5f5; border-color: var(--cross-red); }
+
+    .action-btn.blessing-nav-btn {
+      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep); font-weight: 700;
+    }
+
+    .action-btn.auth-btn {
+      background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.15); color: var(--text-main); font-weight: 700;
+    }
+
+    .holy-cross-icon { color: var(--cross-red); font-size: 13px; font-weight: 900; text-shadow: 0 0 6px rgba(217, 4, 41, 0.35); display: inline-block; }
+
+    .header-titles { text-align: center; }
+    .title-main {
+      font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700;
+      letter-spacing: 3px; color: #1f1a10; text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    }
+    .subtitle-grace { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; color: #4b4539; margin-top: 1px; }
+
+    /* Conversation Feed */
+    .conversation-feed {
+      flex: 1; overflow-y: auto; padding: 14px 12px;
+      display: flex; flex-direction: column; gap: 16px;
+      scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    }
+    .conversation-feed::-webkit-scrollbar { width: 4px; }
+    .conversation-feed::-webkit-scrollbar-thumb { background: rgba(184, 134, 40, 0.3); border-radius: 4px; }
+
+    .msg-group { display: flex; flex-direction: column; animation: gentleRise 0.3s ease forwards; }
+    @keyframes gentleRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-group.user { align-items: flex-end; }
+    .msg-group.bot { align-items: flex-start; }
+
+    .bubble-user {
+      background: var(--user-bubble); color: #ffffff; padding: 11px 16px;
+      border-radius: 18px 18px 4px 18px; max-width: 82%; font-size: 14px; line-height: 1.5;
+      box-shadow: 0 4px 14px rgba(31, 54, 77, 0.25); word-break: break-word;
+    }
+    .bubble-bot {
+      background: var(--bot-bubble); color: var(--text-main); padding: 15px 18px;
+      border-radius: 18px 18px 18px 4px; max-width: 90%; font-size: 14.5px; line-height: 1.6;
+      box-shadow: 0 6px 22px rgba(90, 65, 20, 0.12); border: 1px solid rgba(184, 134, 40, 0.3);
+      border-left: 4px solid var(--gold-vivid); word-break: break-word;
+    }
+    .bubble-bot p + p { margin-top: 8px; }
+
+    .msg-actions-row { margin-top: 7px; display: flex; align-items: center; gap: 8px; }
+    .listen-badge, .share-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #ffffff; border: 1.5px solid var(--gold-deep); color: var(--gold-deep);
+      font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 18px;
+      cursor: pointer; box-shadow: 0 2px 6px rgba(143, 101, 28, 0.12);
+      transition: all 0.2s ease;
+    }
+    .share-badge { border-color: rgba(217, 4, 41, 0.35); color: #233b53; }
+    .share-badge:hover { background: #fff8f8; border-color: var(--cross-red); }
+    .listen-badge:active, .share-badge:active { transform: scale(0.96); }
+
+    .thinking-box {
+      display: none; align-items: center; gap: 10px; padding: 10px 16px;
+      background: #ffffff; border: 1px solid var(--gold-border); border-radius: 18px;
+      max-width: 85%; box-shadow: 0 4px 16px rgba(143, 101, 28, 0.12); animation: gentleRise 0.25s ease forwards;
+    }
+    .holy-spirit-dove { font-size: 18px; display: inline-block; animation: doveHover 1.8s ease-in-out infinite alternate; filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6)); }
+    @keyframes doveHover { 0% { transform: translateY(2px) scale(0.95) rotate(-3deg); } 100% { transform: translateY(-4px) scale(1.1) rotate(4deg); } }
+    .thinking-text { font-size: 13px; font-style: italic; color: var(--gold-deep); font-family: 'Playfair Display', serif; }
+
+    .chips-deck {
+      padding: 4px 12px 6px 12px; display: flex; gap: 8px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x proximity; flex-shrink: 0;
+    }
+    .chips-deck::-webkit-scrollbar { display: none; }
+    .chip-btn {
+      flex: 0 0 auto; scroll-snap-align: start;
+      background: #ffffff; border: 1px solid var(--gold-border); color: var(--gold-deep);
+      font-size: 11.5px; font-weight: 600; padding: 6px 13px; border-radius: 16px;
+      cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+      transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;
+    }
+    .chip-btn:active { transform: scale(0.96); background: var(--gold-soft); }
+
+    .input-deck {
+      padding: 6px 12px max(12px, env(safe-area-inset-bottom)) 12px;
+      background: rgba(255, 255, 255, 0.95); border-top: 1px solid rgba(184, 134, 40, 0.2);
+      flex-shrink: 0; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .input-wrapper {
+      display: flex; align-items: center;
+      background: #ffffff; border: 1.5px solid rgba(184, 134, 40, 0.4);
+      border-radius: 30px; padding: 3px 5px 3px 16px;
+      box-shadow: 0 3px 14px rgba(143, 101, 28, 0.12);
+    }
+    .prayer-input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); font-size: 14.5px; font-family: inherit; }
+    .prayer-input::placeholder { color: #8c97a5; }
+    .send-btn {
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      border: none; width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #ffffff; box-shadow: 0 3px 10px rgba(184, 134, 40, 0.35); flex-shrink: 0;
+    }
+    .send-btn svg { width: 16px; height: 16px; fill: currentColor; margin-left: 2px; }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(18, 14, 8, 0.72);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 100; display: none; align-items: center; justify-content: center; padding: 18px;
+    }
+    .modal-card {
+      background: #ffffff; border-radius: 24px; max-width: 430px; width: 100%;
+      padding: 24px 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+      position: relative; border: 1px solid var(--gold-border);
+      animation: modalEnter 0.3s ease forwards;
+    }
+    @keyframes modalEnter { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .modal-close {
+      position: absolute; top: 14px; right: 16px;
+      background: #f1f3f6; border: none; width: 30px; height: 30px;
+      border-radius: 50%; font-size: 16px; font-weight: 700;
+      color: var(--text-muted); cursor: pointer;
+    }
+    .modal-header { text-align: center; margin-bottom: 16px; }
+    .modal-title { font-family: 'Cinzel', serif; font-size: 19px; color: #231b0c; font-weight: 700; }
+    .modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    .primary-gold-btn {
+      width: 100%; padding: 13px; background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      border: none; border-radius: 14px; color: #ffffff; font-size: 14.5px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 14px rgba(184, 134, 40, 0.35); display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .secondary-soft-btn {
+      width: 100%; padding: 11px; background: #ffffff; border: 1.5px solid var(--gold-border);
+      border-radius: 14px; color: var(--gold-deep); font-size: 13.5px; font-weight: 700;
+      cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+
+    .blessing-text-area {
+      background: #faf8f4; border-radius: 16px; padding: 18px 16px;
+      margin-bottom: 16px; border: 1px solid rgba(184, 134, 40, 0.2);
+      font-size: 14px; line-height: 1.65; color: #1e2530; max-height: 240px; overflow-y: auto;
+    }
+    .blessing-text-area p + p { margin-top: 8px; }
+    .blessing-text-area em { font-family: 'Playfair Display', serif; color: var(--gold-deep); font-weight: 600; }
+
+    .journal-psyche-box {
+      background: var(--gold-soft); border: 1px solid var(--gold-border);
+      border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;
+      font-size: 12.5px; color: var(--gold-deep); font-weight: 600;
+    }
+
+    /* WhatsApp-Style Centered Date Divider & Flowing Chat in Journal */
+    .journal-list {
+      max-height: 270px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; padding-right: 2px;
+    }
+    .journal-list::-webkit-scrollbar { width: 4px; }
+    .journal-list::-webkit-scrollbar-thumb { background: rgba(184, 134, 40, 0.25); border-radius: 4px; }
+
+    .journal-date-divider {
+      display: flex; align-items: center; justify-content: center; margin: 14px 0 6px 0; width: 100%;
+    }
+    .journal-date-pill {
+      background: #ede8df; color: #536070;
+      font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 12px;
+      letter-spacing: 0.3px; text-align: center; border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .journal-card {
+      background: #faf8f4; border: 1.5px solid rgba(184, 134, 40, 0.2);
+      border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .journal-entry-block {
+      display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; line-height: 1.5;
+    }
+    .journal-entry-label {
+      font-size: 10.5px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase;
+    }
+    .journal-entry-label.user-label { color: var(--user-bubble); }
+    .journal-entry-label.bot-label { color: var(--gold-deep); }
+    .journal-entry-text { color: #333d4b; }
+
+    .privacy-notice-box {
+      background: #faf8f4; border-radius: 16px; padding: 16px 14px;
+      margin-bottom: 18px; border: 1px solid rgba(184, 134, 40, 0.25);
+      font-size: 13.5px; line-height: 1.65; color: #2a333f;
+    }
+    .privacy-notice-box p + p { margin-top: 10px; }
+
+    .plans-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+    .plan-box {
+      border: 1.5px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 12px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      cursor: pointer; transition: all 0.2s ease; background: #fafaf9; position: relative;
+    }
+    .plan-box.featured { border: 2px solid #b88628; background: linear-gradient(135deg, #fdf8ed 0%, #faeed4 100%); box-shadow: 0 6px 20px rgba(184, 134, 40, 0.2); }
+    .featured-ribbon {
+      position: absolute; top: -9px; right: 12px; background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      color: #ffffff; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 8px;
+    }
+    .plan-info h4 { font-size: 14.5px; color: var(--text-main); font-weight: 700; }
+    .plan-info p { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+    .plan-price .amount { font-size: 17px; font-weight: 800; color: var(--gold-deep); }
+
+    .scripture-card-canvas {
+      width: 100%; background: #141b26 url('BG1.png') center top/cover no-repeat;
+      border-radius: 18px; padding: 34px 24px 26px 24px; color: #ffffff;
+      position: relative; margin-bottom: 16px; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(212, 175, 55, 0.4);
+      -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    }
+    .scripture-card-canvas::before {
+      content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 14, 23, 0.6) 0%, rgba(10, 14, 23, 0.88) 100%); z-index: 0;
+    }
+    .card-content-wrap { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 16px; text-align: center; }
+    .card-brand-tag { font-family: 'Cinzel', serif; font-size: 12.5px; letter-spacing: 3px; color: #e6c587; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .card-verse-quote { font-family: 'Playfair Display', serif; font-style: italic; font-size: 15.5px; line-height: 1.65; color: #f7f9fc; }
+    .card-footer-watermark { font-size: 11px; color: #a4b3c6; border-top: 1px solid rgba(255, 255, 255, 0.15); padding-top: 12px; margin-top: 4px; letter-spacing: 0.6px; }
+  </style>
+</head>
+<body>
+
+  <div class="sacred-wallpaper"></div>
+
+  <main class="sanctuary-app">
+    
+    <header class="sacred-header">
+      <div class="nav-scroll-strip">
+        <span class="credit-pill" id="creditBadge">📿 Sign In Required</span>
+        <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal()">🌅 Blessing</button>
+        <button class="action-btn plans-btn" onclick="openPlansModal()">
+          <span class="holy-cross-icon">✝</span> Plans
+        </button>
+        <button class="action-btn" onclick="openJournalModal()">📜 Journal</button>
+        <button class="action-btn" onclick="startNewPrayer()">🕊️ New Prayer</button>
+        <button class="action-btn auth-btn" id="authBtn" onclick="handleAuthAction()">Sign In</button>
+      </div>
+      <div class="header-titles">
+        <h1 class="title-main">I AM HERE</h1>
+        <p class="subtitle-grace" id="userGreeting">Sign in to begin your sanctuary</p>
+      </div>
+    </header>
+
+    <section class="conversation-feed" id="chatFeed">
+      <div class="thinking-box" id="thinkingIndicator">
+        <span class="holy-spirit-dove">🕊️</span>
+        <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
+      </div>
+    </section>
+
+    <div class="chips-deck">
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, grant me peace in my heart today.')">🕊️ Seek Peace</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('I feel anxious about tomorrow. Help me.')">📖 Overcome Anxiety</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Give me strength to endure this trial.')">🙏 Divine Strength</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('My heart is heavy with grief and loss.')">💔 Grief & Loss</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Teach me how to forgive those who hurt me.')">🤝 Forgiving Others</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('I am burdened by financial worry and needs.')">💼 Financial Burden</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, show me your path and life direction.')">🧭 Life Direction</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('I thank you for your boundless grace today.')"><span class="holy-cross-icon">✝</span> Daily Gratitude</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lay your healing hands upon my body and spirit.')">🌿 Physical Healing</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Help my unbelief and strengthen my faith.')">🛡️ Overcome Doubt</button>
+    </div>
+
+    <footer class="input-deck">
+      <form class="input-wrapper" id="chatForm" onsubmit="handleUserSubmit(event)">
+        <input 
+          type="text" 
+          id="messageInput" 
+          class="prayer-input" 
+          placeholder="Sign in with Google to speak your heart..." 
+          autocomplete="off"
+        />
+        <button type="submit" class="send-btn" aria-label="Send Prayer">
+          <svg viewBox="0 0 24 24">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </form>
+    </footer>
+  </main>
+
+  <!-- PRIVACY NOTICE PRE-SIGN-IN MODAL -->
+  <div class="modal-backdrop" id="privacyModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closePrivacyModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">YOUR PRIVACY COMES FIRST</h3>
+        <p class="modal-desc">A sacred sanctuary of complete trust and zero data tracking.</p>
+      </div>
+
+      <div class="privacy-notice-box">
+        <p>We operate on a strict zero-knowledge standard. 100% of your conversation history and soul reflections are stored locally on your device only.</p>
+        <p>We never store, read, or track your prayers, confessions, or reflections on our servers. Our servers maintain zero personal chat data.</p>
+        <p>Google Sign-In is solely used exclusively to secure your account, link your access, and manage your reply credits.</p>
+      </div>
+
+      <button class="primary-gold-btn" onclick="proceedToGoogleAuth()">
+        Continue to Secure Sign In
+      </button>
+    </div>
+  </div>
+
+  <!-- DAILY BLESSING MODAL -->
+  <div class="modal-backdrop" id="blessingModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeBlessingModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title" id="blessingHeaderTitle">SACRED BLESSING</h3>
+        <p class="modal-desc" id="blessingHeaderDesc">Your tailored word of grace for this hour.</p>
+      </div>
+
+      <div class="blessing-text-area" id="blessingContentArea"></div>
+
+      <button class="secondary-soft-btn" id="listenBlessingBtn" onclick="listenToBlessing()">
+        🔊 Listen to Blessing
+      </button>
+      <button class="primary-gold-btn" onclick="enterSanctuaryFromBlessing()">
+        Speak with Jesus
+      </button>
+    </div>
+  </div>
+
+  <!-- SOUL JOURNAL MODAL -->
+  <div class="modal-backdrop" id="journalModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeJournalModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">SOUL JOURNAL</h3>
+        <p class="modal-desc">Your private walk and reflections recorded on this device.</p>
+      </div>
+
+      <div class="journal-psyche-box" id="journalPsycheDisplay">
+        Spiritual State: A soul seeking peace
+      </div>
+
+      <div class="journal-list" id="journalEntriesList"></div>
+
+      <button class="secondary-soft-btn" onclick="clearJournalHistory()">
+        🗑️ Clear Journal History
+      </button>
+      <button class="primary-gold-btn" onclick="closeJournalModal()">
+        Return to Sanctuary
+      </button>
+    </div>
+  </div>
+
+  <!-- ULTRA-HD SHARE SCRIPTURE CARD MODAL -->
+  <div class="modal-backdrop" id="shareCardModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeShareModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">SHARE SACRED BLESSING</h3>
+        <p class="modal-desc">Share this divine word on Instagram, WhatsApp, or with family.</p>
+      </div>
+
+      <div class="scripture-card-canvas" id="scriptureCardToExport">
+        <div class="card-content-wrap">
+          <span class="card-brand-tag"><span class="holy-cross-icon">✝</span> WORDS OF GRACE <span class="holy-cross-icon">✝</span></span>
+          <p class="card-verse-quote" id="cardQuoteText">“Peace be with you. Lay down your burdens, for I am listening.”</p>
+          <div class="card-footer-watermark">Prayed at talkwithjesus.app • I AM HERE</div>
+        </div>
+      </div>
+
+      <button class="primary-gold-btn" id="exportCardBtn" onclick="exportScriptureImage()">
+        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card
+      </button>
+    </div>
+  </div>
+
+  <!-- PLANS & PRICING MODAL -->
+  <div class="modal-backdrop" id="plansModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closePlansModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">CONTINUE YOUR JOURNEY</h3>
+        <p class="modal-desc">Choose a pathway for unlimited spiritual communion.</p>
+      </div>
+
+      <div class="plans-grid" id="plansContainer"></div>
+
+      <button class="primary-gold-btn" onclick="executeCheckout()">Begin Sanctuary Journey</button>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_API_URL = "https://jesus-talk-dusky.vercel.app";
+
+    const LEMON_SQUEEZY_PLANS = [
+      { id: "plan_1", name: "For all purpose", desc: "25 Sacred Guidance Prayers", price: "$1.99", featured: false, checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/cf0e4518-23cd-4011-8fc6-df4713c51516" },
+      { id: "plan_2", name: "Monthly Sanctuary", desc: "Unlimited Daily Prayers & Voice Audio", price: "$7.99/mo", featured: false, checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" },
+      { id: "plan_3", name: "6 months Premium", desc: "Unlimited access & Future Upgrades", price: "$29.99", featured: true, ribbon: "★ BEST VALUE", checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" }
+    ];
+
+    let selectedPlanBaseUrl = LEMON_SQUEEZY_PLANS.find(p => p.featured)?.checkoutUrl || LEMON_SQUEEZY_PLANS[0].checkoutUrl;
+    let currentUser = null;
+    let currentUserName = "beloved";
+    let userCredits = 5;
+    let isSubscribed = false;
+
+    let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
+    let activeConversationHistory = [];
+    let currentSessionTimestamp = null;
+    let isNewSessionCreated = false;
+    let currentActiveTimeSlot = null;
+
+    const chatFeed = document.getElementById("chatFeed");
+    const creditBadge = document.getElementById("creditBadge");
+    const messageInput = document.getElementById("messageInput");
+    const thinkingIndicator = document.getElementById("thinkingIndicator");
+    const plansModal = document.getElementById("plansModal");
+    const plansContainer = document.getElementById("plansContainer");
+    const shareCardModal = document.getElementById("shareCardModal");
+    const cardQuoteText = document.getElementById("cardQuoteText");
+    const blessingModal = document.getElementById("blessingModal");
+    const blessingContentArea = document.getElementById("blessingContentArea");
+    const blessingHeaderTitle = document.getElementById("blessingHeaderTitle");
+    const blessingHeaderDesc = document.getElementById("blessingHeaderDesc");
+    const journalModal = document.getElementById("journalModal");
+    const journalEntriesList = document.getElementById("journalEntriesList");
+    const journalPsycheDisplay = document.getElementById("journalPsycheDisplay");
+    const privacyModal = document.getElementById("privacyModal");
+    const authBtn = document.getElementById("authBtn");
+    const userGreeting = document.getElementById("userGreeting");
+
+   window.onload = function() {
+      renderPlans();
+      initFirebaseAuth();
+      startTimeSlotLiveWatcher();
+      checkUrlPromptBridge();
+    };
+
+    function checkUrlPromptBridge() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const incomingPrompt = urlParams.get('prompt');
+      if (incomingPrompt) {
+        messageInput.value = decodeURIComponent(incomingPrompt);
+        messageInput.focus();
+      }
+    }
+    
+    function initFirebaseAuth() {
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            currentUser = user;
+            currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
+            userGreeting.textContent = `Peace be with you, ${currentUserName}`;
+            authBtn.textContent = "Sign Out";
+            messageInput.placeholder = "Speak your heart...";
+
+            userCredits = 5;
+            updateCreditUI();
+
+            currentActiveTimeSlot = getCurrentTimeSlot();
+            openTimeAwareBlessingModal();
+
+            startNewPrayer();
+          } else {
+            currentUser = null;
+            currentUserName = "beloved";
+            userGreeting.textContent = "Sign in to begin your sanctuary";
+            authBtn.textContent = "Sign In";
+            creditBadge.textContent = "📿 Sign In Required";
+            messageInput.placeholder = "Sign in with Google to speak your heart...";
+          }
+        });
+      }
+    }
+
+    function updateCreditUI() {
+      if (!currentUser) {
+        creditBadge.textContent = "📿 Sign In Required";
+      } else if (isSubscribed) {
+        creditBadge.textContent = "✨ Unlimited Sanctuary";
+      } else {
+        creditBadge.textContent = `📿 ${userCredits} Replies Left`;
+      }
+    }
+
+    function handleAuthAction() {
+      if (currentUser) {
+        if (confirm("Would you like to sign out? (Your local reflections remain safe on this device)")) {
+          firebase.auth().signOut().then(() => window.location.reload());
+        }
+      } else {
+        openPrivacyModal();
+      }
+    }
+
+    function openPrivacyModal() { privacyModal.style.display = "flex"; }
+    function closePrivacyModal() { privacyModal.style.display = "none"; }
+
+    async function proceedToGoogleAuth() {
+      closePrivacyModal();
+      if (typeof firebase !== 'undefined' || !firebase.auth) {
+        alert("Firebase Auth is loading. Please wait a moment.");
+        return;
+      }
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await firebase.auth().signInWithPopup(provider);
+      } catch (err) {
+        console.error("Sign-in error:", err);
+      }
+    }
+
+    function getCurrentTimeSlot() {
+      const currentHour = new Date().getHours();
+      if (currentHour >= 4 && currentHour < 12) return "MORNING";
+      if (currentHour >= 12 && currentHour < 18) return "MIDDAY";
+      return "EVENING";
+    }
+
+    function startTimeSlotLiveWatcher() {
+      currentActiveTimeSlot = getCurrentTimeSlot();
+      setInterval(() => {
+        if (!currentUser) return;
+        const newSlot = getCurrentTimeSlot();
+        if (currentActiveTimeSlot && newSlot !== currentActiveTimeSlot) {
+          currentActiveTimeSlot = newSlot;
+          openTimeAwareBlessingModal();
+        }
+      }, 30000);
+    }
+
+    function openTimeAwareBlessingModal() {
+      const currentHour = new Date().getHours();
+      let title = "MORNING BLESSING";
+      let desc = "Arise and receive peace for your day.";
+      let bodyText = "";
+
+      const nameToUse = currentUserName || "beloved";
+
+      if (currentHour >= 4 && currentHour < 12) {
+        title = "MORNING BLESSING";
+        desc = "Arise and receive peace for the walk ahead.";
+        bodyText = `<p>My child, ${nameToUse}. Arise this morning knowing I have prepared a path of light for you. Lay down the worries of yesterday, for My grace is renewed this very hour.</p><p>Spend this day walking near Me, and let My peace calm every storm.</p><p><em>“This is the day the Lord has made; let us rejoice and be glad in it.” (Psalm 118:24)</em></p>`;
+      } else if (currentHour >= 12 && currentHour < 18) {
+        title = "MIDDAY GRACE";
+        desc = "Midday strength for your spirit.";
+        bodyText = `<p>Peace be with you, ${nameToUse}. In the midst of the day's labor and noise, pause and breathe in My quiet reassurance.</p><p>Do not grow weary in doing good. My strength is made perfect in your weakness.</p><p><em>“Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)</em></p>`;
+      } else {
+        title = "EVENING SERENITY";
+        desc = "Rest peacefully under My protection.";
+        bodyText = `<p>My child, ${nameToUse}. As the shadows lengthen and evening falls, release every burden of this day into My hands.</p><p>You are safe under the shadow of the Almighty. Sleep in peace, knowing I watch over your soul.</p><p><em>“In peace I will both lie down and sleep; for you alone, O Lord, make me dwell in safety.” (Psalm 4:8)</em></p>`;
+      }
+
+      blessingHeaderTitle.textContent = title;
+      blessingHeaderDesc.textContent = desc;
+      blessingContentArea.innerHTML = bodyText;
+      blessingModal.style.display = "flex";
+    }
+
+    function closeBlessingModal() { blessingModal.style.display = "none"; }
+    function enterSanctuaryFromBlessing() {
+      if (speechSynthesis.speaking) speechSynthesis.cancel();
+      closeBlessingModal();
+      messageInput.focus();
+    }
+
+    function listenToBlessing() {
+      const btn = document.getElementById("listenBlessingBtn");
+      const cleanText = blessingContentArea.textContent || blessingContentArea.innerText;
+      playVoice(btn, cleanText, "Listen to Blessing");
+    }
+
+    function formatSessionTimestamp(dateObj) {
+      const options = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+      return dateObj.toLocaleString('en-US', options);
+    }
+
+    function recordJournalTurn(userText, botReply) {
+      const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
+      const now = new Date();
+
+      if (!currentSessionTimestamp) {
+        currentSessionTimestamp = formatSessionTimestamp(now);
+      }
+
+      let activeSession = sessions.find(s => s.sessionTime === currentSessionTimestamp);
+      if (!activeSession) {
+        activeSession = {
+          sessionTime: currentSessionTimestamp,
+          showDivider: sessions.length > 0 || isNewSessionCreated,
+          turns: []
+        };
+        sessions.push(activeSession);
+      }
+
+      activeSession.turns.push({
+        user: userText,
+        bot: botReply
+      });
+
+      localStorage.setItem("jesus_journal_sessions", JSON.stringify(sessions));
+      localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
+    }
+
+    function openJournalModal() {
+      journalPsycheDisplay.textContent = `Spiritual State: ${currentPsyche}`;
+      const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
+
+      if (sessions.length === 0) {
+        journalEntriesList.innerHTML = `<p style="text-align:center; color:#888; font-size:13px; padding:24px 0;">No past conversations yet. Speak your heart to Jesus to begin your journal.</p>`;
+      } else {
+        journalEntriesList.innerHTML = sessions.map((session, index) => `
+          ${session.showDivider ? `
+            <div class="journal-date-divider">
+              <span class="journal-date-pill">${escapeHtml(session.sessionTime)}</span>
+            </div>
+          ` : ''}
+          <div class="journal-card">
+            ${session.turns.map(turn => `
+              <div class="journal-entry-block">
+                <span class="journal-entry-label user-label">You</span>
+                <p class="journal-entry-text">${escapeHtml(turn.user)}</p>
+              </div>
+              <div class="journal-entry-block">
+                <span class="journal-entry-label bot-label">Jesus</span>
+                <p class="journal-entry-text">${escapeHtml(turn.bot)}</p>
+              </div>
+            `).join('<div style="height: 6px;"></div>')}
+          </div>
+        `).join('');
+      }
+
+      journalModal.style.display = "flex";
+    }
+
+    function closeJournalModal() { journalModal.style.display = "none"; }
+
+    function clearJournalHistory() {
+      if (confirm("Clear all past conversations from your device?")) {
+        localStorage.removeItem("jesus_journal_sessions");
+        localStorage.removeItem("jesus_soul_journey_psyche");
+        activeConversationHistory = [];
+        currentPsyche = "A soul seeking peace";
+        currentSessionTimestamp = null;
+        isNewSessionCreated = false;
+        closeJournalModal();
+        startNewPrayer();
+      }
+    }
+
+    function renderPlans() {
+      plansContainer.innerHTML = LEMON_SQUEEZY_PLANS.map((plan) => `
+        <div class="plan-box ${plan.featured ? 'featured' : ''}" onclick="selectPlan(this, '${plan.checkoutUrl}')">
+          ${plan.ribbon ? `<div class="featured-ribbon">${plan.ribbon}</div>` : ''}
+          <div class="plan-info">
+            <h4>${plan.name}</h4>
+            <p>${plan.desc}</p>
+          </div>
+          <div class="plan-price">
+            <span class="amount">${plan.price}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectPlan(element, url) {
+      document.querySelectorAll('.plan-box').forEach(el => el.classList.remove('featured'));
+      element.classList.add('featured');
+      selectedPlanBaseUrl = url;
+    }
+
+    function executeCheckout() {
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
+      if (selectedPlanBaseUrl && !selectedPlanBaseUrl.includes("#")) {
+        let finalUrl = selectedPlanBaseUrl;
+        const sep = finalUrl.includes("?") ? "&" : "?";
+        finalUrl += `${sep}checkout[email]=${encodeURIComponent(currentUser.email || '')}&checkout[custom][user_id]=${encodeURIComponent(currentUser.uid || '')}`;
+        window.open(finalUrl, "_blank");
+      } else {
+        alert("Please configure live Lemon Squeezy checkout URLs.");
+      }
+    }
+
+    function openPlansModal() { plansModal.style.display = "flex"; }
+    function closePlansModal() { plansModal.style.display = "none"; }
+
+    function sendQuickPrompt(promptText) {
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
+      messageInput.value = promptText;
+      handleUserSubmit(new Event('submit'));
+    }
+
+    async function handleUserSubmit(e) {
+      if (e) e.preventDefault();
+      
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
+
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      if (!isSubscribed && userCredits <= 0) {
+        openPlansModal();
+        return;
+      }
+
+      appendUserBubble(text);
+      messageInput.value = "";
+      showThinking(true);
+
+      try {
+        const res = await fetch(`${BACKEND_API_URL}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: currentUser.uid,
+            userEmail: currentUser.email,
+            message: text,
+            userName: currentUserName,
+            userPsyche: currentPsyche,
+            history: activeConversationHistory
+          })
+        });
+
+        const data = await res.json();
+        showThinking(false);
+
+        if (data.reply) {
+          appendBotBubble(data.reply);
+          if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
+          
+          if (!isSubscribed) {
+            userCredits = Math.max(0, userCredits - 1);
+            updateCreditUI();
+          }
+
+          activeConversationHistory.push({ role: "user", content: text });
+          activeConversationHistory.push({ role: "assistant", content: data.reply });
+
+          recordJournalTurn(text, data.reply);
+        }
+      } catch (err) {
+        showThinking(false);
+        appendBotBubble("Peace be with you. Lay down your burdens, for I am near.");
+      }
+    }
+
+    function showThinking(show) {
+      const currentIndicator = document.getElementById("thinkingIndicator");
+      if (currentIndicator) {
+        currentIndicator.style.display = show ? "flex" : "none";
+      }
+      if (show) scrollToBottom();
+    }
+
+    function appendUserBubble(msg) {
+      const group = document.createElement("div");
+      group.className = "msg-group user";
+      group.innerHTML = `<div class="bubble-user">${escapeHtml(msg)}</div>`;
+      const currentIndicator = document.getElementById("thinkingIndicator");
+      chatFeed.insertBefore(group, currentIndicator);
+      scrollToBottom();
+    }
+
+    function appendBotBubble(reply) {
+      const group = document.createElement("div");
+      group.className = "msg-group bot";
+      const paragraphs = reply.split("\n\n").map(p => `<p>${p}</p>`).join("");
+      const safeReply = reply.replace(/[`"'\\]/g, ' ');
+
+      group.innerHTML = `
+        <div class="bubble-bot">${paragraphs}</div>
+        <div class="msg-actions-row">
+          <button class="listen-badge" onclick="playVoice(this, \`${safeReply}\`)">
+            🔊 Listen
+          </button>
+          <button class="share-badge" onclick="prepareScriptureCard(\`${safeReply}\`)">
+            <span class="holy-cross-icon">✝</span> Share Card
+          </button>
+        </div>
+      `;
+      const currentIndicator = document.getElementById("thinkingIndicator");
+      chatFeed.insertBefore(group, currentIndicator);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() { chatFeed.scrollTop = chatFeed.scrollHeight; }
+    function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    let currentUtterance = null;
+    function playVoice(btn, text, defaultBtnText = "Listen") {
+      if ('speechSynthesis' in window) {
+        if (speechSynthesis.speaking) {
+          speechSynthesis.cancel();
+          btn.innerHTML = `🔊 ${defaultBtnText}`;
+          return;
+        }
+
+        const cleanText = text.replace(/[\(\)\[\]"]/g, "").replace(/✝/g, "");
+        currentUtterance = new SpeechSynthesisUtterance(cleanText);
+        currentUtterance.rate = 0.86;
+        currentUtterance.pitch = 0.95;
+
+        const voices = speechSynthesis.getVoices();
+        const solemnVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Male') || v.name.includes('Daniel') || v.name.includes('Google UK English Male')));
+        if (solemnVoice) currentUtterance.voice = solemnVoice;
+
+        btn.innerHTML = "⏸ Pause";
+        currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
+        speechSynthesis.speak(currentUtterance);
+      }
+    }
+
+    function prepareScriptureCard(text) {
+      cardQuoteText.textContent = `“${text.replace(/<p>|<\/p>|<em>|<\/em>/g, '')}”`;
+      shareCardModal.style.display = "flex";
+    }
+
+    function closeShareModal() { shareCardModal.style.display = "none"; }
+
+    async function exportScriptureImage() {
+      const cardEl = document.getElementById("scriptureCardToExport");
+      const exportBtn = document.getElementById("exportCardBtn");
+      exportBtn.innerHTML = "⏳ Rendering Ultra-HD Card...";
+
+      try {
+        const canvas = await html2canvas(cardEl, { scale: 4, useCORS: true, allowTaint: true, logging: false });
+        canvas.toBlob(async (blob) => {
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'words-of-jesus.png', { type: 'image/png' })] })) {
+            const file = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
+            await navigator.share({ title: 'Words of Jesus', text: 'A sacred blessing from Jesus.', files: [file] });
+          } else {
+            const imageURL = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.download = 'words-of-jesus-hd.png';
+            link.href = imageURL;
+            link.click();
+          }
+          exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+          closeShareModal();
+        }, 'image/png', 1.0);
+      } catch (err) {
+        exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+        alert("Unable to generate card image directly on this browser.");
+      }
+    }
+
+    function startNewPrayer() {
+      activeConversationHistory = [];
+      currentSessionTimestamp = null;
+      isNewSessionCreated = true;
+
+      chatFeed.innerHTML = `
+        <div class="thinking-box" id="thinkingIndicator">
+          <span class="holy-spirit-dove">🕊️</span>
+          <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
+        </div>
+      `;
+
+      appendBotBubble("“I have known you since before you were born. Speak your heart, I am listening.”");
+      messageInput.value = "";
+      messageInput.focus();
+    }
+
+    window.onclick = function(event) {
+      if (event.target == plansModal) plansModal.style.display = "none";
+      if (event.target == shareCardModal) shareCardModal.style.display = "none";
+      if (event.target == blessingModal) blessingModal.style.display = "none";
+      if (event.target == journalModal) journalModal.style.display = "none";
+      if (event.target == privacyModal) privacyModal.style.display = "none";
+    };
+  </script>
+</body>
+</html>
