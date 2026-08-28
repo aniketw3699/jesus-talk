@@ -83,13 +83,11 @@ TOPIC_POOL = [
 ]
 
 def get_best_available_model(groq_client):
-    """Auto-detects and prioritizes active long-form LLMs available on your key."""
     try:
         models_list = groq_client.models.list()
         active_models = [m.id for m in models_list.data if getattr(m, 'active', True)]
         print(f"Active Groq models detected: {active_models}")
 
-        # Prioritize high-capacity models from your active list
         preferred_order = [
             "openai/gpt-oss-120b",
             "qwen/qwen3.8-27b",
@@ -105,7 +103,6 @@ def get_best_available_model(groq_client):
                 print(f"Selected model: {candidate}")
                 return candidate
 
-        # Exclude compound routers, guards, and audio models
         for m_id in active_models:
             m_lower = m_id.lower()
             if not any(x in m_lower for x in ["whisper", "guard", "compound", "orpheus"]):
@@ -115,6 +112,32 @@ def get_best_available_model(groq_client):
         print(f"Model detection note: {err}")
 
     return "openai/gpt-oss-120b"
+
+def load_published_slugs():
+    if os.path.exists(SLUGS_FILE):
+        try:
+            with open(SLUGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_published_slugs(slugs):
+    with open(SLUGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(slugs, f, indent=2)
+
+def select_next_topic(published):
+    for topic in TOPIC_POOL:
+        if topic["slug"] not in published:
+            return topic
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    base = TOPIC_POOL[len(published) % len(TOPIC_POOL)]
+    return {
+        "keyword": f"{base['keyword']} (Spiritual Reflection {date_str})",
+        "slug": f"{base['slug']}-{datetime.now().strftime('%m%d%H%M')}",
+        "category": base["category"],
+        "primary_verse": base["primary_verse"]
+    }
 
 def generate_full_article(topic):
     selected_model = get_best_available_model(client)
@@ -186,7 +209,7 @@ Return STRICTLY raw valid JSON without markdown wrapping. Format:
     response = client.chat.completions.create(
         model=selected_model,
         messages=[
-            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist. You output thorough, compassionate, 1200+ word guides rich in biblical exegesis formatted strictly in valid JSON."},
+            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
