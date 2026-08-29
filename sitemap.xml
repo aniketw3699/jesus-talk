@@ -49,3 +49,9 @@
     <priority>0.8</priority>
   </url>
 </urlset>
+<url>
+    <loc>https://jesus-chat-bd89f.web.app/bible.html</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>

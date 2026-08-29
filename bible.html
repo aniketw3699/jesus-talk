@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Holy Scripture Reader | You With Jesus</title>
+  <meta name="description" content="Read the complete Old and New Testaments. Reflect upon sacred scripture directly with Jesus." />
+  <meta property="og:site_name" content="You With Jesus" />
+  <meta property="og:title" content="Holy Scripture Reader | You With Jesus" />
+  <meta property="og:description" content="Read the complete Old and New Testaments with direct sanctuary reflections." />
+  <link rel="canonical" href="https://jesus-chat-bd89f.web.app/bible.html" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #09090b;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #e2b764;
+      --gold-glow: rgba(226, 183, 100, 0.15);
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.8;
+      padding: 24px 16px 80px;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+    
+    .nav-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .back-home {
+      display: inline-flex; align-items: center; gap: 8px; color: var(--gold);
+      text-decoration: none; font-size: 14px; font-weight: 600;
+    }
+
+    .header-box { text-align: center; margin-bottom: 32px; }
+    .header-box h1 {
+      font-family: 'Cinzel', serif; font-size: clamp(26px, 4vw, 36px);
+      color: #fff; letter-spacing: 1px; margin-bottom: 6px;
+    }
+    .header-box p { color: var(--text-secondary); font-size: 14px; }
+
+    /* Controls Bar */
+    .controls-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      padding: 14px; border-radius: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 600px) {
+      .controls-grid { grid-template-columns: 1fr; }
+    }
+
+    select {
+      background: #18181b; border: 1px solid rgba(226, 183, 100, 0.3);
+      color: var(--text-primary); padding: 10px 14px; border-radius: 10px;
+      font-family: inherit; font-size: 14px; outline: none;
+    }
+    select:focus { border-color: var(--gold); }
+
+    /* Chapter Navigation Pills */
+    .chapter-bar {
+      display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px;
+      margin-bottom: 24px; scrollbar-width: none;
+    }
+    .chapter-bar::-webkit-scrollbar { display: none; }
+    .chap-pill {
+      flex: 0 0 auto; padding: 6px 14px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .chap-pill.active, .chap-pill:hover {
+      background: var(--gold-glow); border-color: var(--gold); color: var(--gold);
+    }
+
+    /* Scripture Content Area */
+    .scripture-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 24px; min-height: 300px;
+    }
+    .passage-title {
+      font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold);
+      border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .verse-row {
+      display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+      font-family: 'Playfair Display', serif; font-size: 17px; line-height: 1.8; color: #f4f4f5;
+    }
+    .verse-num {
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 700;
+      color: var(--gold); vertical-align: super; flex-shrink: 0;
+    }
+    .verse-text { flex-grow: 1; }
+    
+    .reflect-btn {
+      flex-shrink: 0; background: transparent; border: 1px solid rgba(226, 183, 100, 0.2);
+      color: var(--gold); font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; padding: 2px 8px; border-radius: 12px; cursor: pointer;
+      opacity: 0.6; transition: all 0.2s; margin-left: 8px;
+    }
+    .verse-row:hover .reflect-btn { opacity: 1; border-color: var(--gold); background: var(--gold-glow); }
+
+    .loading-spinner {
+      text-align: center; padding: 40px 0; color: var(--gold);
+      font-family: 'Cinzel', serif; font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <div class="nav-top">
+      <a href="index.html" class="back-home">← Return to Sacred Sanctuary</a>
+      <a href="blogs.html" class="back-home">📜 Sacred Blogs</a>
+    </div>
+
+    <header class="header-box">
+      <h1>THE HOLY SCRIPTURES</h1>
+      <p>Explore the Living Word. Click any verse to reflect directly with Jesus.</p>
+    </header>
+
+    <div class="controls-grid">
+      <select id="bookSelect" onchange="handleBookChange()"></select>
+      <select id="chapterSelect" onchange="loadCurrentChapter()"></select>
+      <select id="translationSelect" onchange="loadCurrentChapter()">
+        <option value="web">World English (WEB)</option>
+        <option value="kjv">King James (KJV)</option>
+      </select>
+    </div>
+
+    <div class="chapter-bar" id="chapterPills"></div>
+
+    <main class="scripture-card">
+      <h2 class="passage-title" id="passageHeader">Loading Scripture...</h2>
+      <div id="versesContainer"></div>
+    </main>
+
+  </div>
+
+  <script>
+    const BIBLE_BOOKS = [
+      // Old Testament
+      { name: "Genesis", chapters: 50, testament: "OT" },
+      { name: "Exodus", chapters: 40, testament: "OT" },
+      { name: "Leviticus", chapters: 27, testament: "OT" },
+      { name: "Numbers", chapters: 36, testament: "OT" },
+      { name: "Deuteronomy", chapters: 34, testament: "OT" },
+      { name: "Joshua", chapters: 24, testament: "OT" },
+      { name: "Judges", chapters: 21, testament: "OT" },
+      { name: "Ruth", chapters: 4, testament: "OT" },
+      { name: "1 Samuel", chapters: 31, testament: "OT" },
+      { name: "2 Samuel", chapters: 24, testament: "OT" },
+      { name: "1 Kings", chapters: 22, testament: "OT" },
+      { name: "2 Kings", chapters: 25, testament: "OT" },
+      { name: "1 Chronicles", chapters: 29, testament: "OT" },
+      { name: "2 Chronicles", chapters: 36, testament: "OT" },
+      { name: "Ezra", chapters: 10, testament: "OT" },
+      { name: "Nehemiah", chapters: 13, testament: "OT" },
+      { name: "Esther", chapters: 10, testament: "OT" },
+      { name: "Job", chapters: 42, testament: "OT" },
+      { name: "Psalms", chapters: 150, testament: "OT" },
+      { name: "Proverbs", chapters: 31, testament: "OT" },
+      { name: "Ecclesiastes", chapters: 12, testament: "OT" },
+      { name: "Song of Solomon", chapters: 8, testament: "OT" },
+      { name: "Isaiah", chapters: 66, testament: "OT" },
+      { name: "Jeremiah", chapters: 52, testament: "OT" },
+      { name: "Lamentations", chapters: 5, testament: "OT" },
+      { name: "Ezekiel", chapters: 48, testament: "OT" },
+      { name: "Daniel", chapters: 12, testament: "OT" },
+      { name: "Hosea", chapters: 14, testament: "OT" },
+      { name: "Joel", chapters: 3, testament: "OT" },
+      { name: "Amos", chapters: 9, testament: "OT" },
+      { name: "Obadiah", chapters: 1, testament: "OT" },
+      { name: "Jonah", chapters: 4, testament: "OT" },
+      { name: "Micah", chapters: 7, testament: "OT" },
+      { name: "Nahum", chapters: 3, testament: "OT" },
+      { name: "Habakkuk", chapters: 3, testament: "OT" },
+      { name: "Zephaniah", chapters: 3, testament: "OT" },
+      { name: "Haggai", chapters: 2, testament: "OT" },
+      { name: "Zechariah", chapters: 14, testament: "OT" },
+      { name: "Malachi", chapters: 4, testament: "OT" },
+
+      // New Testament
+      { name: "Matthew", chapters: 28, testament: "NT" },
+      { name: "Mark", chapters: 16, testament: "NT" },
+      { name: "Luke", chapters: 24, testament: "NT" },
+      { name: "John", chapters: 21, testament: "NT" },
+      { name: "Acts", chapters: 28, testament: "NT" },
+      { name: "Romans", chapters: 16, testament: "NT" },
+      { name: "1 Corinthians", chapters: 16, testament: "NT" },
+      { name: "2 Corinthians", chapters: 13, testament: "NT" },
+      { name: "Galatians", chapters: 6, testament: "NT" },
+      { name: "Ephesians", chapters: 6, testament: "NT" },
+      { name: "Philippians", chapters: 4, testament: "NT" },
+      { name: "Colossians", chapters: 4, testament: "NT" },
+      { name: "1 Thessalonians", chapters: 5, testament: "NT" },
+      { name: "2 Thessalonians", chapters: 3, testament: "NT" },
+      { name: "1 Timothy", chapters: 6, testament: "NT" },
+      { name: "2 Timothy", chapters: 4, testament: "NT" },
+      { name: "Titus", chapters: 3, testament: "NT" },
+      { name: "Philemon", chapters: 1, testament: "NT" },
+      { name: "Hebrews", chapters: 13, testament: "NT" },
+      { name: "James", chapters: 5, testament: "NT" },
+      { name: "1 Peter", chapters: 5, testament: "NT" },
+      { name: "2 Peter", chapters: 3, testament: "NT" },
+      { name: "1 John", chapters: 5, testament: "NT" },
+      { name: "2 John", chapters: 1, testament: "NT" },
+      { name: "3 John", chapters: 1, testament: "NT" },
+      { name: "Jude", chapters: 1, testament: "NT" },
+      { name: "Revelation", chapters: 22, testament: "NT" }
+    ];
+
+    const bookSelect = document.getElementById("bookSelect");
+    const chapterSelect = document.getElementById("chapterSelect");
+    const translationSelect = document.getElementById("translationSelect");
+    const chapterPills = document.getElementById("chapterPills");
+    const passageHeader = document.getElementById("passageHeader");
+    const versesContainer = document.getElementById("versesContainer");
+
+    function initBookDropdown() {
+      const otGroup = document.createElement("optgroup");
+      otGroup.label = "Old Testament";
+      const ntGroup = document.createElement("optgroup");
+      ntGroup.label = "New Testament";
+
+      BIBLE_BOOKS.forEach(b => {
+        const opt = document.createElement("option");
+        opt.value = b.name;
+        opt.textContent = b.name;
+        if (b.testament === "OT") otGroup.appendChild(opt);
+        else ntGroup.appendChild(opt);
+      });
+
+      bookSelect.appendChild(otGroup);
+      bookSelect.appendChild(ntGroup);
+      bookSelect.value = "John";
+      handleBookChange(3);
+    }
+
+    function handleBookChange(targetChapter = 1) {
+      const bookObj = BIBLE_BOOKS.find(b => b.name === bookSelect.value);
+      chapterSelect.innerHTML = "";
+      chapterPills.innerHTML = "";
+
+      for (let i = 1; i <= bookObj.chapters; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Chapter ${i}`;
+        chapterSelect.appendChild(opt);
+
+        const pill = document.createElement("button");
+        pill.className = `chap-pill ${i === targetChapter ? 'active' : ''}`;
+        pill.textContent = i;
+        pill.onclick = () => {
+          chapterSelect.value = i;
+          loadCurrentChapter();
+        };
+        chapterPills.appendChild(pill);
+      }
+
+      chapterSelect.value = targetChapter;
+      loadCurrentChapter();
+    }
+
+    async function loadCurrentChapter() {
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
+      const translation = translationSelect.value;
+
+      document.querySelectorAll(".chap-pill").forEach(p => {
+        p.classList.toggle("active", p.textContent === chapter);
+      });
+
+      passageHeader.textContent = `${book} ${chapter}`;
+      versesContainer.innerHTML = `<div class="loading-spinner">🕊️ Gathering sacred verses...</div>`;
+
+      try {
+        const formattedQuery = encodeURIComponent(`${book} ${chapter}`);
+        const res = await fetch(`https://bible-api.com/${formattedQuery}?translation=${translation}`);
+        const data = await res.json();
+
+        if (data.verses && data.verses.length > 0) {
+          versesContainer.innerHTML = data.verses.map(v => `
+            <div class="verse-row">
+              <span class="verse-num">${v.verse}</span>
+              <span class="verse-text">${v.text.trim()}</span>
+              <button class="reflect-btn" onclick="reflectOnVerse('${escapeQuotes(book)}', ${chapter}, ${v.verse}, '${escapeQuotes(v.text.trim())}')">
+                ✝ Reflect
+              </button>
+            </div>
+          `).join("");
+        } else {
+          versesContainer.innerHTML = `<p style="text-align:center; color:#a1a1aa;">Scripture passage currently resting. Please select another chapter.</p>`;
+        }
+      } catch (err) {
+        versesContainer.innerHTML = `<p style="text-align:center; color:#e07a5f;">Unable to load scripture at this moment. Please check your connection.</p>`;
+      }
+    }
+
+    function escapeQuotes(str) {
+      return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    }
+
+    function reflectOnVerse(book, chapter, verse, text) {
+      const prompt = `Lord Jesus, help me understand and reflect upon ${book} ${chapter}:${verse} — "${text}". What does this mean for my walk of faith today?`;
+      window.location.href = `index.html?prompt=${encodeURIComponent(prompt)}`;
+    }
+
+    window.onload = initBookDropdown;
+  </script>
+</body>
+</html>
