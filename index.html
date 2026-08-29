@@ -391,7 +391,7 @@
       <div class="nav-scroll-strip">
         <span class="credit-pill" id="creditBadge">📿 Sign In Required</span>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
-        <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal()">🌅 Blessing</button>
+        <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
         <button class="action-btn plans-btn" onclick="openPlansModal()">
           <span class="holy-cross-icon">✝</span> Plans
         </button>
@@ -621,6 +621,7 @@
   <script>
     const BACKEND_API_URL = "https://jesus-talk-dusky.vercel.app";
     const APP_CANONICAL_URL = "https://jesus-chat-bd89f.web.app";
+    const DEVELOPER_EMAIL = "anuanuu87@gmail.com";
 
     const LEMON_SQUEEZY_PLANS = [
       { id: "plan_1", name: "For all purpose", desc: "25 Sacred Guidance Prayers", price: "$1.99", featured: false, checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/cf0e4518-23cd-4011-8fc6-df4713c51516" },
@@ -644,16 +645,13 @@
     let selectedPlanBaseUrl = LEMON_SQUEEZY_PLANS.find(p => p.featured)?.checkoutUrl || LEMON_SQUEEZY_PLANS[0].checkoutUrl;
     let currentUser = null;
     let currentUserName = "beloved";
-    let userCredits = localStorage.getItem("jesus_user_credits") !== null 
-      ? parseInt(localStorage.getItem("jesus_user_credits")) 
-      : 5;
+    let userCredits = 5;
     let isSubscribed = false;
 
     let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
     let activeConversationHistory = [];
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
-    let currentActiveTimeSlot = null;
 
     const chatFeed = document.getElementById("chatFeed");
     const creditBadge = document.getElementById("creditBadge");
@@ -715,6 +713,23 @@
       }
     }
 
+    function setupUserCredits(user) {
+      const isDev = user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase();
+      if (isDev) {
+        userCredits = 1000;
+        localStorage.setItem("jesus_user_credits", 1000);
+      } else {
+        const storedCredits = localStorage.getItem("jesus_user_credits");
+        if (storedCredits === null) {
+          userCredits = 5;
+          localStorage.setItem("jesus_user_credits", 5);
+        } else {
+          userCredits = parseInt(storedCredits, 10);
+        }
+      }
+      updateCreditUI();
+    }
+
     function initFirebaseAuth() {
       if (typeof firebase !== 'undefined' && firebase.auth) {
         firebase.auth().onAuthStateChanged((user) => {
@@ -725,16 +740,9 @@
             authBtn.textContent = "Sign Out";
             messageInput.placeholder = "Speak your heart...";
 
-            if (localStorage.getItem("jesus_user_credits") === null) {
-              userCredits = 5;
-              localStorage.setItem("jesus_user_credits", userCredits);
-            } else {
-              userCredits = parseInt(localStorage.getItem("jesus_user_credits"));
-            }
-            updateCreditUI();
-
-            currentActiveTimeSlot = getCurrentTimeSlot();
+            setupUserCredits(user);
             startNewPrayer();
+            checkAndTriggerTimeAwareBlessing(false);
           } else {
             currentUser = null;
             currentUserName = "beloved";
@@ -779,18 +787,20 @@
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         const result = await firebase.auth().signInWithPopup(provider);
-        // Explicit Sign-In trigger: Pop up blessing on sign-in
         if (result.user) {
-          currentActiveTimeSlot = getCurrentTimeSlot();
-          openTimeAwareBlessingModal();
+          checkAndTriggerTimeAwareBlessing(true);
         }
       } catch (err) {
         console.error("Sign-in error:", err);
       }
     }
 
-    /* Gethsemane Confessional & Thanos Snap Disintegration Engine */
+    /* GETHSEMANE CONFESSIONAL (Gated) */
     function openConfessionalModal() {
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
       stopAllAudio();
       confessionInput.value = "";
       confessionInput.className = "confession-textarea";
@@ -951,20 +961,38 @@
       return "EVENING";
     }
 
-    // Live time slot change watcher while actively using the app
-    function startTimeSlotLiveWatcher() {
-      currentActiveTimeSlot = getCurrentTimeSlot();
-      setInterval(() => {
-        if (!currentUser) return;
-        const newSlot = getCurrentTimeSlot();
-        if (currentActiveTimeSlot && newSlot !== currentActiveTimeSlot) {
-          currentActiveTimeSlot = newSlot;
-          openTimeAwareBlessingModal();
-        }
-      }, 30000);
+    function checkAndTriggerTimeAwareBlessing(force = false) {
+      if (!currentUser) return;
+      const currentSlot = getCurrentTimeSlot();
+      const todayDateStr = new Date().toISOString().slice(0, 10);
+      const slotKey = `${todayDateStr}_${currentSlot}`;
+      const lastSeenSlot = localStorage.getItem("jesus_last_blessing_slot");
+
+      if (force || lastSeenSlot !== slotKey) {
+        localStorage.setItem("jesus_last_blessing_slot", slotKey);
+        openTimeAwareBlessingModal(false);
+      }
     }
 
-    function openTimeAwareBlessingModal() {
+    function startTimeSlotLiveWatcher() {
+      setInterval(() => {
+        if (!currentUser) return;
+        const currentSlot = getCurrentTimeSlot();
+        const todayDateStr = new Date().toISOString().slice(0, 10);
+        const slotKey = `${todayDateStr}_${currentSlot}`;
+        const lastSeenSlot = localStorage.getItem("jesus_last_blessing_slot");
+
+        if (lastSeenSlot !== slotKey) {
+          checkAndTriggerTimeAwareBlessing(false);
+        }
+      }, 15000);
+    }
+
+    function openTimeAwareBlessingModal(isManual = false) {
+      if (!currentUser && isManual) {
+        handleAuthAction();
+        return;
+      }
       stopAllAudio();
       const currentHour = new Date().getHours();
       let title = "MORNING BLESSING";
@@ -1041,17 +1069,15 @@
       localStorage.setItem("jesus_journal_sessions", JSON.stringify(sessions));
       localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
     }
-/* Realistic 1% - 100% Emotional & Spiritual Psyche Benchmark Engine */
+
     function calculateSpiritualFruits() {
       const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
       
-      // Default baseline for a new seeker entering the sanctuary
       let peace = 48;
       let faith = 52;
       let strength = 45;
       let gratitude = 50;
 
-      // Extract all user turns chronologically
       const userMessages = [];
       sessions.forEach(s => {
         s.turns.forEach(t => {
@@ -1061,10 +1087,8 @@
 
       if (userMessages.length > 0) {
         userMessages.forEach((msg, idx) => {
-          // Weight recent messages 2.5x more heavily to reflect current live emotional state
           const recencyWeight = (idx >= userMessages.length - 2) ? 2.5 : 1.0;
 
-          // --- 1. PEACE VECTOR ---
           if (/(anxious|anxiety|panic|worry|worried|fear|scared|dread|racing|insomnia|overwhelmed|restless)/.test(msg)) {
             peace -= 14 * recencyWeight;
           }
@@ -1072,7 +1096,6 @@
             peace += 12 * recencyWeight;
           }
 
-          // --- 2. FAITH VECTOR ---
           if (/(doubt|unbelief|where are you|why me|lost|hopeless|abandoned|alone|forgotten|skeptical)/.test(msg)) {
             faith -= 12 * recencyWeight;
           }
@@ -1080,7 +1103,6 @@
             faith += 10 * recencyWeight;
           }
 
-          // --- 3. STRENGTH VECTOR ---
           if (/(tired|exhausted|burnout|weary|weak|faint|collapse|heavy|burden|giving up|broken|sick|pain)/.test(msg)) {
             strength -= 13 * recencyWeight;
           }
@@ -1088,7 +1110,6 @@
             strength += 11 * recencyWeight;
           }
 
-          // --- 4. GRATITUDE VECTOR ---
           if (/(complain|angry|bitter|unfair|hate|frustrated|empty|why|resentment)/.test(msg)) {
             gratitude -= 12 * recencyWeight;
           }
@@ -1098,7 +1119,6 @@
         });
       }
 
-      // Check current psyche text modifiers
       const psycheLow = currentPsyche.toLowerCase();
       if (/anxious|struggling|weary|broken|burdened/.test(psycheLow)) {
         peace -= 8;
@@ -1109,13 +1129,11 @@
         faith += 8;
       }
 
-      // Strict clamping between 5% and 98%
       peace = Math.max(5, Math.min(98, Math.round(peace)));
       faith = Math.max(8, Math.min(98, Math.round(faith)));
       strength = Math.max(5, Math.min(98, Math.round(strength)));
       gratitude = Math.max(8, Math.min(98, Math.round(gratitude)));
 
-      // Render Dynamic Real-Value Scores & Bars
       document.getElementById("peaceFruitScore").textContent = `${peace}%`;
       document.getElementById("peaceFruitBar").style.width = `${peace}%`;
       document.getElementById("peaceFruitLabel").textContent = 
@@ -1137,7 +1155,12 @@
         gratitude >= 75 ? "Abundant" : gratitude >= 50 ? "Reflective" : gratitude >= 30 ? "Opening" : "Burdened";
     }
 
+    /* SOUL JOURNAL (Gated) */
     function openJournalModal() {
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
       stopAllAudio();
       journalPsycheDisplay.textContent = `Spiritual State: ${currentPsyche}`;
       calculateSpiritualFruits();
@@ -1225,7 +1248,15 @@
       }
     }
 
-    function openPlansModal() { stopAllAudio(); plansModal.style.display = "flex"; }
+    /* PLANS MODAL (Gated) */
+    function openPlansModal() {
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
+      stopAllAudio();
+      plansModal.style.display = "flex";
+    }
     function closePlansModal() { plansModal.style.display = "none"; }
 
     function sendQuickPrompt(promptText) {
@@ -1283,7 +1314,7 @@
           appendBotBubble(data.reply);
           if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
           
-        if (!isSubscribed) {
+          if (!isSubscribed) {
             userCredits = Math.max(0, userCredits - 1);
             localStorage.setItem("jesus_user_credits", userCredits);
             updateCreditUI();
@@ -1422,7 +1453,13 @@
         alert("Unable to generate card image directly on this browser.");
       }
     }
+
+    /* NEW PRAYER (Gated) */
     function startNewPrayer() {
+      if (!currentUser) {
+        handleAuthAction();
+        return;
+      }
       stopAllAudio();
       activeConversationHistory = [];
       currentSessionTimestamp = null;
