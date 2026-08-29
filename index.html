@@ -322,7 +322,7 @@
     .journal-entry-label.bot-label { color: var(--gold-deep); }
     .journal-entry-text { color: #333d4b; }
 
-    /* Confessional Container & Thanos Snap Ember/Dust Dissolution Engine */
+    /* Confessional Container & Snap Dissolution */
     .confession-box-wrapper {
       position: relative; width: 100%; margin-bottom: 14px;
     }
@@ -565,7 +565,7 @@
       gap: 5px;
     }
 
-    /* Ultra-Clean Straight Scripture Card */
+    /* Clear Straight Text Scripture Card (Non-Italic) */
     .scripture-card-canvas {
       width: 100%; background: #141b26 url('BG1.png') center top/cover no-repeat;
       border-radius: 18px; padding: 34px 24px 26px 24px; color: #ffffff;
@@ -996,7 +996,7 @@
         return nonFemaleCandidates[nonFemaleCandidates.length - 1];
       }
 
-      // 4. Hardware Fallback: If device only contains 1 default system voice
+      // 4. Hardware Fallback: Default system voice if only 1 engine is present
       return englishVoices[0] || availableVoices[0] || null;
     }
 
@@ -1830,9 +1830,9 @@
         currentUtterance.lang = 'en-US';
       }
 
-      // Natural, calm, and solemn modulation
-      currentUtterance.rate = 0.84;
-      currentUtterance.pitch = 0.78;
+      // Reverent deep baritone tuning across all OS synthesizers
+      currentUtterance.rate = 0.82;
+      currentUtterance.pitch = 0.68;
 
       btn.innerHTML = "⏸ Pause";
       currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
@@ -1854,46 +1854,89 @@
       shareCardModal.style.display = "none";
     }
 
-    /* HIGH-SPEED EXPORT ENGINE (COMPATIBLE WITH ANDROID CHROME GESTURE LIFECYCLE) */
+    /* FAST SYNCHRONOUS MEMORY CONVERTER */
+    function dataURLtoFile(dataurl, filename) {
+      const arr = dataurl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename, { type: mime });
+    }
+
+    /* DIRECT INSTANT SHARE ENGINE */
     async function exportScriptureImage() {
       const cardEl = document.getElementById("scriptureCardToExport");
       const exportBtn = document.getElementById("exportCardBtn");
       const shareText = `you with jesus: ${APP_CANONICAL_URL}`;
+      
       exportBtn.innerHTML = "⏳ Preparing...";
+      exportBtn.disabled = true;
 
       try {
-        const canvas = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false });
-        
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            triggerDirectDownloadFallback(canvas, shareText);
+        const canvas = await html2canvas(cardEl, {
+          scale: 2.0,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: null
+        });
+
+        const dataUrl = canvas.toDataURL("image/png");
+        const shareFile = dataURLtoFile(dataUrl, "words-of-jesus.png");
+
+        // 1. Primary: Direct Native File Sharing Sheet
+        if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+          try {
+            await navigator.share({
+              title: "You With Jesus",
+              text: shareText,
+              files: [shareFile]
+            });
+            exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+            exportBtn.disabled = false;
+            closeShareModal();
             return;
-          }
-
-          const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
-
-          if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
-            try {
-              await navigator.share({
-                title: 'You With Jesus',
-                text: shareText,
-                files: [shareFile]
-              });
+          } catch (shareErr) {
+            if (shareErr.name === 'AbortError') {
               exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-              closeShareModal();
+              exportBtn.disabled = false;
               return;
-            } catch (err) {
-              console.log("Native file share bypassed, executing fallback:", err);
             }
           }
+        }
 
-          triggerDirectDownloadFallback(canvas, shareText);
-        }, 'image/png', 0.95);
+        // 2. Secondary: Direct Link/Text Native Share Sheet
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: "You With Jesus",
+              text: shareText
+            });
+            exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+            exportBtn.disabled = false;
+            closeShareModal();
+            return;
+          } catch (textShareErr) {
+            if (textShareErr.name === 'AbortError') {
+              exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+              exportBtn.disabled = false;
+              return;
+            }
+          }
+        }
+
+        // 3. Fallback: Direct Download
+        triggerDirectDownloadFallback(canvas, shareText);
 
       } catch (err) {
-        console.error("Canvas render error:", err);
+        console.error("Canvas export failed:", err);
         exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-        alert("Direct card generation unavailable on this browser.");
+        exportBtn.disabled = false;
+        alert("Unable to share card on this browser.");
       }
     }
 
@@ -1915,6 +1958,7 @@
       }
 
       exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+      exportBtn.disabled = false;
       closeShareModal();
     }
 
