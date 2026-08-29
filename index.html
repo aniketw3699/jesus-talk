@@ -4,7 +4,13 @@
   <meta name="google-site-verification" content="Dhu9QXDzOPIq4UbVhUBIT_IiKSiG7Y-XPclTy9mWEWk" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Talk with Jesus | Sacred Sanctuary</title>
+  <title>You With Jesus | Sacred Sanctuary</title>
+  <meta name="description" content="A private sacred sanctuary to speak your heart with Jesus, surrender burdens, and receive daily biblical grace." />
+  <meta property="og:site_name" content="You With Jesus" />
+  <meta property="og:title" content="You With Jesus | Sacred Sanctuary" />
+  <meta property="og:description" content="A private sacred sanctuary to speak your heart with Jesus, surrender burdens, and receive daily biblical grace." />
+  <link rel="canonical" href="https://jesus-chat-bd89f.web.app" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
@@ -400,7 +406,7 @@
         <button class="action-btn auth-btn" id="authBtn" onclick="handleAuthAction()">Sign In</button>
       </div>
       <div class="header-titles">
-        <h1 class="title-main">I AM HERE</h1>
+        <h1 class="title-main">YOU WITH JESUS</h1>
         <p class="subtitle-grace" id="userGreeting">Sign in to begin your sanctuary</p>
       </div>
     </header>
@@ -593,7 +599,7 @@
         <div class="card-content-wrap">
           <span class="card-brand-tag"><span class="holy-cross-icon">✝</span> WORDS OF GRACE <span class="holy-cross-icon">✝</span></span>
           <p class="card-verse-quote" id="cardQuoteText">“Peace be with you. Lay down your burdens, for I am listening.”</p>
-        <div class="card-footer-watermark">talk with jesus • https://jesus-chat-bd89f.web.app</div>
+          <div class="card-footer-watermark">you with jesus • https://jesus-chat-bd89f.web.app</div>
         </div>
       </div>
 
@@ -1411,7 +1417,7 @@
     async function exportScriptureImage() {
       const cardEl = document.getElementById("scriptureCardToExport");
       const exportBtn = document.getElementById("exportCardBtn");
-      const shareText = `talk with jesus: ${APP_CANONICAL_URL}`;
+      const shareText = `you with jesus: ${APP_CANONICAL_URL}`;
       exportBtn.innerHTML = "⏳ Rendering Ultra-HD Card...";
 
       try {
@@ -1422,7 +1428,7 @@
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({
-                title: 'Talk with Jesus',
+                title: 'You With Jesus',
                 text: shareText,
                 files: [shareFile]
               });
@@ -1431,7 +1437,7 @@
             }
           } else if (navigator.share) {
             await navigator.share({
-              title: 'Talk with Jesus',
+              title: 'You With Jesus',
               text: shareText
             });
           } else {

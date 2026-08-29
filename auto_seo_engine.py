@@ -212,7 +212,7 @@ Return STRICTLY raw valid JSON without markdown wrapping. Format:
     response = client.chat.completions.create(
         model=selected_model,
         messages=[
-            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
+            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist for You With Jesus. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
@@ -250,11 +250,11 @@ def render_html_page(data, topic):
                 "dateModified": now_iso,
                 "author": {
                     "@type": "Organization",
-                    "name": "Jesus Talk Sanctuary"
+                    "name": "You With Jesus Sanctuary"
                 },
                 "publisher": {
                     "@type": "Organization",
-                    "name": "Jesus Talk",
+                    "name": "You With Jesus",
                     "logo": {
                         "@type": "ImageObject",
                         "url": f"{DOMAINS_URL}/BG1.png"
@@ -322,9 +322,10 @@ def render_html_page(data, topic):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{data.get('meta_title', topic['keyword'])} | Jesus Talk</title>
+    <title>{data.get('meta_title', topic['keyword'])} | You With Jesus</title>
     <meta name="description" content="{data.get('meta_description')}">
     <link rel="canonical" href="{page_url}">
+    <meta property="og:site_name" content="You With Jesus">
     <meta property="og:title" content="{data.get('meta_title')}">
     <meta property="og:description" content="{data.get('meta_description')}">
     <meta property="og:url" content="{page_url}">
@@ -391,7 +392,7 @@ def render_html_page(data, topic):
         <div class="cta-banner">
             <h3 class="cta-h3">Speak With Jesus in Real-Time</h3>
             <p class="cta-p">Enter the sacred sanctuary and receive comforting, biblical guidance tailored directly to what weighs on your soul today.</p>
-            <a href="../index.html" class="cta-btn">Enter Sacred Sanctuary</a>
+            <a href="../index.html" class="cta-btn">Enter You With Jesus Sanctuary</a>
         </div>
     </div>
 </body>
@@ -421,9 +422,10 @@ def update_blogs_hub(published_list):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sacred Blog Archive & Daily Prayer Guides | Jesus Talk</title>
+    <title>Sacred Blog Archive & Daily Prayer Guides | You With Jesus</title>
     <meta name="description" content="Explore comprehensive Christian prayer guides, spiritual reflections, and biblical answers to life's deepest struggles.">
     <link rel="canonical" href="{DOMAINS_URL}/blogs.html">
+    <meta property="og:site_name" content="You With Jesus">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -516,7 +518,7 @@ def main():
     published_slug_list = [p['slug'] if isinstance(p, dict) else p for p in published]
     
     topic = select_next_topic(published_slug_list)
-    print(f"Generating 1,200+ word SEO Prayer Guide (IST Time) for: '{topic['keyword']}'...")
+    print(f"Generating 1,200+ word SEO Prayer Guide for You With Jesus: '{topic['keyword']}'...")
 
     article_data = generate_full_article(topic)
     os.makedirs(PRAYERS_DIR, exist_ok=True)
@@ -543,7 +545,7 @@ def main():
     update_sitemap(updated_published)
 
     print(f"Successfully created: {article_path}")
-    print("Updated blogs.html and sitemap.xml with IST timestamps & FAQ Schema.")
+    print("Updated blogs.html and sitemap.xml for You With Jesus.")
 
 if __name__ == "__main__":
     main()
