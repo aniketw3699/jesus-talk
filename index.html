@@ -917,7 +917,7 @@
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
 
-    /* SACRED AUDIO ENGINE INITIALIZATION */
+    /* SACRED AUDIO ENGINE: CROSS-DEVICE MALE HARMONIZER */
     let availableVoices = [];
 
     function populateVoices() {
@@ -936,32 +936,56 @@
         populateVoices();
       }
 
-      const englishVoices = availableVoices.filter(v => v.lang && v.lang.startsWith('en'));
-      
-      const maleCandidates = englishVoices.filter(v => {
-        const name = v.name.toLowerCase();
-        return !name.includes('female') && 
-               !name.includes('woman') && 
-               !name.includes('girl') && 
-               !name.includes('samantha') && 
-               !name.includes('victoria') && 
-               !name.includes('zira') && 
-               !name.includes('karen') &&
-               !name.includes('moira') &&
-               !name.includes('tessa');
+      const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
+      const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
+
+      // 1. Apple Preferred Male Voices (iOS/macOS)
+      const appleMale = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return id.includes('daniel') || id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi');
       });
+      if (appleMale) return appleMale;
 
-      const preferredKeywords = [
-        'male', 'daniel', 'george', 'arthur', 'oliver', 'rishi', 
-        'google uk english male', 'en-gb-x-rjs', 'en-us-x-sfg#male', 'en-us-x-iom', 'natural'
-      ];
+      // 2. Google / Android Explicit Male Engine Identifiers
+      const androidMale = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return id.includes('male') || 
+               id.includes('#male') || 
+               id.includes('male_1') || 
+               id.includes('male_2') || 
+               id.includes('en-gb-x-rjs') || 
+               id.includes('en-us-x-iom') || 
+               id.includes('en-in-x-cxx') || 
+               id.includes('en-au-x-aub') || 
+               id.includes('google uk english male') ||
+               id.includes('en-us-x-sfg#male');
+      });
+      if (androidMale) return androidMale;
 
-      for (const kw of preferredKeywords) {
-        const match = maleCandidates.find(v => v.name.toLowerCase().includes(kw));
-        if (match) return match;
-      }
+      // 3. British English (GB) non-female voices
+      const gbVoice = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        const isFemale = id.includes('female') || id.includes('woman') || id.includes('girl') || id.includes('zira') || id.includes('samantha') || id.includes('victoria');
+        return !isFemale && (v.lang === 'en-GB' || v.lang === 'en_GB' || id.includes('en-gb') || id.includes('united kingdom'));
+      });
+      if (gbVoice) return gbVoice;
 
-      return maleCandidates.length > 0 ? maleCandidates[0] : (englishVoices[0] || null);
+      // 4. Any English voice strictly NOT tagged as female
+      const nonFemale = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return !id.includes('female') && 
+               !id.includes('woman') && 
+               !id.includes('girl') && 
+               !id.includes('samantha') && 
+               !id.includes('victoria') && 
+               !id.includes('zira') && 
+               !id.includes('karen') &&
+               !id.includes('tessa') &&
+               !id.includes('moira');
+      });
+      if (nonFemale) return nonFemale;
+
+      return englishVoices[0] || availableVoices[0] || null;
     }
 
     window.onload = function() {
@@ -1539,7 +1563,7 @@
         activeConversationHistory = [];
         currentPsyche = "A soul seeking peace";
         currentSessionTimestamp = null;
-        isNewSessionCreated = false;
+        isNewSessionCreated = true;
         closeJournalModal();
         startNewPrayer(true);
       }
@@ -1723,31 +1747,40 @@
 
     let currentUtterance = null;
     function playVoice(btn, text, defaultBtnText = "Listen") {
-      if ('speechSynthesis' in window) {
-        if (speechSynthesis.speaking) {
-          speechSynthesis.cancel();
-          btn.innerHTML = `🔊 ${defaultBtnText}`;
-          return;
-        }
-
-        const cleanText = text.replace(/[\(\)\[\]"]/g, "").replace(/✝/g, "");
-        currentUtterance = new SpeechSynthesisUtterance(cleanText);
-        
-        // Steady, deep, reverent pacing and pitch
-        currentUtterance.rate = 0.84;
-        currentUtterance.pitch = 0.82; 
-
-        const chosenVoice = getSacredVoice();
-        if (chosenVoice) {
-          currentUtterance.voice = chosenVoice;
-        }
-
-        btn.innerHTML = "⏸ Pause";
-        currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
-        currentUtterance.onerror = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
-        
-        speechSynthesis.speak(currentUtterance);
+      if (!('speechSynthesis' in window)) {
+        alert("Audio speech is not supported on this browser.");
+        return;
       }
+
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+        btn.innerHTML = `🔊 ${defaultBtnText}`;
+        return;
+      }
+
+      speechSynthesis.cancel();
+
+      const cleanText = text.replace(/[\(\)\[\]"]/g, "").replace(/✝/g, "");
+      currentUtterance = new SpeechSynthesisUtterance(cleanText);
+      
+      const chosenVoice = getSacredVoice();
+      if (chosenVoice) {
+        currentUtterance.voice = chosenVoice;
+        currentUtterance.lang = chosenVoice.lang || 'en-US';
+      } else {
+        currentUtterance.lang = 'en-US';
+      }
+
+      currentUtterance.rate = 0.86;
+      currentUtterance.pitch = 0.85;
+
+      btn.innerHTML = "⏸ Pause";
+      currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
+      currentUtterance.onerror = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
+      
+      setTimeout(() => {
+        speechSynthesis.speak(currentUtterance);
+      }, 50);
     }
 
     function prepareScriptureCard(text) {
