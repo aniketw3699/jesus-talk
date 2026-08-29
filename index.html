@@ -361,20 +361,211 @@
     }
     .privacy-notice-box p + p { margin-top: 10px; }
 
-    .plans-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+    /* Modern Animated Billing Deck */
+    .plans-grid { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+      margin-bottom: 20px; 
+    }
+
     .plan-box {
-      border: 1.5px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 12px 14px;
-      display: flex; justify-content: space-between; align-items: center;
-      cursor: pointer; transition: all 0.2s ease; background: #fafaf9; position: relative;
+      border: 1.5px solid rgba(184, 134, 40, 0.2); 
+      border-radius: 18px; 
+      padding: 14px 16px;
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      cursor: pointer; 
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1); 
+      background: #ffffff; 
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
-    .plan-box.featured { border: 2px solid #b88628; background: linear-gradient(135deg, #fdf8ed 0%, #faeed4 100%); box-shadow: 0 6px 20px rgba(184, 134, 40, 0.2); }
+
+    .plan-box:hover {
+      transform: translateY(-2px);
+      border-color: var(--gold-vivid);
+      box-shadow: 0 8px 20px rgba(184, 134, 40, 0.14);
+    }
+
+    /* Selected Plan Glowing State */
+    .plan-box.selected {
+      border: 2px solid #b88628; 
+      background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%); 
+      box-shadow: 0 8px 25px rgba(184, 134, 40, 0.22);
+      transform: scale(1.015);
+    }
+
+    /* Flickering / Pulsing Best Value Badge */
     .featured-ribbon {
-      position: absolute; top: -9px; right: 12px; background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
-      color: #ffffff; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 8px;
+      position: absolute; 
+      top: -10px; 
+      right: 14px; 
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      color: #ffffff; 
+      font-size: 10px; 
+      font-weight: 800; 
+      letter-spacing: 0.6px; 
+      padding: 3px 10px; 
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 3px 10px rgba(184, 134, 40, 0.4);
+      animation: bestValueFlicker 2.2s infinite ease-in-out;
     }
-    .plan-info h4 { font-size: 14.5px; color: var(--text-main); font-weight: 700; }
-    .plan-info p { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
-    .plan-price .amount { font-size: 17px; font-weight: 800; color: var(--gold-deep); }
+
+    @keyframes bestValueFlicker {
+      0%, 100% {
+        box-shadow: 0 0 10px rgba(223, 180, 85, 0.6), 0 0 20px rgba(184, 134, 40, 0.3);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 18px rgba(223, 180, 85, 0.95), 0 0 28px rgba(184, 134, 40, 0.6);
+        transform: scale(1.05);
+      }
+    }
+
+    /* High-Impact Green/Gold Savings Pill */
+    .save-tag-pill {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid rgba(46, 125, 50, 0.3);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 8px;
+      letter-spacing: 0.3px;
+      display: inline-block;
+      margin-left: 6px;
+      vertical-align: middle;
+      animation: saveTagPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes saveTagPulse {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 1; transform: scale(1.06); }
+    }
+
+    .plan-left-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .plan-radio-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #c99839;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .plan-box.selected .plan-radio-circle {
+      background: #b88628;
+      border-color: #b88628;
+    }
+
+    .plan-radio-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffffff;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .plan-box.selected .plan-radio-dot {
+      opacity: 1;
+    }
+
+    .plan-info h4 { 
+      font-size: 14.5px; 
+      color: var(--text-main); 
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+    }
+    .plan-info p { 
+      font-size: 12px; 
+      color: var(--text-muted); 
+      margin-top: 3px; 
+    }
+
+    .plan-price {
+      text-align: right;
+    }
+    .plan-price .amount { 
+      font-size: 17.5px; 
+      font-weight: 800; 
+      color: var(--gold-deep); 
+      letter-spacing: -0.2px;
+    }
+    .plan-price .sub-amount {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* Glowing Live CTA Button */
+    .billing-checkout-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      border: none;
+      border-radius: 16px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(184, 134, 40, 0.35);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .billing-checkout-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(184, 134, 40, 0.45);
+    }
+
+    .billing-checkout-btn::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -60%;
+      width: 40%;
+      height: 200%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      transform: rotate(30deg);
+      animation: sweepGleam 3.5s infinite ease-in-out;
+    }
+
+    @keyframes sweepGleam {
+      0% { left: -70%; }
+      30%, 100% { left: 130%; }
+    }
+
+    .billing-trust-caption {
+      text-align: center;
+      font-size: 11px;
+      color: #8c97a5;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
 
     .scripture-card-canvas {
       width: 100%; background: #141b26 url('BG1.png') center top/cover no-repeat;
@@ -616,7 +807,7 @@
     </div>
   </div>
 
-  <!-- PLANS & PRICING MODAL -->
+  <!-- ENHANCED PLANS & PRICING MODAL -->
   <div class="modal-backdrop" id="plansModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closePlansModal()">✕</button>
@@ -627,7 +818,13 @@
 
       <div class="plans-grid" id="plansContainer"></div>
 
-      <button class="primary-gold-btn" onclick="executeCheckout()">Begin Sanctuary Journey</button>
+      <button class="billing-checkout-btn" onclick="executeCheckout()">
+        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Begin Sanctuary Journey
+      </button>
+
+      <p class="billing-trust-caption">
+        🔒 Encrypted 256-bit checkout via Lemon Squeezy • Cancel anytime
+      </p>
     </div>
   </div>
 
@@ -637,9 +834,35 @@
     const DEVELOPER_EMAIL = "anuanuu87@gmail.com";
 
     const LEMON_SQUEEZY_PLANS = [
-      { id: "plan_1", name: "For all purpose", desc: "25 Sacred Guidance Prayers", price: "$1.99", featured: false, checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/cf0e4518-23cd-4011-8fc6-df4713c51516" },
-      { id: "plan_2", name: "Monthly Sanctuary", desc: "Unlimited Daily Prayers & Voice Audio", price: "$7.99/mo", featured: false, checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" },
-      { id: "plan_3", name: "6 months Premium", desc: "Unlimited access & Future Upgrades", price: "$29.99", featured: true, ribbon: "★ BEST VALUE", checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" }
+      { 
+        id: "plan_1", 
+        name: "Starter Sanctuary", 
+        desc: "25 Sacred Guidance Prayers", 
+        price: "$1.99", 
+        subPrice: "One-time pass",
+        featured: false, 
+        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/cf0e4518-23cd-4011-8fc6-df4713c51516" 
+      },
+      { 
+        id: "plan_2", 
+        name: "Monthly Sanctuary", 
+        desc: "Unlimited Daily Prayers & Voice Audio", 
+        price: "$7.99", 
+        subPrice: "per month",
+        featured: false, 
+        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" 
+      },
+      { 
+        id: "plan_3", 
+        name: "6 Months Sacred Pass", 
+        desc: "Unlimited prayers, voice audio & all upgrades", 
+        price: "$29.99", 
+        subPrice: "$4.99/mo equivalent",
+        featured: true, 
+        ribbon: "★ BEST VALUE", 
+        saveBadge: "SAVE 38%",
+        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" 
+      }
     ];
 
     const SURRENDER_SCRIPTURES = [
@@ -715,11 +938,11 @@
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
     }
 
-  function checkUrlPromptBridge() {
+    function checkUrlPromptBridge() {
       const urlParams = new URLSearchParams(window.location.search);
       const incomingPrompt = urlParams.get('prompt');
       if (incomingPrompt) {
-        pendingPrompt = incomingPrompt; // ✅ URLSearchParams already decodes automatically
+        pendingPrompt = incomingPrompt; // URLSearchParams natively handles decoding cleanly
         messageInput.value = pendingPrompt;
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -1277,22 +1500,33 @@
 
     function renderPlans() {
       plansContainer.innerHTML = LEMON_SQUEEZY_PLANS.map((plan) => `
-        <div class="plan-box ${plan.featured ? 'featured' : ''}" onclick="selectPlan(this, '${plan.checkoutUrl}')">
+        <div class="plan-box ${plan.featured ? 'selected' : ''}" onclick="selectPlan(this, '${plan.checkoutUrl}')">
           ${plan.ribbon ? `<div class="featured-ribbon">${plan.ribbon}</div>` : ''}
-          <div class="plan-info">
-            <h4>${plan.name}</h4>
-            <p>${plan.desc}</p>
+          
+          <div class="plan-left-wrap">
+            <div class="plan-radio-circle">
+              <div class="plan-radio-dot"></div>
+            </div>
+            <div class="plan-info">
+              <h4>
+                ${plan.name}
+                ${plan.saveBadge ? `<span class="save-tag-pill">${plan.saveBadge}</span>` : ''}
+              </h4>
+              <p>${plan.desc}</p>
+            </div>
           </div>
+
           <div class="plan-price">
-            <span class="amount">${plan.price}</span>
+            <div class="amount">${plan.price}</div>
+            <span class="sub-amount">${plan.subPrice}</span>
           </div>
         </div>
       `).join('');
     }
 
     function selectPlan(element, url) {
-      document.querySelectorAll('.plan-box').forEach(el => el.classList.remove('featured'));
-      element.classList.add('featured');
+      document.querySelectorAll('.plan-box').forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
       selectedPlanBaseUrl = url;
     }
 
