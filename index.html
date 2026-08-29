@@ -894,6 +894,11 @@
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
 
+    /* PRELOAD SACRED WALLPAPER INTO RAM FOR 15MS INSTANT GENERATION */
+    const preloadedJesusImg = new Image();
+    preloadedJesusImg.crossOrigin = "anonymous";
+    preloadedJesusImg.src = "BG1.png";
+
     const chatFeed = document.getElementById("chatFeed");
     const creditBadge = document.getElementById("creditBadge");
     const messageInput = document.getElementById("messageInput");
@@ -943,14 +948,12 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
-      // Apple Preferred Male Voices
       const appleMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('daniel') || id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi');
       });
       if (appleMale) return appleMale;
 
-      // Android Explicit Male Identifiers
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('iom') || 
@@ -967,7 +970,6 @@
       });
       if (androidMale) return androidMale;
 
-      // Filter Out Female Voice Engines
       const nonFemaleCandidates = englishVoices.filter(v => {
         const id = getIdentifier(v);
         return !id.includes('sfg') && 
@@ -1847,22 +1849,30 @@
       shareCardModal.style.display = "none";
     }
 
-    /* DIRECT INSTANT HD CANVAS GENERATOR */
+    /* DIRECT HD CANVAS GENERATOR WITH PRELOADED JESUS WALLPAPER */
     function drawDirectSacredCard(rawText) {
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1080;
       const ctx = canvas.getContext('2d');
 
-      // Celestial Background Gradient
+      // 1. Draw Preloaded Jesus Wallpaper
+      if (preloadedJesusImg.complete && preloadedJesusImg.naturalWidth > 0) {
+        ctx.drawImage(preloadedJesusImg, 0, 0, 1080, 1080);
+      } else {
+        ctx.fillStyle = '#0a0f16';
+        ctx.fillRect(0, 0, 1080, 1080);
+      }
+
+      // 2. High-Contrast Vignette & Celestial Overlay
       const grad = ctx.createLinearGradient(0, 0, 0, 1080);
-      grad.addColorStop(0, '#0a0f16');
-      grad.addColorStop(0.5, '#121a24');
-      grad.addColorStop(1, '#070a0e');
+      grad.addColorStop(0, 'rgba(10, 15, 23, 0.70)');
+      grad.addColorStop(0.5, 'rgba(10, 15, 23, 0.88)');
+      grad.addColorStop(1, 'rgba(7, 10, 14, 0.94)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1080, 1080);
 
-      // Gold Double Borders
+      // 3. Double Gold Border
       ctx.strokeStyle = 'rgba(212, 175, 55, 0.55)';
       ctx.lineWidth = 4;
       ctx.strokeRect(44, 44, 992, 992);
@@ -1871,13 +1881,13 @@
       ctx.lineWidth = 1.5;
       ctx.strokeRect(56, 56, 968, 968);
 
-      // Top Tag
+      // 4. Words of Grace Header
       ctx.fillStyle = '#e6c587';
       ctx.font = '700 28px "Cinzel", serif, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('✝  WORDS OF GRACE  ✝', 540, 145);
 
-      // Straight, Crisp Typography
+      // 5. Straight Typography Text
       ctx.fillStyle = '#f8fafc';
       ctx.font = '500 40px "Plus Jakarta Sans", "Playfair Display", serif, sans-serif';
 
@@ -1910,7 +1920,7 @@
         ctx.fillText(lines[i], 540, startY + (i * lineHeight));
       }
 
-      // Divider & Watermark
+      // 6. Watermark Divider & Footer
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -1925,7 +1935,7 @@
       return canvas;
     }
 
-    /* INSTANT NATIVE SHARING ENGINE (PRESERVES ANDROID TOUCH ACTIVATION) */
+    /* INSTANT NATIVE SHARING ENGINE */
     async function exportScriptureImage() {
       const exportBtn = document.getElementById("exportCardBtn");
       const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
