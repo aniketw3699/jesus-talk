@@ -715,11 +715,11 @@
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
     }
 
-    function checkUrlPromptBridge() {
+  function checkUrlPromptBridge() {
       const urlParams = new URLSearchParams(window.location.search);
       const incomingPrompt = urlParams.get('prompt');
       if (incomingPrompt) {
-        pendingPrompt = decodeURIComponent(incomingPrompt);
+        pendingPrompt = incomingPrompt; // ✅ URLSearchParams already decodes automatically
         messageInput.value = pendingPrompt;
         window.history.replaceState({}, document.title, window.location.pathname);
       }
