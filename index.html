@@ -803,7 +803,7 @@
       <div class="scripture-card-canvas" id="scriptureCardToExport">
         <div class="card-content-wrap">
           <span class="card-brand-tag"><span class="holy-cross-icon">✝</span> WORDS OF GRACE <span class="holy-cross-icon">✝</span></span>
-          <p class="card-verse-quote" id="cardQuoteText">“Peace be with you. Lay down your burdens, for I am listening.”</p>
+          <p class="card-verse-quote" id="cardQuoteText">Peace be with you. Lay down your burdens, for I am listening.</p>
           <div class="card-footer-watermark">you with jesus • https://jesus-chat-bd89f.web.app</div>
         </div>
       </div>
@@ -924,7 +924,7 @@
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
 
-    /* SACRED AUDIO ENGINE: CROSS-DEVICE VOICE RESOLVER */
+    /* SACRED AUDIO ENGINE */
     let availableVoices = [];
 
     function populateVoices() {
@@ -946,14 +946,14 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
-      // 1. Apple High-Definition Male Voices (iOS/macOS)
+      // Apple Preferred Male Voices
       const appleMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('daniel') || id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi');
       });
       if (appleMale) return appleMale;
 
-      // 2. Android Explicit Google Male Identifiers
+      // Android Explicit Male Identifiers
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('iom') || 
@@ -970,7 +970,7 @@
       });
       if (androidMale) return androidMale;
 
-      // 3. Filter Out All Explicit Female Voice Engines
+      // Filter Out Female Voice Engines
       const nonFemaleCandidates = englishVoices.filter(v => {
         const id = getIdentifier(v);
         return !id.includes('sfg') && 
@@ -996,7 +996,6 @@
         return nonFemaleCandidates[nonFemaleCandidates.length - 1];
       }
 
-      // 4. Hardware Fallback: Default system voice if only 1 engine is present
       return englishVoices[0] || availableVoices[0] || null;
     }
 
@@ -1055,7 +1054,7 @@
       return false;
     }
 
-    /* CLOUD-AUTHENTICATED CREDIT RESOLVER (ELIMINATES INCOGNITO LOOPHOLE) */
+    /* CLOUD-AUTHENTICATED CREDIT RESOLVER */
     async function syncUserCreditsWithCloud(user) {
       const isDev = user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase();
       if (isDev) {
@@ -1077,7 +1076,6 @@
             userCredits = cloudData.credits !== undefined ? cloudData.credits : 0;
             isSubscribed = cloudData.isSubscribed || false;
           } else {
-            // First time this Google account is ever registered
             userCredits = 5;
             isSubscribed = false;
             await userDocRef.set({
@@ -1097,7 +1095,6 @@
         console.warn("Cloud Firestore verification note:", err);
       }
 
-      // Offline / LocalStorage Fallback
       const stored = localStorage.getItem(localKey);
       if (stored === null) {
         userCredits = 5;
@@ -1844,7 +1841,7 @@
 
     function prepareScriptureCard(text) {
       stopAllAudio();
-      cardQuoteText.textContent = `“${text.replace(/<p>|<\/p>|<em>|<\/em>/g, '')}”`;
+      cardQuoteText.textContent = text.replace(/<p>|<\/p>|<em>|<\/em>/g, '');
       shareCardModal.style.display = "flex";
     }
 
@@ -1853,103 +1850,51 @@
       shareCardModal.style.display = "none";
     }
 
-    /* DIRECT INSTANT SHARE ENGINE (RESTORING NATIVE OS SHARE SHEET) */
+    /* RESTORED WORKING SCRIPTURE CARD SHARING ENGINE */
     async function exportScriptureImage() {
       const cardEl = document.getElementById("scriptureCardToExport");
       const exportBtn = document.getElementById("exportCardBtn");
       const shareText = `you with jesus: ${APP_CANONICAL_URL}`;
-      
-      exportBtn.innerHTML = "⏳ Preparing...";
-      exportBtn.disabled = true;
+      exportBtn.innerHTML = "⏳ Rendering Ultra-HD Card...";
 
       try {
-        const canvas = await html2canvas(cardEl, {
-          scale: 2.5,
-          useCORS: true,
-          allowTaint: true,
-          logging: false
-        });
-
+        const canvas = await html2canvas(cardEl, { scale: 4, useCORS: true, allowTaint: true, logging: false });
         canvas.toBlob(async (blob) => {
-          exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-          exportBtn.disabled = false;
-
-          if (!blob) {
-            if (navigator.share) {
-              await navigator.share({ title: 'You With Jesus', text: shareText, url: APP_CANONICAL_URL });
-              closeShareModal();
-            } else {
-              triggerDirectDownloadFallback(canvas, shareText);
-            }
-            return;
-          }
-
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
 
-          // 1. Primary: Native OS Share Sheet with Image File
-          if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({
                 title: 'You With Jesus',
                 text: shareText,
                 files: [shareFile]
               });
-              closeShareModal();
-              return;
             } catch (err) {
-              if (err.name === 'AbortError') return;
-              console.log("File share note:", err);
+              console.log("Share dismissed or failed:", err);
+            }
+          } else if (navigator.share) {
+            await navigator.share({
+              title: 'You With Jesus',
+              text: shareText
+            });
+          } else {
+            const imageURL = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.download = 'words-of-jesus-hd.png';
+            link.href = imageURL;
+            link.click();
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(shareText);
+              alert("Blessing image downloaded and link copied to clipboard!");
             }
           }
-
-          // 2. Secondary: Direct Link/Text Native Share Sheet
-          if (navigator.share) {
-            try {
-              await navigator.share({
-                title: 'You With Jesus',
-                text: shareText,
-                url: APP_CANONICAL_URL
-              });
-              closeShareModal();
-              return;
-            } catch (err) {
-              if (err.name === 'AbortError') return;
-            }
-          }
-
-          // 3. Fallback only if device lacks native share completely
-          triggerDirectDownloadFallback(canvas, shareText);
-        }, 'image/png', 0.95);
-
+          exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+          closeShareModal();
+        }, 'image/png', 1.0);
       } catch (err) {
-        console.error("Canvas render error:", err);
         exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-        exportBtn.disabled = false;
-        if (navigator.share) {
-          navigator.share({ title: 'You With Jesus', text: shareText, url: APP_CANONICAL_URL }).then(() => closeShareModal());
-        }
+        alert("Unable to generate card image directly on this browser.");
       }
-    }
-
-    function triggerDirectDownloadFallback(canvas, shareText) {
-      const exportBtn = document.getElementById("exportCardBtn");
-      const imageURL = canvas.toDataURL("image/png");
-      const link = document.createElement('a');
-      link.download = 'words-of-jesus-hd.png';
-      link.href = imageURL;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareText);
-        alert("Blessing image saved to your downloads and link copied to clipboard!");
-      } else {
-        alert("Blessing image saved to your downloads!");
-      }
-
-      exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-      closeShareModal();
     }
 
     /* NEW PRAYER */
