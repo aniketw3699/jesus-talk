@@ -68,7 +68,7 @@
       box-shadow: var(--shadow-elevated);
     }
 
-    /* Header Strip */
+    /* Fixed Navigation Header Strip */
     .sacred-header {
       padding: max(10px, env(safe-area-inset-top)) 12px 8px 12px;
       background: rgba(255, 255, 255, 0.92);
@@ -85,12 +85,14 @@
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       padding-bottom: 2px;
+      flex-wrap: nowrap !important;
+      width: 100%;
     }
 
     .nav-scroll-strip::-webkit-scrollbar { display: none; }
 
     .credit-pill {
-      flex: 0 0 auto;
+      flex: 0 0 auto !important;
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
       font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 20px;
       letter-spacing: 0.2px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -98,7 +100,7 @@
     }
 
     .action-btn {
-      flex: 0 0 auto;
+      flex: 0 0 auto !important;
       background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.12); color: var(--text-main);
       font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 20px;
       cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -720,6 +722,30 @@
       }
     }
 
+    function saveActiveChatSession() {
+      try {
+        sessionStorage.setItem("jesus_active_history", JSON.stringify(activeConversationHistory));
+        sessionStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
+      } catch (e) {
+        console.error("Session saving error:", e);
+      }
+    }
+
+    function restoreActiveChatSession() {
+      const savedHistory = sessionStorage.getItem("jesus_active_history");
+      const savedFeedHtml = sessionStorage.getItem("jesus_active_feed_html");
+
+      if (savedHistory && savedFeedHtml && JSON.parse(savedHistory).length > 0) {
+        activeConversationHistory = JSON.parse(savedHistory);
+        chatFeed.innerHTML = savedFeedHtml;
+        const currentIndicator = document.getElementById("thinkingIndicator");
+        if (currentIndicator) currentIndicator.style.display = "none";
+        scrollToBottom();
+        return true;
+      }
+      return false;
+    }
+
     function setupUserCredits(user) {
       const isDev = user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase();
       if (isDev) {
@@ -749,17 +775,25 @@
 
             setupUserCredits(user);
 
+            const hasRestoredSession = restoreActiveChatSession();
+
             if (pendingPrompt) {
               const promptToExecute = pendingPrompt;
               pendingPrompt = null;
-              startNewPrayer(false);
+              
+              if (!hasRestoredSession) {
+                startNewPrayer(false);
+              }
+              
               messageInput.value = promptToExecute;
               setTimeout(() => {
                 handleUserSubmit(new Event('submit'));
-              }, 250);
+              }, 300);
             } else {
-              startNewPrayer(true);
-              checkAndTriggerTimeAwareBlessing(false);
+              if (!hasRestoredSession) {
+                startNewPrayer(true);
+                checkAndTriggerTimeAwareBlessing(false);
+              }
             }
           } else {
             currentUser = null;
@@ -790,6 +824,8 @@
     function handleAuthAction() {
       if (currentUser) {
         if (confirm("Would you like to sign out? (Your local reflections remain safe on this device)")) {
+          sessionStorage.removeItem("jesus_active_history");
+          sessionStorage.removeItem("jesus_active_feed_html");
           firebase.auth().signOut().then(() => window.location.reload());
         }
       } else {
@@ -1225,6 +1261,8 @@
       if (confirm("Clear all past conversations from your device?")) {
         localStorage.removeItem("jesus_journal_sessions");
         localStorage.removeItem("jesus_soul_journey_psyche");
+        sessionStorage.removeItem("jesus_active_history");
+        sessionStorage.removeItem("jesus_active_feed_html");
         activeConversationHistory = [];
         currentPsyche = "A soul seeking peace";
         currentSessionTimestamp = null;
@@ -1346,10 +1384,12 @@
           activeConversationHistory.push({ role: "assistant", content: data.reply });
 
           recordJournalTurn(text, data.reply);
+          saveActiveChatSession();
         }
       } catch (err) {
         showThinking(false);
         appendBotBubble("Peace be with you. Lay down your burdens, for I am near.");
+        saveActiveChatSession();
       }
     }
 
@@ -1368,6 +1408,7 @@
       const currentIndicator = document.getElementById("thinkingIndicator");
       chatFeed.insertBefore(group, currentIndicator);
       scrollToBottom();
+      saveActiveChatSession();
     }
 
     function appendBotBubble(reply) {
@@ -1390,6 +1431,7 @@
       const currentIndicator = document.getElementById("thinkingIndicator");
       chatFeed.insertBefore(group, currentIndicator);
       scrollToBottom();
+      saveActiveChatSession();
     }
 
     function scrollToBottom() { chatFeed.scrollTop = chatFeed.scrollHeight; }
@@ -1477,25 +1519,28 @@
     }
 
     /* NEW PRAYER (Gated) */
-    function startNewPrayer(shouldClearInput = true) {
+    function startNewPrayer(isManual = false) {
       if (!currentUser) {
         handleAuthAction();
         return;
       }
       stopAllAudio();
-      activeConversationHistory = [];
-      currentSessionTimestamp = null;
-      isNewSessionCreated = true;
+      
+      if (isManual) {
+        sessionStorage.removeItem("jesus_active_history");
+        sessionStorage.removeItem("jesus_active_feed_html");
+        activeConversationHistory = [];
+        currentSessionTimestamp = null;
+        isNewSessionCreated = true;
 
-      chatFeed.innerHTML = `
-        <div class="thinking-box" id="thinkingIndicator">
-          <span class="holy-spirit-dove">🕊️</span>
-          <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
-        </div>
-      `;
+        chatFeed.innerHTML = `
+          <div class="thinking-box" id="thinkingIndicator">
+            <span class="holy-spirit-dove">🕊️</span>
+            <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
+          </div>
+        `;
 
-      appendBotBubble("“I have known you since before you were born. Speak your heart, I am listening.”");
-      if (shouldClearInput) {
+        appendBotBubble("“I have known you since before you were born. Speak your heart, I am listening.”");
         messageInput.value = "";
         messageInput.focus();
       }
