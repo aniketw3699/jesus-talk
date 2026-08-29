@@ -398,13 +398,12 @@
         <span class="credit-pill" id="creditBadge">📿 Sign In Required</span>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
+        <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
         <button class="action-btn plans-btn" onclick="openPlansModal()">
           <span class="holy-cross-icon">✝</span> Plans
         </button>
         <button class="action-btn" onclick="openJournalModal()">📜 Journal</button>
-        <button class="action-btn" onclick="startNewPrayer()">🕊️ New Prayer</button>
-        <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
-        
+        <button class="action-btn" onclick="startNewPrayer(true)">🕊️ New Prayer</button>
         <button class="action-btn auth-btn" id="authBtn" onclick="handleAuthAction()">Sign In</button>
       </div>
       <div class="header-titles">
@@ -431,8 +430,8 @@
       <button class="chip-btn" onclick="sendQuickPrompt('I thank you for your boundless grace today.')"><span class="holy-cross-icon">✝</span> Daily Gratitude</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lay your healing hands upon my body and spirit.')">🌿 Physical Healing</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Help my unbelief and strengthen my faith.')">🛡️ Overcome Doubt</button>
-      <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='blogs.html'">📜 Sacred Blogs</button>
       <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
+      <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='blogs.html'">📜 Sacred Blogs</button>
     </div>
 
     <footer class="input-deck">
@@ -656,6 +655,7 @@
     let currentUserName = "beloved";
     let userCredits = 5;
     let isSubscribed = false;
+    let pendingPrompt = null;
 
     let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
     let activeConversationHistory = [];
@@ -690,10 +690,10 @@
     const surrenderBtn = document.getElementById("surrenderBtn");
 
     window.onload = function() {
+      checkUrlPromptBridge();
       renderPlans();
       initFirebaseAuth();
       startTimeSlotLiveWatcher();
-      checkUrlPromptBridge();
     };
 
     document.addEventListener("visibilitychange", function() {
@@ -714,11 +714,9 @@
       const urlParams = new URLSearchParams(window.location.search);
       const incomingPrompt = urlParams.get('prompt');
       if (incomingPrompt) {
-        messageInput.value = decodeURIComponent(incomingPrompt);
-        messageInput.focus();
+        pendingPrompt = decodeURIComponent(incomingPrompt);
+        messageInput.value = pendingPrompt;
         window.history.replaceState({}, document.title, window.location.pathname);
-      } else {
-        messageInput.value = "";
       }
     }
 
@@ -750,8 +748,19 @@
             messageInput.placeholder = "Speak your heart...";
 
             setupUserCredits(user);
-            startNewPrayer();
-            checkAndTriggerTimeAwareBlessing(false);
+
+            if (pendingPrompt) {
+              const promptToExecute = pendingPrompt;
+              pendingPrompt = null;
+              startNewPrayer(false);
+              messageInput.value = promptToExecute;
+              setTimeout(() => {
+                handleUserSubmit(new Event('submit'));
+              }, 250);
+            } else {
+              startNewPrayer(true);
+              checkAndTriggerTimeAwareBlessing(false);
+            }
           } else {
             currentUser = null;
             currentUserName = "beloved";
@@ -759,6 +768,10 @@
             authBtn.textContent = "Sign In";
             creditBadge.textContent = "📿 Sign In Required";
             messageInput.placeholder = "Sign in with Google to speak your heart...";
+            
+            if (pendingPrompt) {
+              openPrivacyModal();
+            }
           }
         });
       }
@@ -796,7 +809,7 @@
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         const result = await firebase.auth().signInWithPopup(provider);
-        if (result.user) {
+        if (result.user && !pendingPrompt) {
           checkAndTriggerTimeAwareBlessing(true);
         }
       } catch (err) {
@@ -1217,7 +1230,7 @@
         currentSessionTimestamp = null;
         isNewSessionCreated = false;
         closeJournalModal();
-        startNewPrayer();
+        startNewPrayer(true);
       }
     }
 
@@ -1464,7 +1477,7 @@
     }
 
     /* NEW PRAYER (Gated) */
-    function startNewPrayer() {
+    function startNewPrayer(shouldClearInput = true) {
       if (!currentUser) {
         handleAuthAction();
         return;
@@ -1482,8 +1495,10 @@
       `;
 
       appendBotBubble("“I have known you since before you were born. Speak your heart, I am listening.”");
-      messageInput.value = "";
-      messageInput.focus();
+      if (shouldClearInput) {
+        messageInput.value = "";
+        messageInput.focus();
+      }
     }
 
     window.onclick = function(event) {
