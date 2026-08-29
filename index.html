@@ -24,9 +24,6 @@
   <script defer src="/__/firebase/10.12.0/firebase-firestore-compat.js"></script>
   <script defer src="/__/firebase/init.js"></script>
 
-  <!-- html2canvas for Ultra-HD scripture cards -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
   <style>
     :root {
       --bg-celestial: #f3eee6;
@@ -565,7 +562,7 @@
       gap: 5px;
     }
 
-    /* Clear Straight Text Scripture Card (Non-Italic) */
+    /* Modal Scripture Card Preview */
     .scripture-card-canvas {
       width: 100%; background: #141b26 url('BG1.png') center top/cover no-repeat;
       border-radius: 18px; padding: 34px 24px 26px 24px; color: #ffffff;
@@ -1850,51 +1847,196 @@
       shareCardModal.style.display = "none";
     }
 
-    /* THE PROVEN WORKING NATIVE SHARING ENGINE (EXACT MATCH TO ORIGINAL CODE) */
+    /* DIRECT INSTANT HD CANVAS GENERATOR */
+    function drawDirectSacredCard(rawText) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1080;
+      const ctx = canvas.getContext('2d');
+
+      // Celestial Background Gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, 1080);
+      grad.addColorStop(0, '#0a0f16');
+      grad.addColorStop(0.5, '#121a24');
+      grad.addColorStop(1, '#070a0e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1080);
+
+      // Gold Double Borders
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.55)';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(44, 44, 992, 992);
+
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.22)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(56, 56, 968, 968);
+
+      // Top Tag
+      ctx.fillStyle = '#e6c587';
+      ctx.font = '700 28px "Cinzel", serif, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('✝  WORDS OF GRACE  ✝', 540, 145);
+
+      // Straight, Crisp Typography
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '500 40px "Plus Jakarta Sans", "Playfair Display", serif, sans-serif';
+
+      const cleanText = rawText.replace(/<[^>]*>/g, '').replace(/“|”/g, '').trim();
+      const quote = `“${cleanText}”`;
+
+      const words = quote.split(' ');
+      const lines = [];
+      let currentLine = '';
+      const maxWidth = 860;
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = currentLine ? currentLine + ' ' + words[i] : words[i];
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && i > 0) {
+          lines.push(currentLine);
+          currentLine = words[i];
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      const lineHeight = 60;
+      const totalHeight = lines.length * lineHeight;
+      let startY = 540 - (totalHeight / 2) + 20;
+      if (startY < 240) startY = 240;
+
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], 540, startY + (i * lineHeight));
+      }
+
+      // Divider & Watermark
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(360, 960);
+      ctx.lineTo(720, 960);
+      ctx.stroke();
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 22px "Plus Jakarta Sans", sans-serif';
+      ctx.fillText('you with jesus • https://jesus-chat-bd89f.web.app', 540, 1005);
+
+      return canvas;
+    }
+
+    /* INSTANT NATIVE SHARING ENGINE (PRESERVES ANDROID TOUCH ACTIVATION) */
     async function exportScriptureImage() {
-      const cardEl = document.getElementById("scriptureCardToExport");
       const exportBtn = document.getElementById("exportCardBtn");
-      const shareText = `you with jesus: ${APP_CANONICAL_URL}`;
-      exportBtn.innerHTML = "⏳ Rendering Ultra-HD Card...";
+      const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
+      const shareUrl = APP_CANONICAL_URL;
+      const shareText = `“${quoteText.replace(/“|”/g, '')}”\n\nyou with jesus: ${shareUrl}`;
+
+      exportBtn.innerHTML = "⏳ Opening Share Menu...";
+      exportBtn.disabled = true;
 
       try {
-        const canvas = await html2canvas(cardEl, { scale: 4, useCORS: true, allowTaint: true, logging: false });
+        const canvas = drawDirectSacredCard(quoteText);
+
         canvas.toBlob(async (blob) => {
+          if (!blob) {
+            fallbackShareText(shareText, exportBtn);
+            return;
+          }
+
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
 
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+          // 1. Primary: Native Share Sheet with Image File
+          if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+            try {
+              await navigator.share({
+                title: 'You With Jesus',
+                text: `you with jesus: ${shareUrl}`,
+                files: [shareFile]
+              });
+              resetBtn(exportBtn);
+              closeShareModal();
+              return;
+            } catch (err) {
+              if (err.name === 'AbortError') {
+                resetBtn(exportBtn);
+                return;
+              }
+            }
+          }
+
+          // 2. Secondary: Native Share Sheet with Text & URL
+          if (navigator.share) {
             try {
               await navigator.share({
                 title: 'You With Jesus',
                 text: shareText,
-                files: [shareFile]
+                url: shareUrl
               });
+              resetBtn(exportBtn);
+              closeShareModal();
+              return;
             } catch (err) {
-              console.log("Share dismissed or failed:", err);
-            }
-          } else if (navigator.share) {
-            await navigator.share({
-              title: 'You With Jesus',
-              text: shareText
-            });
-          } else {
-            const imageURL = canvas.toDataURL("image/png");
-            const link = document.createElement('a');
-            link.download = 'words-of-jesus-hd.png';
-            link.href = imageURL;
-            link.click();
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(shareText);
-              alert("Blessing image downloaded and link copied to clipboard!");
+              if (err.name === 'AbortError') {
+                resetBtn(exportBtn);
+                return;
+              }
             }
           }
-          exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-          closeShareModal();
-        }, 'image/png', 1.0);
+
+          // 3. Fallback for Desktop/Unsupported browsers
+          triggerDirectDownload(canvas, shareText, exportBtn);
+        }, 'image/png', 0.95);
+
       } catch (err) {
-        exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-        alert("Unable to generate card image directly on this browser.");
+        console.error("Card generation error:", err);
+        fallbackShareText(shareText, exportBtn);
       }
+    }
+
+    function resetBtn(btn) {
+      if (btn) {
+        btn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+        btn.disabled = false;
+      }
+    }
+
+    async function fallbackShareText(shareText, exportBtn) {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'You With Jesus', text: shareText });
+          resetBtn(exportBtn);
+          closeShareModal();
+          return;
+        } catch (e) {
+          if (e.name === 'AbortError') {
+            resetBtn(exportBtn);
+            return;
+          }
+        }
+      }
+      resetBtn(exportBtn);
+      alert("Sharing is not supported on this browser.");
+    }
+
+    function triggerDirectDownload(canvas, shareText, exportBtn) {
+      const imageURL = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.download = 'words-of-jesus-hd.png';
+      link.href = imageURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText);
+        alert("Blessing image downloaded and link copied to clipboard!");
+      } else {
+        alert("Blessing image downloaded!");
+      }
+
+      resetBtn(exportBtn);
+      closeShareModal();
     }
 
     /* NEW PRAYER */
