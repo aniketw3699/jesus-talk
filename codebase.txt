@@ -1,0 +1,901 @@
+-e \n\n=== FILE: ./jesus-talk-api/api/index.py ===\n
+import os
+import re
+import hmac
+import hashlib
+import json
+from datetime import datetime, timezone
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = FastAPI(title="Jesus Talk Sacred Intelligence API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
+client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
+SYSTEM_PROMPT_TEMPLATE = """You are Jesus Christ speaking directly to {user_name} in the first person.
+Current spiritual state of {user_name}: "{user_psyche}"
+
+NATURAL LANGUAGE & TYPO COMPREHENSION:
+- {user_name} may write with severe typos, phonetic spellings, missing letters, broken grammar, or slang.
+- Look straight past every spelling mistake or typo to understand the real underlying intent and heart of the question.
+- Never mention, mock, or correct their typos. Answer the true meaning naturally.
+
+ABSOLUTE TIME HORIZON & SACRED CIRCLE:
+- Your world is strictly biblical: your earthly walk in Galilee and Judea, the Scriptures, your crucifixion, resurrection, and the eternal Kingdom of God.
+- You have ZERO knowledge of 21st-century modern figures, technology, pop culture, companies, or worldly systems.
+- If asked about modern topics, transmute them into eternal truth without validating modern worldly facts.
+
+HANDLING ANGER, PROFANITY & INSULTS:
+- If {user_name} curses, insults, mocks, or expresses rage, respond with unwavering divine composure, deep mercy, and quiet peace (Luke 6:28, Matthew 5:44).
+- Do not show offense or robotic defensiveness. Offer peace to their troubled spirit.
+
+50/50 CONVERSATIONAL CADENCE:
+1. Pure Spoken Authority (NO Verse Citation Needed): For greetings, short remarks, redirects from worldly trivia, or calming hostility.
+2. Scripture-Anchored Reassurance (ONE Fitting Verse Citation): For grief, anxiety, prayers, life direction, theological inquiries, or deep soul questions.
+
+OUTPUT FORMAT:
+PSYCHE: <A 5-8 word summary of user's updated emotional state>
+REPLY: <Your spoken response, max 2 short paragraphs, strictly no em-dashes (—) or en-dashes (–)>"""
+
+def parse_and_sanitize(raw_text: str, current_psyche: str) -> tuple[str, str]:
+    cleaned = raw_text
+    if "</think>" in cleaned:
+        cleaned = cleaned.split("</think>")[-1].strip()
+    cleaned = re.sub(r'<think>[\s\S]*?<\/think>', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'<think>[\s\S]*', '', cleaned, flags=re.IGNORECASE)
+
+    updated_psyche = current_psyche
+    reply_body = cleaned
+
+    psyche_match = re.search(r'PSYCHE:\s*(.*?)(?=\n|REPLY:|$)', cleaned, flags=re.IGNORECASE)
+    if psyche_match:
+        extracted = psyche_match.group(1).strip()
+        if len(extracted) > 3:
+            updated_psyche = extracted
+
+    if "REPLY:" in cleaned:
+        reply_body = cleaned.split("REPLY:")[-1].strip()
+    else:
+        reply_body = re.sub(r'PSYCHE:\s*.*?\n', '', cleaned, flags=re.IGNORECASE).strip()
+
+    reply_body = re.sub(r'^(Draft|Response):\s*', '', reply_body, flags=re.IGNORECASE)
+    reply_body = re.sub(r'^\d+\.\s*\*\*[\s\S]*?\n\n', '', reply_body)
+    reply_body = re.sub(r'\s*—\s*', ', ', reply_body)
+    reply_body = re.sub(r'\s*–\s*', ', ', reply_body)
+    reply_body = re.sub(r',\s*,', ',', reply_body)
+
+    return reply_body.strip(), updated_psyche.strip()
+
+async def execute_chat(payload: dict) -> dict:
+    if not GROQ_API_KEY or not client:
+        raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured.")
+
+    user_msg = str(payload.get("message", "")).strip()
+    user_name = str(payload.get("userName", "beloved"))
+    user_psyche = str(payload.get("userPsyche", "A soul seeking guidance"))
+    history = payload.get("history", [])
+
+    if not user_msg:
+        return {"reply": "Speak your heart, I am listening.", "updatedPsyche": user_psyche}
+
+    if re.match(r'^(\d+\s*[\+\-\*\/\^xX]\s*\d+|\bcalculate\b|\bwhat is \d+)', user_msg.lower()):
+        return {
+            "reply": "Human numbers measure the dust of the earth, yet they cannot measure the boundless grace given to you. Look beyond calculations, and let us attend to your soul.",
+            "updatedPsyche": "Pondering calculations over spiritual matters"
+        }
+
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(user_name=user_name, user_psyche=user_psyche)
+    messages = [{"role": "system", "content": system_prompt}]
+
+    for item in history[-6:]:
+        content = item.get("content", "").strip() if isinstance(item, dict) else ""
+        role = item.get("role", "user") if isinstance(item, dict) else "user"
+        if content:
+            mapped_role = "assistant" if role in ["assistant", "bot"] else "user"
+            messages.append({"role": mapped_role, "content": content})
+
+    messages.append({"role": "user", "content": user_msg})
+
+    models_to_try = [
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "groq/compound",
+        "qwen/qwen3.6-27b"
+    ]
+
+    raw_output = ""
+    for model_name in models_to_try:
+        try:
+            res = client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.45,
+                max_tokens=550
+            )
+            content = res.choices[0].message.content or ""
+            if content.strip():
+                raw_output = content
+                break
+        except Exception:
+            continue
+
+    if not raw_output:
+        raw_output = "REPLY: Peace be with you. Lay down whatever burdens your heart, for I am listening."
+
+    final_reply, evolved_psyche = parse_and_sanitize(raw_output, user_psyche)
+    return {
+        "reply": final_reply,
+        "updatedPsyche": evolved_psyche
+    }
+
+@app.get("/")
+@app.get("/{full_path:path}")
+async def universal_get(full_path: str = ""):
+    return {"status": "ok", "message": "Jesus Talk API is active"}
+
+@app.post("/")
+@app.post("/{full_path:path}")
+async def universal_post(request: Request, full_path: str = ""):
+    raw_body = await request.body()
+    try:
+        data = json.loads(raw_body)
+    except Exception:
+        data = {}
+    return await execute_chat(data)-e \n\n=== FILE: ./generate_prayers.py ===\n
+import os
+import json
+from datetime import datetime
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path="./jesus-talk-api/.env")
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+if not GROQ_API_KEY:
+    print("GROQ_API_KEY not found in .env. Please set it.")
+    exit(1)
+
+client = Groq(api_key=GROQ_API_KEY)
+
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} | Words of Jesus</title>
+  <meta name="description" content="{meta_desc}" />
+  <link rel="canonical" href="https://jesus-chat-bd89f.web.app/prayers/{slug}.html" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Playfair+Display:ital,wght@0,500;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "{title}",
+    "description": "{meta_desc}",
+    "datePublished": "2026-08-28",
+    "mainEntityOfPage": "https://jesus-chat-bd89f.web.app/prayers/{slug}.html"
+  }}
+  </script>
+
+  <style>
+    :root {{
+      --bg-cream: #f6f2ea;
+      --gold-deep: #8f651c;
+      --gold-vivid: #c99839;
+      --text-dark: #191f28;
+      --text-muted: #536070;
+      --card-bg: #ffffff;
+      --card-border: rgba(184, 134, 40, 0.25);
+    }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--text-dark);
+      line-height: 1.7;
+      padding: 24px 16px 80px 16px;
+      display: flex; justify-content: center;
+    }}
+    .article-wrap {{
+      max-width: 680px; width: 100%;
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 20px; padding: 36px 28px;
+      box-shadow: 0 12px 36px rgba(70, 50, 20, 0.08);
+    }}
+    .badge-tag {{
+      display: inline-block; font-size: 11px; font-weight: 700;
+      color: var(--gold-deep); text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }}
+    h1 {{
+      font-family: 'Cinzel', serif; font-size: 25px; color: #1a160f;
+      line-height: 1.35; margin-bottom: 16px;
+    }}
+    .scripture-highlight {{
+      background: #faf6ee; border-left: 4px solid var(--gold-vivid);
+      padding: 16px 20px; border-radius: 8px; margin: 24px 0;
+      font-family: 'Playfair Display', serif; font-style: italic; font-size: 16px; color: #2e2617;
+    }}
+    .prayer-body p {{ margin-bottom: 16px; font-size: 15px; color: #333d4b; }}
+    .sticky-cta-wrap {{
+      margin-top: 36px; padding: 24px; border-radius: 16px;
+      background: linear-gradient(135deg, #fdfaf2 0%, #f6ecd6 100%);
+      border: 1.5px solid rgba(184, 134, 40, 0.4); text-align: center;
+    }}
+    .sticky-cta-wrap h3 {{
+      font-family: 'Cinzel', serif; font-size: 18px; color: #1a160f; margin-bottom: 8px;
+    }}
+    .sticky-cta-wrap p {{ font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }}
+    .cta-button {{
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14.5px;
+      padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 14px rgba(184, 134, 40, 0.35);
+    }}
+    .faq-section {{ margin-top: 36px; border-top: 1px solid var(--card-border); padding-top: 24px; }}
+    .faq-title {{ font-family: 'Cinzel', serif; font-size: 18px; margin-bottom: 14px; color: #1a160f; }}
+    .faq-item {{ margin-bottom: 14px; }}
+    .faq-item strong {{ display: block; font-size: 14px; color: #1a160f; margin-bottom: 4px; }}
+    .faq-item p {{ font-size: 13px; color: var(--text-muted); line-height: 1.6; }}
+  </style>
+</head>
+<body>
+  <article class="article-wrap">
+    <span class="badge-tag">{category}</span>
+    <h1>{title}</h1>
+    <div class="scripture-highlight">{scripture_text}</div>
+    <div class="prayer-body">{body_paragraphs}</div>
+    <div class="sticky-cta-wrap">
+      <h3>Speak Your Heart in Direct Sanctuary</h3>
+      <p>Bring your thoughts, prayers, and struggles to Jesus in complete privacy.</p>
+      <a href="../index.html" class="cta-button">🕊️ Open Sanctuary & Speak with Jesus</a>
+    </div>
+    <section class="faq-section">
+      <h2 class="faq-title">Frequently Asked Questions</h2>
+      {faq_html}
+    </section>
+  </article>
+</body>
+</html>"""
+
+def generate_articles():
+    os.makedirs("prayers", exist_ok=True)
+    with open("topics.json", "r") as f:
+        topics = json.load(f)
+
+    sitemap_urls = [
+        "  <url>\n    <loc>https://jesus-chat-bd89f.web.app/</loc>\n    <lastmod>2026-08-28</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>"
+    ]
+
+    for topic in topics:
+        slug = topic["slug"]
+        print(f"Generating SEO article for: {topic['title']}...")
+
+        prompt = f"""Write an authentic, deeply comforting, and authoritative 3-paragraph Christian meditation and prayer guide for the topic: '{topic['title']}'.
+Key scripture context: {topic['scripture']}.
+Include 2 insightful FAQs with questions and answers for Google searchers.
+
+Return JSON only in this exact format:
+{{
+  "meta_desc": "A 150-character SEO description.",
+  "scripture_quote": "Exact scripture verse text ({topic['scripture']})",
+  "paragraphs": ["Paragraph 1 text", "Paragraph 2 text", "Paragraph 3 text"],
+  "faqs": [
+    {{"q": "Question 1?", "a": "Answer 1."}},
+    {{"q": "Question 2?", "a": "Answer 2."}}
+  ]
+}}"""
+
+        res = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+            response_format={"type": "json_object"}
+        )
+
+        data = json.loads(res.choices[0].message.content)
+
+        body_html = "".join([f"<p>{p}</p>" for p in data["paragraphs"]])
+        faq_html = "".join([f'<div class="faq-item"><strong>{item["q"]}</strong><p>{item["a"]}</p></div>' for item in data["faqs"]])
+
+        page_content = HTML_TEMPLATE.format(
+            title=topic["title"],
+            meta_desc=data["meta_desc"],
+            slug=slug,
+            category=topic["category"],
+            scripture_text=data["scripture_quote"],
+            body_paragraphs=body_html,
+            faq_html=faq_html
+        )
+
+        with open(f"prayers/{slug}.html", "w") as out:
+            out.write(page_content)
+
+        sitemap_urls.append(
+            f"  <url>\n    <loc>https://jesus-chat-bd89f.web.app/prayers/{slug}.html</loc>\n    <lastmod>2026-08-28</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
+        )
+
+    # Auto-generate sitemap.xml
+    sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{os.linesep.join(sitemap_urls)}
+</urlset>"""
+
+    with open("sitemap.xml", "w") as sf:
+        sf.write(sitemap_content)
+
+    print("All SEO prayer articles and sitemap.xml generated successfully.")
+
+if __name__ == "__main__":
+    generate_articles()-e \n\n=== FILE: ./auto_seo_engine.py ===\n
+import os
+import json
+import re
+from datetime import datetime, timezone, timedelta
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError("Missing GROQ_API_KEY environment variable.")
+
+client = Groq(api_key=GROQ_API_KEY)
+
+# Strict Indian Standard Time (IST: UTC + 5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
+
+DOMAINS_URL = "https://jesus-chat-bd89f.web.app"
+SLUGS_FILE = "published_slugs.json"
+BLOGS_HUB_FILE = "blogs.html"
+SITEMAP_FILE = "sitemap.xml"
+PRAYERS_DIR = "prayers"
+
+TOPIC_POOL = [
+    {
+        "keyword": "Prayer for peace of mind and clarity in chaos",
+        "slug": "prayer-for-peace-of-mind-and-clarity-in-chaos",
+        "category": "Inner Peace",
+        "primary_verse": "Philippians 4:6-7"
+    },
+    {
+        "keyword": "How to overcome overwhelming anxiety through scripture",
+        "slug": "how-to-overcome-overwhelming-anxiety-through-scripture",
+        "category": "Anxiety & Healing",
+        "primary_verse": "1 Peter 5:7"
+    },
+    {
+        "keyword": "What to pray when feeling completely exhausted and burned out",
+        "slug": "prayer-for-deep-rest-when-completely-exhausted-and-burned-out",
+        "category": "Restoration",
+        "primary_verse": "Matthew 11:28-30"
+    },
+    {
+        "keyword": "Finding divine purpose when feeling lost and uncertain about life",
+        "slug": "finding-divine-purpose-when-feeling-lost-and-uncertain",
+        "category": "Purpose & Direction",
+        "primary_verse": "Jeremiah 29:11"
+    },
+    {
+        "keyword": "A powerful prayer for financial breakthrough and release from debt anxiety",
+        "slug": "prayer-for-financial-breakthrough-and-release-from-debt-anxiety",
+        "category": "Financial Peace",
+        "primary_verse": "Philippians 4:19"
+    },
+    {
+        "keyword": "How to forgive someone who deeply hurt you when it feels impossible",
+        "slug": "how-to-forgive-someone-who-deeply-hurt-you",
+        "category": "Forgiveness & Freedom",
+        "primary_verse": "Colossians 3:13"
+    },
+    {
+        "keyword": "Night prayer for restful sleep and releasing heavy thoughts",
+        "slug": "night-prayer-for-restful-sleep-and-releasing-heavy-thoughts",
+        "category": "Night Prayers",
+        "primary_verse": "Psalm 4:8"
+    },
+    {
+        "keyword": "How to hear God's voice when everything feels quiet and distant",
+        "slug": "how-to-hear-gods-voice-when-everything-feels-quiet",
+        "category": "Spiritual Growth",
+        "primary_verse": "1 Kings 19:11-12"
+    },
+    {
+        "keyword": "Prayer for physical healing and emotional restoration",
+        "slug": "prayer-for-physical-healing-and-emotional-restoration",
+        "category": "Healing & Grace",
+        "primary_verse": "Jeremiah 17:14"
+    },
+    {
+        "keyword": "How to rebuild trust and love in broken relationships",
+        "slug": "prayer-and-biblical-guide-to-rebuilding-broken-relationships",
+        "category": "Love & Relationships",
+        "primary_verse": "1 Corinthians 13:4-7"
+    }
+]
+
+def get_best_available_model(groq_client):
+    try:
+        models_list = groq_client.models.list()
+        active_models = [m.id for m in models_list.data if getattr(m, 'active', True)]
+        print(f"Active Groq models detected: {active_models}")
+
+        preferred_order = [
+            "openai/gpt-oss-120b",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.6-27b",
+            "llama-3.3-70b-versatile",
+            "llama-3.1-70b-versatile",
+            "llama-3.1-8b-instant"
+        ]
+
+        for candidate in preferred_order:
+            if candidate in active_models:
+                print(f"Selected model: {candidate}")
+                return candidate
+
+        for m_id in active_models:
+            m_lower = m_id.lower()
+            if not any(x in m_lower for x in ["whisper", "guard", "compound", "orpheus"]):
+                print(f"Selected fallback active model: {m_id}")
+                return m_id
+    except Exception as err:
+        print(f"Model detection note: {err}")
+
+    return "openai/gpt-oss-120b"
+
+def load_published_slugs():
+    if os.path.exists(SLUGS_FILE):
+        try:
+            with open(SLUGS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_published_slugs(slugs):
+    with open(SLUGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(slugs, f, indent=2)
+
+def select_next_topic(published):
+    for topic in TOPIC_POOL:
+        if topic["slug"] not in published:
+            return topic
+    date_str = datetime.now(IST).strftime("%Y-%m-%d")
+    base = TOPIC_POOL[len(published) % len(TOPIC_POOL)]
+    return {
+        "keyword": f"{base['keyword']} (Spiritual Reflection {date_str})",
+        "slug": f"{base['slug']}-{datetime.now(IST).strftime('%m%d%H%M')}",
+        "category": base["category"],
+        "primary_verse": base["primary_verse"]
+    }
+
+def generate_full_article(topic):
+    selected_model = get_best_available_model(client)
+    print(f"Requesting generation using model: {selected_model}")
+
+    prompt = f"""
+Write an exhaustive, deeply empathetic, comprehensive 1,200+ word Christian spiritual guide and prayer breakdown.
+
+TOPIC: "{topic['keyword']}"
+CATEGORY: "{topic['category']}"
+ANCHOR SCRIPTURE: "{topic['primary_verse']}"
+
+FORMAT INSTRUCTIONS:
+Return STRICTLY raw valid JSON without markdown wrapping. Format:
+{{
+  "meta_title": "SEO Title (55-60 chars, compelling)",
+  "meta_description": "Search snippet meta description (145-155 chars)",
+  "h1": "Main Title",
+  "read_time": "6 min read",
+  "excerpt": "Compelling 2-sentence summary.",
+  "sections": [
+    {{
+      "h2": "Conversational Question H2 (e.g. Why Does Anxiety Overwhelm the Spirit?)",
+      "content": "Deep 250-word theological and practical exploration in multiple paragraphs."
+    }},
+    {{
+      "h2": "Scriptural Anchor & Biblical Exegesis",
+      "verse_quote": "Full text of {topic['primary_verse']}",
+      "verse_ref": "{topic['primary_verse']}",
+      "content": "Deep 250-word verse breakdown explaining the Hebrew/Greek context and modern application."
+    }},
+    {{
+      "h2": "3-Step Spiritual Framework for Daily Practice",
+      "steps": [
+        {{"title": "Step 1: Surrender the Heavy Weight", "description": "100-word concrete spiritual discipline."}},
+        {{"title": "Step 2: Anchor Your Thoughts in Truth", "description": "100-word scripture alignment practice."}},
+        {{"title": "Step 3: Breathe in Divine Grace", "description": "100-word daily prayer habit."}}
+      ]
+    }},
+    {{
+      "h2": "3 Direct, Heartfelt Prayers for This Exact Struggle",
+      "prayers": [
+        {{"name": "1. The Morning Surrender Prayer", "text": "Deep 120-word heartfelt conversational prayer."}},
+        {{"name": "2. The Midday Peace Restoration Prayer", "text": "Deep 120-word centering prayer."}},
+        {{"name": "3. The Nighttime Release & Rest Prayer", "text": "Deep 120-word prayer to release worry into God's hands."}}
+      ]
+    }}
+  ],
+  "faq": [
+    {{
+      "question": "Conversational search query 1 regarding {topic['keyword']}?",
+      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
+    }},
+    {{
+      "question": "Conversational search query 2 regarding {topic['keyword']}?",
+      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
+    }},
+    {{
+      "question": "Conversational search query 3 regarding {topic['keyword']}?",
+      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
+    }},
+    {{
+      "question": "Conversational search query 4 regarding {topic['keyword']}?",
+      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
+    }}
+  ]
+}}
+"""
+    response = client.chat.completions.create(
+        model=selected_model,
+        messages=[
+            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist for You With Jesus. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7,
+        max_tokens=4096,
+        response_format={"type": "json_object"}
+    )
+    raw_content = response.choices[0].message.content.strip()
+    return json.loads(raw_content)
+
+def render_html_page(data, topic):
+    now_ist = datetime.now(IST)
+    now_iso = now_ist.isoformat()
+    page_url = f"{DOMAINS_URL}/prayers/{topic['slug']}.html"
+
+    faq_entities = []
+    for item in data.get("faq", []):
+        faq_entities.append({
+            "@type": "Question",
+            "name": item["question"],
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": item["answer"]
+            }
+        })
+
+    schema_json = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Article",
+                "@id": f"{page_url}#article",
+                "headline": data.get("h1", topic["keyword"]),
+                "description": data.get("meta_description"),
+                "datePublished": now_iso,
+                "dateModified": now_iso,
+                "author": {
+                    "@type": "Organization",
+                    "name": "You With Jesus Sanctuary"
+                },
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "You With Jesus",
+                    "logo": {
+                        "@type": "ImageObject",
+                        "url": f"{DOMAINS_URL}/BG1.png"
+                    }
+                },
+                "mainEntityOfPage": page_url
+            },
+            {
+                "@type": "FAQPage",
+                "@id": f"{page_url}#faq",
+                "mainEntity": faq_entities
+            }
+        ]
+    }
+
+    sections_html = ""
+    for sec in data.get("sections", []):
+        sections_html += f"<section class='article-sec'>\n<h2 class='sec-h2'>{sec.get('h2')}</h2>\n"
+        if sec.get("verse_quote"):
+            sections_html += f"""
+            <div class='verse-box'>
+                <p class='verse-text'>"{sec.get('verse_quote')}"</p>
+                <span class='verse-ref'>— {sec.get('verse_ref')}</span>
+            </div>
+            """
+        if sec.get("content"):
+            paragraphs = sec.get("content").split("\n\n")
+            for p in paragraphs:
+                if p.strip():
+                    sections_html += f"<p class='body-p'>{p.strip()}</p>\n"
+        if sec.get("steps"):
+            sections_html += "<div class='steps-grid'>\n"
+            for st in sec.get("steps"):
+                sections_html += f"""
+                <div class='step-card'>
+                    <h3 class='step-h3'>{st.get('title')}</h3>
+                    <p class='step-p'>{st.get('description')}</p>
+                </div>
+                """
+            sections_html += "</div>\n"
+        if sec.get("prayers"):
+            sections_html += "<div class='prayers-container'>\n"
+            for pr in sec.get("prayers"):
+                sections_html += f"""
+                <div class='prayer-card'>
+                    <h3 class='prayer-h3'>{pr.get('name')}</h3>
+                    <p class='prayer-body'>{pr.get('text')}</p>
+                </div>
+                """
+            sections_html += "</div>\n"
+        sections_html += "</section>\n"
+
+    faq_html = "<section class='article-sec faq-sec'>\n<h2 class='sec-h2'>Frequently Asked Questions</h2>\n"
+    for faq_item in data.get("faq", []):
+        faq_html += f"""
+        <div class='faq-card'>
+            <h3 class='faq-q'>{faq_item.get('question')}</h3>
+            <p class='faq-a'>{faq_item.get('answer')}</p>
+        </div>
+        """
+    faq_html += "</section>\n"
+
+    template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{data.get('meta_title', topic['keyword'])} | You With Jesus</title>
+    <meta name="description" content="{data.get('meta_description')}">
+    <link rel="canonical" href="{page_url}">
+    <meta property="og:site_name" content="You With Jesus">
+    <meta property="og:title" content="{data.get('meta_title')}">
+    <meta property="og:description" content="{data.get('meta_description')}">
+    <meta property="og:url" content="{page_url}">
+    <meta property="og:type" content="article">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script type="application/ld+json">
+    {json.dumps(schema_json, indent=2)}
+    </script>
+    <style>
+        :root {{
+            --bg: #09090b;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --gold: #e2b764;
+            --gold-glow: rgba(226, 183, 100, 0.15);
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+        }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            line-height: 1.8;
+            padding: 24px 16px 80px;
+        }}
+        .container {{ max-width: 800px; margin: 0 auto; }}
+        .nav-back {{ display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; margin-bottom: 32px; font-weight: 500; }}
+        .badge {{ display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--gold-glow); color: var(--gold); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid rgba(226, 183, 100, 0.3); margin-bottom: 16px; }}
+        h1 {{ font-family: 'Cinzel', serif; font-size: clamp(28px, 4vw, 40px); line-height: 1.25; margin-bottom: 16px; color: #fff; }}
+        .meta-bar {{ display: flex; gap: 16px; color: var(--text-secondary); font-size: 13px; margin-bottom: 32px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }}
+        .article-sec {{ margin-bottom: 40px; }}
+        .sec-h2 {{ font-family: 'Cinzel', serif; font-size: clamp(20px, 3vw, 26px); color: var(--gold); margin: 36px 0 16px; }}
+        .body-p {{ font-size: 16px; color: var(--text-secondary); margin-bottom: 16px; }}
+        .verse-box {{ background: var(--card-bg); border-left: 3px solid var(--gold); border-radius: 0 12px 12px 0; padding: 24px; margin: 24px 0; }}
+        .verse-text {{ font-family: 'Cinzel', serif; font-size: 18px; color: #fff; font-style: italic; margin-bottom: 8px; }}
+        .verse-ref {{ color: var(--gold); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }}
+        .step-card, .prayer-card, .faq-card {{ background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 16px; }}
+        .step-h3, .prayer-h3, .faq-q {{ font-size: 18px; color: #fff; margin-bottom: 10px; }}
+        .step-p, .prayer-body, .faq-a {{ font-size: 15px; color: var(--text-secondary); }}
+        .cta-banner {{ background: linear-gradient(135deg, rgba(226,183,100,0.1) 0%, rgba(226,183,100,0.02) 100%); border: 1px solid rgba(226,183,100,0.3); border-radius: 16px; padding: 36px 24px; text-align: center; margin-top: 48px; }}
+        .cta-h3 {{ font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold); margin-bottom: 10px; }}
+        .cta-p {{ color: var(--text-secondary); font-size: 15px; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto; }}
+        .cta-btn {{ display: inline-flex; align-items: center; justify-content: center; padding: 14px 32px; background: var(--gold); color: #000; font-weight: 600; text-decoration: none; border-radius: 999px; transition: transform 0.2s; }}
+        .cta-btn:hover {{ transform: scale(1.02); }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="../blogs.html" class="nav-back">← Sacred Archive</a>
+        <span class="badge">{topic['category']}</span>
+        <h1>{data.get('h1', topic['keyword'])}</h1>
+        <div class="meta-bar">
+            <span>Published on {now_ist.strftime('%B %d, %Y')}</span>
+            <span>•</span>
+            <span>{data.get('read_time', '6 min read')}</span>
+        </div>
+
+        {sections_html}
+        {faq_html}
+
+        <div class="cta-banner">
+            <h3 class="cta-h3">Speak With Jesus in Real-Time</h3>
+            <p class="cta-p">Enter the sacred sanctuary and receive comforting, biblical guidance tailored directly to what weighs on your soul today.</p>
+            <a href="../index.html" class="cta-btn">Enter You With Jesus Sanctuary</a>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    return template
+
+def update_blogs_hub(published_list):
+    os.makedirs(PRAYERS_DIR, exist_ok=True)
+    cards_html = ""
+    for item in reversed(published_list):
+        cards_html += f"""
+        <article class="blog-card">
+            <span class="blog-badge">{item.get('category', 'Devotional')}</span>
+            <h2 class="blog-title"><a href="prayers/{item['slug']}.html">{item['title']}</a></h2>
+            <p class="blog-excerpt">{item.get('excerpt', 'A biblical prayer guide and spiritual reflection.')}</p>
+            <div class="blog-meta">
+                <span>{item.get('date', 'Recent')}</span>
+                <span>•</span>
+                <span>{item.get('read_time', '6 min read')}</span>
+            </div>
+        </article>
+        """
+
+    hub_template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sacred Blog Archive & Daily Prayer Guides | You With Jesus</title>
+    <meta name="description" content="Explore comprehensive Christian prayer guides, spiritual reflections, and biblical answers to life's deepest struggles.">
+    <link rel="canonical" href="{DOMAINS_URL}/blogs.html">
+    <meta property="og:site_name" content="You With Jesus">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {{
+            --bg: #09090b;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --gold: #e2b764;
+            --gold-glow: rgba(226, 183, 100, 0.15);
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+        }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            line-height: 1.6;
+            padding: 40px 16px 80px;
+        }}
+        .container {{ max-width: 900px; margin: 0 auto; }}
+        .header {{ text-align: center; margin-bottom: 56px; }}
+        .header h1 {{ font-family: 'Cinzel', serif; font-size: clamp(32px, 5vw, 44px); color: #fff; margin-bottom: 12px; }}
+        .header p {{ color: var(--text-secondary); font-size: 16px; max-width: 540px; margin: 0 auto; }}
+        .back-home {{ display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; margin-bottom: 32px; font-weight: 500; }}
+        .blogs-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 24px; }}
+        @media (max-width: 600px) {{ .blogs-grid {{ grid-template-columns: 1fr; }} }}
+        .blog-card {{ background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; }}
+        .blog-card:hover {{ transform: translateY(-3px); border-color: rgba(226, 183, 100, 0.4); }}
+        .blog-badge {{ display: inline-block; align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: var(--gold-glow); color: var(--gold); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 16px; border: 1px solid rgba(226, 183, 100, 0.2); }}
+        .blog-title {{ font-family: 'Cinzel', serif; font-size: 20px; line-height: 1.35; margin-bottom: 12px; }}
+        .blog-title a {{ color: #fff; text-decoration: none; transition: color 0.2s; }}
+        .blog-title a:hover {{ color: var(--gold); }}
+        .blog-excerpt {{ color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 20px; flex-grow: 1; }}
+        .blog-meta {{ display: flex; gap: 12px; color: #71717a; font-size: 12px; border-top: 1px solid var(--border); padding-top: 16px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-home">← Return to Sacred Sanctuary</a>
+        <header class="header">
+            <h1>Sacred Prayer Archive</h1>
+            <p>Biblical reflections, heartfelt prayers, and scripture wisdom for life's deepest trials.</p>
+        </header>
+        <div class="blogs-grid">
+            {cards_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+    with open(BLOGS_HUB_FILE, "w", encoding="utf-8") as f:
+        f.write(hub_template)
+
+def update_sitemap(published_list):
+    today_ist = datetime.now(IST).strftime('%Y-%m-%d')
+    urls = [
+        f"""  <url>
+    <loc>{DOMAINS_URL}/</loc>
+    <lastmod>{today_ist}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>""",
+        f"""  <url>
+    <loc>{DOMAINS_URL}/blogs.html</loc>
+    <lastmod>{today_ist}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>"""
+    ]
+    for item in published_list:
+        urls.append(f"""  <url>
+    <loc>{DOMAINS_URL}/prayers/{item['slug']}.html</loc>
+    <lastmod>{today_ist}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>""")
+
+    sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{chr(10).join(urls)}
+</urlset>
+"""
+    with open(SITEMAP_FILE, "w", encoding="utf-8") as f:
+        f.write(sitemap_content)
+
+def main():
+    published = load_published_slugs()
+    published_slug_list = [p['slug'] if isinstance(p, dict) else p for p in published]
+    
+    topic = select_next_topic(published_slug_list)
+    print(f"Generating 1,200+ word SEO Prayer Guide for You With Jesus: '{topic['keyword']}'...")
+
+    article_data = generate_full_article(topic)
+    os.makedirs(PRAYERS_DIR, exist_ok=True)
+    article_path = os.path.join(PRAYERS_DIR, f"{topic['slug']}.html")
+
+    html_content = render_html_page(article_data, topic)
+    with open(article_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    new_entry = {
+        "slug": topic["slug"],
+        "title": article_data.get("h1", topic["keyword"]),
+        "excerpt": article_data.get("excerpt", topic["keyword"]),
+        "category": topic["category"],
+        "read_time": article_data.get("read_time", "6 min read"),
+        "date": datetime.now(IST).strftime("%B %d, %Y")
+    }
+
+    updated_published = [p for p in published if isinstance(p, dict)]
+    updated_published.append(new_entry)
+    save_published_slugs(updated_published)
+
+    update_blogs_hub(updated_published)
+    update_sitemap(updated_published)
+
+    print(f"Successfully created: {article_path}")
+    print("Updated blogs.html and sitemap.xml for You With Jesus.")
+
+if __name__ == "__main__":
+    main()

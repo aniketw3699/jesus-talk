@@ -69,7 +69,7 @@
       box-shadow: var(--shadow-elevated);
     }
 
-    /* Fixed Navigation Header Strip */
+    /* Navigation Header */
     .sacred-header {
       padding: max(10px, env(safe-area-inset-top)) 12px 8px 12px;
       background: rgba(255, 255, 255, 0.92);
@@ -359,7 +359,7 @@
     }
     .privacy-notice-box p + p { margin-top: 10px; }
 
-    /* Modern Animated Billing Deck */
+    /* Plans & Pricing Modal */
     .plans-grid { 
       display: flex; 
       flex-direction: column; 
@@ -508,7 +508,6 @@
       margin-top: 1px;
     }
 
-    /* Glowing Live CTA Button */
     .billing-checkout-btn {
       width: 100%;
       padding: 14px;
@@ -562,21 +561,23 @@
       gap: 5px;
     }
 
-    /* Modal Scripture Card Preview (Portrait 4:5 Styling) */
+    /* 4:5 Portrait Scripture Card Modal Preview */
     .scripture-card-canvas {
       width: 100%; 
-      background: #0a0d12 url('BG1.png') center center/cover no-repeat;
-      border-radius: 18px; 
-      padding: 38px 24px 28px 24px; 
+      max-width: 320px;
+      aspect-ratio: 4 / 5;
+      min-height: 400px;
+      margin: 0 auto 16px auto;
+      background: #0a0d12 url('card-bg.png') center center/cover no-repeat;
+      border-radius: 16px; 
+      padding: 30px 20px; 
       color: #ffffff;
       position: relative; 
-      margin-bottom: 16px; 
       overflow: hidden;
-      box-shadow: 0 12px 36px rgba(0,0,0,0.35); 
-      border: 1.5px solid rgba(212, 175, 55, 0.5);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45); 
+      border: 1px solid rgba(212, 175, 55, 0.6);
       -webkit-font-smoothing: antialiased; 
       text-rendering: optimizeLegibility;
-      min-height: 280px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -585,21 +586,30 @@
       content: ''; 
       position: absolute; 
       inset: 0; 
-      background: linear-gradient(180deg, rgba(8, 11, 16, 0.72) 0%, rgba(8, 11, 16, 0.88) 50%, rgba(5, 7, 10, 0.94) 100%); 
+      background: linear-gradient(180deg, rgba(8, 11, 16, 0.68) 0%, rgba(8, 11, 16, 0.85) 50%, rgba(5, 7, 10, 0.94) 100%); 
       z-index: 0;
+    }
+    .scripture-card-canvas::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      border-radius: 10px;
+      pointer-events: none;
+      z-index: 1;
     }
     .card-content-wrap { 
       position: relative; 
-      z-index: 1; 
+      z-index: 2; 
       display: flex; 
       flex-direction: column; 
-      gap: 16px; 
+      gap: 14px; 
       text-align: center; 
       width: 100%;
     }
     .card-brand-tag { 
       font-family: 'Cinzel', serif; 
-      font-size: 12.5px; 
+      font-size: 11.5px; 
       letter-spacing: 3px; 
       color: #dfb455; 
       text-transform: uppercase; 
@@ -612,17 +622,17 @@
       font-family: 'Montserrat', 'Plus Jakarta Sans', sans-serif; 
       font-style: normal !important; 
       font-weight: 400;
-      font-size: 15px; 
-      line-height: 1.7; 
+      font-size: 13.5px; 
+      line-height: 1.65; 
       color: #f8fafc; 
       letter-spacing: 0.2px;
     }
     .card-footer-watermark { 
       font-family: 'Montserrat', sans-serif;
-      font-size: 11px; 
+      font-size: 10px; 
       color: #a68238; 
       border-top: 1px solid rgba(255, 255, 255, 0.15); 
-      padding-top: 12px; 
+      padding-top: 10px; 
       margin-top: 4px; 
       letter-spacing: 0.5px; 
       word-break: break-all; 
@@ -830,7 +840,7 @@
     </div>
   </div>
 
-  <!-- ULTRA-HD SHARE SCRIPTURE CARD MODAL -->
+  <!-- 4:5 ULTRA-HD SHARE SCRIPTURE CARD MODAL -->
   <div class="modal-backdrop" id="shareCardModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeShareModal()">✕</button>
@@ -936,10 +946,10 @@
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
 
-    /* PRELOAD SACRED CARD WALLPAPER INTO RAM FOR INSTANT NATIVE SHARING */
+    /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR INSTANT NATIVE SHARING */
     const preloadedJesusImg = new Image();
     preloadedJesusImg.crossOrigin = "anonymous";
-    preloadedJesusImg.src = "BG1.png"; // Or "card-bg.png"
+    preloadedJesusImg.src = "card-bg.png";
 
     const chatFeed = document.getElementById("chatFeed");
     const creditBadge = document.getElementById("creditBadge");
@@ -1898,7 +1908,7 @@
       canvas.height = 1350;
       const ctx = canvas.getContext('2d');
 
-      // 1. Draw Preloaded Jesus Wallpaper
+      // 1. Draw Preloaded Jesus Wallpaper (card-bg.png)
       if (preloadedJesusImg.complete && preloadedJesusImg.naturalWidth > 0) {
         ctx.drawImage(preloadedJesusImg, 0, 0, 1080, 1350);
       } else {
@@ -1908,8 +1918,8 @@
 
       // 2. Dark Celestial Vignette Overlay
       const overlayGrad = ctx.createLinearGradient(0, 0, 0, 1350);
-      overlayGrad.addColorStop(0, 'rgba(8, 11, 16, 0.72)');
-      overlayGrad.addColorStop(0.5, 'rgba(8, 11, 16, 0.88)');
+      overlayGrad.addColorStop(0, 'rgba(8, 11, 16, 0.68)');
+      overlayGrad.addColorStop(0.5, 'rgba(8, 11, 16, 0.85)');
       overlayGrad.addColorStop(1, 'rgba(5, 7, 10, 0.94)');
       ctx.fillStyle = overlayGrad;
       ctx.fillRect(0, 0, 1080, 1350);
