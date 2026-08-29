@@ -946,46 +946,50 @@
       });
       if (appleMale) return appleMale;
 
-      // 2. Google / Android Explicit Male Engine Identifiers
+      // 2. Android Explicit Male Identifiers (Google TTS Male Voice Code-Map)
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
-        return id.includes('male') || 
+        return id.includes('iom') || 
+               id.includes('iob') || 
+               id.includes('tpc') || 
+               id.includes('rjs') || 
+               id.includes('fis') || 
+               id.includes('cxx') || 
+               id.includes('enc') || 
+               id.includes('aub') || 
+               id.includes('male') || 
                id.includes('#male') || 
-               id.includes('male_1') || 
-               id.includes('male_2') || 
-               id.includes('en-gb-x-rjs') || 
-               id.includes('en-us-x-iom') || 
-               id.includes('en-in-x-cxx') || 
-               id.includes('en-au-x-aub') || 
-               id.includes('google uk english male') ||
-               id.includes('en-us-x-sfg#male');
+               id.includes('google uk english male');
       });
       if (androidMale) return androidMale;
 
-      // 3. British English (GB) non-female voices
-      const gbVoice = englishVoices.find(v => {
+      // 3. Filter Out All Explicit Android & Web Female Voice Codes
+      const nonFemaleCandidates = englishVoices.filter(v => {
         const id = getIdentifier(v);
-        const isFemale = id.includes('female') || id.includes('woman') || id.includes('girl') || id.includes('zira') || id.includes('samantha') || id.includes('victoria');
-        return !isFemale && (v.lang === 'en-GB' || v.lang === 'en_GB' || id.includes('en-gb') || id.includes('united kingdom'));
-      });
-      if (gbVoice) return gbVoice;
-
-      // 4. Any English voice strictly NOT tagged as female
-      const nonFemale = englishVoices.find(v => {
-        const id = getIdentifier(v);
-        return !id.includes('female') && 
+        return !id.includes('sfg') && 
+               !id.includes('tpf') && 
+               !id.includes('iol') && 
+               !id.includes('gba') && 
+               !id.includes('gbb') && 
+               !id.includes('cxf') && 
+               !id.includes('end') && 
+               !id.includes('afh') && 
+               !id.includes('female') && 
                !id.includes('woman') && 
                !id.includes('girl') && 
                !id.includes('samantha') && 
                !id.includes('victoria') && 
                !id.includes('zira') && 
-               !id.includes('karen') &&
-               !id.includes('tessa') &&
+               !id.includes('karen') && 
+               !id.includes('tessa') && 
                !id.includes('moira');
       });
-      if (nonFemale) return nonFemale;
 
-      return englishVoices[0] || availableVoices[0] || null;
+      if (nonFemaleCandidates.length > 0) {
+        return nonFemaleCandidates[nonFemaleCandidates.length - 1]; // On Android, male voices sit at the end of the engine list
+      }
+
+      return englishVoices.length > 1 ? englishVoices[1] : (englishVoices[0] || availableVoices[0] || null);
     }
 
     window.onload = function() {
@@ -1771,8 +1775,9 @@
         currentUtterance.lang = 'en-US';
       }
 
-      currentUtterance.rate = 0.86;
-      currentUtterance.pitch = 0.85;
+      // Reverent deep baritone tuning across all OS synthesizers
+      currentUtterance.rate = 0.82;
+      currentUtterance.pitch = 0.68;
 
       btn.innerHTML = "⏸ Pause";
       currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
