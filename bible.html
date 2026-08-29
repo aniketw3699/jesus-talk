@@ -110,12 +110,12 @@
     .verse-text { flex-grow: 1; }
     
     .reflect-btn {
-      flex-shrink: 0; background: transparent; border: 1px solid rgba(226, 183, 100, 0.2);
+      flex-shrink: 0; background: transparent; border: 1px solid rgba(226, 183, 100, 0.3);
       color: var(--gold); font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
-      font-weight: 600; padding: 2px 8px; border-radius: 12px; cursor: pointer;
-      opacity: 0.6; transition: all 0.2s; margin-left: 8px;
+      font-weight: 600; padding: 3px 10px; border-radius: 12px; cursor: pointer;
+      opacity: 0.85; transition: all 0.2s; margin-left: 8px;
     }
-    .verse-row:hover .reflect-btn { opacity: 1; border-color: var(--gold); background: var(--gold-glow); }
+    .reflect-btn:hover, .reflect-btn:active { opacity: 1; border-color: var(--gold); background: var(--gold-glow); }
 
     .loading-spinner {
       text-align: center; padding: 40px 0; color: var(--gold);
@@ -234,6 +234,8 @@
     const passageHeader = document.getElementById("passageHeader");
     const versesContainer = document.getElementById("versesContainer");
 
+    let currentLoadedVerses = [];
+
     function initBookDropdown() {
       const otGroup = document.createElement("optgroup");
       otGroup.label = "Old Testament";
@@ -297,30 +299,42 @@
         const data = await res.json();
 
         if (data.verses && data.verses.length > 0) {
-          versesContainer.innerHTML = data.verses.map(v => `
+          currentLoadedVerses = data.verses;
+          versesContainer.innerHTML = currentLoadedVerses.map((v, index) => `
             <div class="verse-row">
               <span class="verse-num">${v.verse}</span>
-              <span class="verse-text">${v.text.trim()}</span>
-              <button class="reflect-btn" onclick="reflectOnVerse('${escapeQuotes(book)}', ${chapter}, ${v.verse}, '${escapeQuotes(v.text.trim())}')">
+              <span class="verse-text">${escapeHtml(v.text.trim())}</span>
+              <button class="reflect-btn" onclick="triggerReflectByIndex(${index})">
                 ✝ Reflect
               </button>
             </div>
           `).join("");
         } else {
+          currentLoadedVerses = [];
           versesContainer.innerHTML = `<p style="text-align:center; color:#a1a1aa;">Scripture passage currently resting. Please select another chapter.</p>`;
         }
       } catch (err) {
+        currentLoadedVerses = [];
         versesContainer.innerHTML = `<p style="text-align:center; color:#e07a5f;">Unable to load scripture at this moment. Please check your connection.</p>`;
       }
     }
 
-    function escapeQuotes(str) {
-      return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    function reflectOnVerse(book, chapter, verse, text) {
-      const prompt = `Lord Jesus, help me understand and reflect upon ${book} ${chapter}:${verse} — "${text}". What does this mean for my walk of faith today?`;
-      window.location.href = `index.html?prompt=${encodeURIComponent(prompt)}`;
+    function triggerReflectByIndex(index) {
+      const v = currentLoadedVerses[index];
+      if (!v) return;
+
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
+      const cleanVerseText = v.text.trim().replace(/\r?\n|\r/g, " ");
+      
+      const prompt = `Lord Jesus, help me understand and reflect upon ${book} ${chapter}:${v.verse} — "${cleanVerseText}". What does this mean for my walk of faith today?`;
+      
+      // Navigate to sanctuary with cache-busting timestamp to guarantee latest JS execution
+      window.location.href = `index.html?prompt=${encodeURIComponent(prompt)}&_cb=${Date.now()}`;
     }
 
     window.onload = initBookDropdown;

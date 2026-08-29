@@ -727,16 +727,16 @@
 
     function saveActiveChatSession() {
       try {
-        sessionStorage.setItem("jesus_active_history", JSON.stringify(activeConversationHistory));
-        sessionStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
+        localStorage.setItem("jesus_active_conversation_history", JSON.stringify(activeConversationHistory));
+        localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
       } catch (e) {
         console.error("Session saving error:", e);
       }
     }
 
     function restoreActiveChatSession() {
-      const savedHistory = sessionStorage.getItem("jesus_active_history");
-      const savedFeedHtml = sessionStorage.getItem("jesus_active_feed_html");
+      const savedHistory = localStorage.getItem("jesus_active_conversation_history");
+      const savedFeedHtml = localStorage.getItem("jesus_active_feed_html");
 
       if (savedHistory && savedFeedHtml && JSON.parse(savedHistory).length > 0) {
         activeConversationHistory = JSON.parse(savedHistory);
@@ -791,7 +791,7 @@
               messageInput.value = promptToExecute;
               setTimeout(() => {
                 handleUserSubmit(new Event('submit'));
-              }, 300);
+              }, 250);
             } else {
               if (!hasRestoredSession) {
                 startNewPrayer(true);
@@ -827,8 +827,8 @@
     function handleAuthAction() {
       if (currentUser) {
         if (confirm("Would you like to sign out? (Your local reflections remain safe on this device)")) {
-          sessionStorage.removeItem("jesus_active_history");
-          sessionStorage.removeItem("jesus_active_feed_html");
+          localStorage.removeItem("jesus_active_conversation_history");
+          localStorage.removeItem("jesus_active_feed_html");
           firebase.auth().signOut().then(() => window.location.reload());
         }
       } else {
@@ -1264,8 +1264,8 @@
       if (confirm("Clear all past conversations from your device?")) {
         localStorage.removeItem("jesus_journal_sessions");
         localStorage.removeItem("jesus_soul_journey_psyche");
-        sessionStorage.removeItem("jesus_active_history");
-        sessionStorage.removeItem("jesus_active_feed_html");
+        localStorage.removeItem("jesus_active_conversation_history");
+        localStorage.removeItem("jesus_active_feed_html");
         activeConversationHistory = [];
         currentPsyche = "A soul seeking peace";
         currentSessionTimestamp = null;
@@ -1530,8 +1530,8 @@
       stopAllAudio();
       
       if (isManual) {
-        sessionStorage.removeItem("jesus_active_history");
-        sessionStorage.removeItem("jesus_active_feed_html");
+        localStorage.removeItem("jesus_active_conversation_history");
+        localStorage.removeItem("jesus_active_feed_html");
         activeConversationHistory = [];
         currentSessionTimestamp = null;
         isNewSessionCreated = true;
