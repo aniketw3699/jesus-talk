@@ -917,6 +917,53 @@
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
 
+    /* SACRED AUDIO ENGINE INITIALIZATION */
+    let availableVoices = [];
+
+    function populateVoices() {
+      if ('speechSynthesis' in window) {
+        availableVoices = speechSynthesis.getVoices();
+      }
+    }
+
+    populateVoices();
+    if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoices;
+    }
+
+    function getSacredVoice() {
+      if (!availableVoices || availableVoices.length === 0) {
+        populateVoices();
+      }
+
+      const englishVoices = availableVoices.filter(v => v.lang && v.lang.startsWith('en'));
+      
+      const maleCandidates = englishVoices.filter(v => {
+        const name = v.name.toLowerCase();
+        return !name.includes('female') && 
+               !name.includes('woman') && 
+               !name.includes('girl') && 
+               !name.includes('samantha') && 
+               !name.includes('victoria') && 
+               !name.includes('zira') && 
+               !name.includes('karen') &&
+               !name.includes('moira') &&
+               !name.includes('tessa');
+      });
+
+      const preferredKeywords = [
+        'male', 'daniel', 'george', 'arthur', 'oliver', 'rishi', 
+        'google uk english male', 'en-gb-x-rjs', 'en-us-x-sfg#male', 'en-us-x-iom', 'natural'
+      ];
+
+      for (const kw of preferredKeywords) {
+        const match = maleCandidates.find(v => v.name.toLowerCase().includes(kw));
+        if (match) return match;
+      }
+
+      return maleCandidates.length > 0 ? maleCandidates[0] : (englishVoices[0] || null);
+    }
+
     window.onload = function() {
       checkUrlPromptBridge();
       renderPlans();
@@ -942,7 +989,7 @@
       const urlParams = new URLSearchParams(window.location.search);
       const incomingPrompt = urlParams.get('prompt');
       if (incomingPrompt) {
-        pendingPrompt = incomingPrompt; // URLSearchParams natively handles decoding cleanly
+        pendingPrompt = incomingPrompt;
         messageInput.value = pendingPrompt;
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -1685,15 +1732,20 @@
 
         const cleanText = text.replace(/[\(\)\[\]"]/g, "").replace(/✝/g, "");
         currentUtterance = new SpeechSynthesisUtterance(cleanText);
-        currentUtterance.rate = 0.86;
-        currentUtterance.pitch = 0.95;
+        
+        // Steady, deep, reverent pacing and pitch
+        currentUtterance.rate = 0.84;
+        currentUtterance.pitch = 0.82; 
 
-        const voices = speechSynthesis.getVoices();
-        const solemnVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Male') || v.name.includes('Daniel') || v.name.includes('Google UK English Male')));
-        if (solemnVoice) currentUtterance.voice = solemnVoice;
+        const chosenVoice = getSacredVoice();
+        if (chosenVoice) {
+          currentUtterance.voice = chosenVoice;
+        }
 
         btn.innerHTML = "⏸ Pause";
         currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
+        currentUtterance.onerror = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
+        
         speechSynthesis.speak(currentUtterance);
       }
     }
