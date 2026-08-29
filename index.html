@@ -389,7 +389,6 @@
       box-shadow: 0 8px 20px rgba(184, 134, 40, 0.14);
     }
 
-    /* Selected Plan Glowing State */
     .plan-box.selected {
       border: 2px solid #b88628; 
       background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%); 
@@ -397,7 +396,6 @@
       transform: scale(1.015);
     }
 
-    /* Flickering / Pulsing Best Value Badge */
     .featured-ribbon {
       position: absolute; 
       top: -10px; 
@@ -427,7 +425,6 @@
       }
     }
 
-    /* High-Impact Green/Gold Savings Pill */
     .save-tag-pill {
       background: #e8f5e9;
       color: #2e7d32;
@@ -648,7 +645,7 @@
     </footer>
   </main>
 
-  <!-- GETHSEMANE CONFESSIONAL WITH ASHTEN DUST & EMBER FLAKES DISPERSION -->
+  <!-- GETHSEMANE CONFESSIONAL -->
   <div class="modal-backdrop" id="confessionalModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeConfessionalModal()">✕</button>
@@ -917,7 +914,7 @@
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
 
-    /* SACRED AUDIO ENGINE: CROSS-DEVICE MALE HARMONIZER */
+    /* SACRED AUDIO ENGINE: CROSS-DEVICE VOICE RESOLVER */
     let availableVoices = [];
 
     function populateVoices() {
@@ -946,7 +943,7 @@
       });
       if (appleMale) return appleMale;
 
-      // 2. Android Explicit Male Identifiers (Google TTS Male Voice Code-Map)
+      // 2. Android Explicit Google Male Identifiers
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('iom') || 
@@ -963,7 +960,7 @@
       });
       if (androidMale) return androidMale;
 
-      // 3. Filter Out All Explicit Android & Web Female Voice Codes
+      // 3. Filter Out All Explicit Android & Web Female Voice Engines
       const nonFemaleCandidates = englishVoices.filter(v => {
         const id = getIdentifier(v);
         return !id.includes('sfg') && 
@@ -986,10 +983,10 @@
       });
 
       if (nonFemaleCandidates.length > 0) {
-        return nonFemaleCandidates[nonFemaleCandidates.length - 1]; // On Android, male voices sit at the end of the engine list
+        return nonFemaleCandidates[nonFemaleCandidates.length - 1];
       }
 
-      return englishVoices.length > 1 ? englishVoices[1] : (englishVoices[0] || availableVoices[0] || null);
+      return englishVoices[0] || availableVoices[0] || null;
     }
 
     window.onload = function() {
@@ -1047,16 +1044,19 @@
       return false;
     }
 
+    /* USER CREDIT RESOLVER: BOUND TO UNIQUE USER UID */
     function setupUserCredits(user) {
       const isDev = user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase();
+      const userCreditKey = `jesus_credits_${user.uid}`;
+
       if (isDev) {
         userCredits = 1000;
-        localStorage.setItem("jesus_user_credits", 1000);
+        localStorage.setItem(userCreditKey, 1000);
       } else {
-        const storedCredits = localStorage.getItem("jesus_user_credits");
+        const storedCredits = localStorage.getItem(userCreditKey);
         if (storedCredits === null) {
           userCredits = 5;
-          localStorage.setItem("jesus_user_credits", 5);
+          localStorage.setItem(userCreditKey, 5);
         } else {
           userCredits = parseInt(storedCredits, 10);
         }
@@ -1154,7 +1154,7 @@
       }
     }
 
-    /* GETHSEMANE CONFESSIONAL (Gated) */
+    /* GETHSEMANE CONFESSIONAL */
     function openConfessionalModal() {
       if (!currentUser) {
         handleAuthAction();
@@ -1514,7 +1514,7 @@
         gratitude >= 75 ? "Abundant" : gratitude >= 50 ? "Reflective" : gratitude >= 30 ? "Opening" : "Burdened";
     }
 
-    /* SOUL JOURNAL (Gated) */
+    /* SOUL JOURNAL */
     function openJournalModal() {
       if (!currentUser) {
         handleAuthAction();
@@ -1620,7 +1620,7 @@
       }
     }
 
-    /* PLANS MODAL (Gated) */
+    /* PLANS MODAL */
     function openPlansModal() {
       if (!currentUser) {
         handleAuthAction();
@@ -1688,7 +1688,7 @@
           
           if (!isSubscribed) {
             userCredits = Math.max(0, userCredits - 1);
-            localStorage.setItem("jesus_user_credits", userCredits);
+            localStorage.setItem(`jesus_credits_${currentUser.uid}`, userCredits);
             updateCreditUI();
           }
 
@@ -1775,9 +1775,9 @@
         currentUtterance.lang = 'en-US';
       }
 
-      // Reverent deep baritone tuning across all OS synthesizers
+      // Deep reverent resonance parameters
       currentUtterance.rate = 0.82;
-      currentUtterance.pitch = 0.68;
+      currentUtterance.pitch = 0.65;
 
       btn.innerHTML = "⏸ Pause";
       currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
@@ -1799,53 +1799,72 @@
       shareCardModal.style.display = "none";
     }
 
+    /* HIGH SPEED EXPORT ENGINE (COMPATIBLE WITH ANDROID CHROME GESTURE LIFECYCLE) */
     async function exportScriptureImage() {
       const cardEl = document.getElementById("scriptureCardToExport");
       const exportBtn = document.getElementById("exportCardBtn");
       const shareText = `you with jesus: ${APP_CANONICAL_URL}`;
-      exportBtn.innerHTML = "⏳ Rendering Ultra-HD Card...";
+      exportBtn.innerHTML = "⏳ Preparing...";
 
       try {
-        const canvas = await html2canvas(cardEl, { scale: 4, useCORS: true, allowTaint: true, logging: false });
+        const canvas = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false });
+        
         canvas.toBlob(async (blob) => {
+          if (!blob) {
+            triggerDirectDownloadFallback(canvas, shareText);
+            return;
+          }
+
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
 
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+          if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({
                 title: 'You With Jesus',
                 text: shareText,
                 files: [shareFile]
               });
+              exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+              closeShareModal();
+              return;
             } catch (err) {
-              console.log("Share dismissed or failed:", err);
-            }
-          } else if (navigator.share) {
-            await navigator.share({
-              title: 'You With Jesus',
-              text: shareText
-            });
-          } else {
-            const imageURL = canvas.toDataURL("image/png");
-            const link = document.createElement('a');
-            link.download = 'words-of-jesus-hd.png';
-            link.href = imageURL;
-            link.click();
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(shareText);
-              alert("Blessing image downloaded and link copied to clipboard!");
+              console.log("Native file share bypassed, executing fallback:", err);
             }
           }
-          exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-          closeShareModal();
-        }, 'image/png', 1.0);
+
+          // Direct Android Fallback: Trigger instant image download and copy link
+          triggerDirectDownloadFallback(canvas, shareText);
+        }, 'image/png', 0.95);
+
       } catch (err) {
+        console.error("Canvas render error:", err);
         exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-        alert("Unable to generate card image directly on this browser.");
+        alert("Direct card generation unavailable on this browser.");
       }
     }
 
-    /* NEW PRAYER (Gated) */
+    function triggerDirectDownloadFallback(canvas, shareText) {
+      const exportBtn = document.getElementById("exportCardBtn");
+      const imageURL = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.download = 'words-of-jesus-hd.png';
+      link.href = imageURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText);
+        alert("Blessing image saved to your downloads and link copied to clipboard!");
+      } else {
+        alert("Blessing image saved to your downloads!");
+      }
+
+      exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+      closeShareModal();
+    }
+
+    /* NEW PRAYER */
     function startNewPrayer(isManual = false) {
       if (!currentUser) {
         handleAuthAction();
