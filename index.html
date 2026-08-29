@@ -1830,9 +1830,8 @@
         currentUtterance.lang = 'en-US';
       }
 
-      // Reverent deep baritone tuning across all OS synthesizers
-      currentUtterance.rate = 0.82;
-      currentUtterance.pitch = 0.68;
+      currentUtterance.rate = 0.84;
+      currentUtterance.pitch = 0.78;
 
       btn.innerHTML = "⏸ Pause";
       currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
@@ -1854,20 +1853,7 @@
       shareCardModal.style.display = "none";
     }
 
-    /* FAST SYNCHRONOUS MEMORY CONVERTER */
-    function dataURLtoFile(dataurl, filename) {
-      const arr = dataurl.split(',');
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      return new File([u8arr], filename, { type: mime });
-    }
-
-    /* DIRECT INSTANT SHARE ENGINE */
+    /* DIRECT INSTANT SHARE ENGINE (RESTORING NATIVE OS SHARE SHEET) */
     async function exportScriptureImage() {
       const cardEl = document.getElementById("scriptureCardToExport");
       const exportBtn = document.getElementById("exportCardBtn");
@@ -1878,65 +1864,70 @@
 
       try {
         const canvas = await html2canvas(cardEl, {
-          scale: 2.0,
+          scale: 2.5,
           useCORS: true,
           allowTaint: true,
-          logging: false,
-          backgroundColor: null
+          logging: false
         });
 
-        const dataUrl = canvas.toDataURL("image/png");
-        const shareFile = dataURLtoFile(dataUrl, "words-of-jesus.png");
+        canvas.toBlob(async (blob) => {
+          exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
+          exportBtn.disabled = false;
 
-        // 1. Primary: Direct Native File Sharing Sheet
-        if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
-          try {
-            await navigator.share({
-              title: "You With Jesus",
-              text: shareText,
-              files: [shareFile]
-            });
-            exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-            exportBtn.disabled = false;
-            closeShareModal();
+          if (!blob) {
+            if (navigator.share) {
+              await navigator.share({ title: 'You With Jesus', text: shareText, url: APP_CANONICAL_URL });
+              closeShareModal();
+            } else {
+              triggerDirectDownloadFallback(canvas, shareText);
+            }
             return;
-          } catch (shareErr) {
-            if (shareErr.name === 'AbortError') {
-              exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-              exportBtn.disabled = false;
+          }
+
+          const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
+
+          // 1. Primary: Native OS Share Sheet with Image File
+          if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+            try {
+              await navigator.share({
+                title: 'You With Jesus',
+                text: shareText,
+                files: [shareFile]
+              });
+              closeShareModal();
               return;
+            } catch (err) {
+              if (err.name === 'AbortError') return;
+              console.log("File share note:", err);
             }
           }
-        }
 
-        // 2. Secondary: Direct Link/Text Native Share Sheet
-        if (navigator.share) {
-          try {
-            await navigator.share({
-              title: "You With Jesus",
-              text: shareText
-            });
-            exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-            exportBtn.disabled = false;
-            closeShareModal();
-            return;
-          } catch (textShareErr) {
-            if (textShareErr.name === 'AbortError') {
-              exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-              exportBtn.disabled = false;
+          // 2. Secondary: Direct Link/Text Native Share Sheet
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: 'You With Jesus',
+                text: shareText,
+                url: APP_CANONICAL_URL
+              });
+              closeShareModal();
               return;
+            } catch (err) {
+              if (err.name === 'AbortError') return;
             }
           }
-        }
 
-        // 3. Fallback: Direct Download
-        triggerDirectDownloadFallback(canvas, shareText);
+          // 3. Fallback only if device lacks native share completely
+          triggerDirectDownloadFallback(canvas, shareText);
+        }, 'image/png', 0.95);
 
       } catch (err) {
-        console.error("Canvas export failed:", err);
+        console.error("Canvas render error:", err);
         exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
         exportBtn.disabled = false;
-        alert("Unable to share card on this browser.");
+        if (navigator.share) {
+          navigator.share({ title: 'You With Jesus', text: shareText, url: APP_CANONICAL_URL }).then(() => closeShareModal());
+        }
       }
     }
 
@@ -1958,7 +1949,6 @@
       }
 
       exportBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card`;
-      exportBtn.disabled = false;
       closeShareModal();
     }
 
