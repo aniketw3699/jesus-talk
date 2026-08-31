@@ -1,6 +1,5 @@
-/* ADVANCED WORD-BY-WORD AUDIOBOOK & SCRIPTURE CADENCE ENGINE */
+/* ADVANCED WORD-BY-WORD AUDIOBOOK & CLEAN SCRIPTURE CADENCE ENGINE */
 (function() {
-  // Voice cache initialization
   let cachedVoices = [];
   function loadVoices() {
     if ('speechSynthesis' in window) {
@@ -13,7 +12,6 @@
   }
 
   window.addEventListener('DOMContentLoaded', () => {
-    // 1. Target all article text blocks
     const selectors = '.badge, h1, .sec-h2, .body-p, .verse-text, .verse-ref, .step-h3, .step-p, .prayer-h3, .prayer-body, .faq-q, .faq-a';
     const textElements = document.querySelectorAll(selectors);
     
@@ -29,7 +27,8 @@
         }
 
         textNodes.forEach(textNode => {
-          const content = textNode.nodeValue;
+          // Clean any escaped \n characters from DOM text
+          const content = textNode.nodeValue.replace(/\\n/g, ' ');
           const words = content.split(/(\s+)/);
           const frag = document.createDocumentFragment();
 
@@ -41,7 +40,6 @@
               span.textContent = word;
               span.title = "Click to play from here";
               
-              // Enable instant click-to-play on any word
               span.onclick = (e) => {
                 e.stopPropagation();
                 jumpToWord(parseInt(span.dataset.wordIndex, 10));
@@ -57,7 +55,6 @@
       }
     });
 
-    // 2. Inject CSS Styles for Highlighting & Floating Player
     const style = document.createElement('style');
     style.innerHTML = `
       .audio-word {
@@ -99,7 +96,6 @@
     `;
     document.head.appendChild(style);
 
-    // 3. Inject Floating Podcast Bar HTML
     const pageTitle = document.querySelector('h1')?.textContent || document.title || "Sacred Devotional";
     const playerHtml = `
       <div class="podcast-bar">
@@ -119,7 +115,6 @@
     document.body.appendChild(container);
   });
 
-  // 4. Audiobook Speech Engine with Bulletproof Scripture Pronunciation
   const blogMusicAudio = new Audio('../blog-ambient.mp3');
   blogMusicAudio.loop = true;
   blogMusicAudio.volume = 0.22;
@@ -134,27 +129,24 @@
 
   function cleanScriptureSpokenText(raw) {
     if (!raw) return "";
-    let text = raw;
+    let text = raw.replace(/\\n/g, ' ');
 
-    // Normalize all unicode dashes/hyphens
     text = text.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D—–]/g, '-');
-
-    // Remove foreign Greek/Hebrew script inside parentheses
     text = text.replace(/\([^\x00-\x7F]+\)/g, '');
 
-    // Convert Book prefixes
-    text = text.replace(/\b1\s+/g, 'First ');
-    text = text.replace(/\b2\s+/g, 'Second ');
-    text = text.replace(/\b3\s+/g, 'Third ');
+    text = text.replace(/\b1\s+([A-Za-z]+)/g, 'First $1');
+    text = text.replace(/\b2\s+([A-Za-z]+)/g, 'Second $1');
+    text = text.replace(/\b3\s+([A-Za-z]+)/g, 'Third $1');
 
-    // Convert Chapter:Verse-Range: e.g., "6:25-34" -> "chapter 6, verses 25 to 34"
     text = text.replace(/(\d+)[:\.](\d+)\s*-\s*(\d+)/g, 'chapter $1, verses $2 to $3');
-
-    // Convert Single Chapter:Verse: e.g., "6:25" or "13:4" -> "chapter 6, verse 25"
     text = text.replace(/(\d+)[:\.](\d+)/g, 'chapter $1, verse $2');
 
-    // Convert brackets and quotes to pauses
-    text = text.replace(/[\(\)\[\]"“”—–]/g, ' ... ');
+    // Remove quotes and symbols cleanly without ellipses
+    text = text.replace(/["“”‘’'«»]/g, ' ');
+    text = text.replace(/[\(\)\[\]\{\}]/g, ', ');
+    text = text.replace(/\.{2,}/g, '. ');
+    text = text.replace(/,{2,}/g, ', ');
+    text = text.replace(/^[.,;:\s]+/, '');
 
     return text.replace(/\s+/g, ' ').trim();
   }
@@ -180,9 +172,8 @@
         wordCharMap.push({ startIndex, endIndex, element: el, index: wordCharMap.length });
       });
 
-      // Distinct structural breath pause at the end of each block/heading
       if (blockWords.length > 0) {
-        fullArticleText = fullArticleText.trimEnd() + ". ... ";
+        fullArticleText = fullArticleText.trimEnd() + ". ";
       }
     });
 
@@ -195,7 +186,6 @@
     }
     const englishVoices = cachedVoices.filter(v => v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng')));
 
-    // 1. Strict Apple Daniel (En-GB / En-US Baritone parity for Mac and iOS)
     const danielVoice = englishVoices.find(v => {
       const name = (v.name || '').toLowerCase();
       const uri = (v.voiceURI || '').toLowerCase();
@@ -203,14 +193,12 @@
     });
     if (danielVoice) return danielVoice;
 
-    // 2. Secondary Apple Male Voices
     const appleMale = englishVoices.find(v => {
       const name = (v.name || '').toLowerCase();
       return (name.includes('oliver') || name.includes('arthur') || name.includes('george') || name.includes('rishi')) && !name.includes('female');
     });
     if (appleMale) return appleMale;
 
-    // 3. Android Natural UK Male
     const androidMale = englishVoices.find(v => {
       const name = (v.name || '').toLowerCase();
       return name.includes('uk english male') || name.includes('male');
@@ -283,7 +271,6 @@
     const voice = getSacredVoice();
     if (voice) activeUtterance.voice = voice;
     
-    // Calm, reverent pacing
     activeUtterance.rate = 0.80;
     activeUtterance.pitch = 0.80;
 
