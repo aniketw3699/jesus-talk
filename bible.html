@@ -32,6 +32,7 @@
       --glass-border: rgba(255, 255, 255, 0.75);
       --text-main: #191f28;
       --text-muted: #536070;
+      --cross-red: #d90429;
       --shadow-elevated: 0 16px 40px rgba(70, 50, 20, 0.15);
     }
 
@@ -134,6 +135,7 @@
     .verse-card.playing-verse {
       border: 1.5px solid var(--gold-deep);
       background: #fffdf9;
+      box-shadow: 0 6px 18px rgba(143, 101, 28, 0.14);
     }
 
     .verse-header-row {
@@ -202,7 +204,7 @@
   </main>
 
   <script>
-    /* SCRIPTURE PASSAGES REPOSITORY (KJV / ESV SACRED ANCHORS) */
+    /* SCRIPTURE PASSAGES REPOSITORY */
     const SCRIPTURE_DATA = {
       psalms23: {
         title: "Psalm 23",
@@ -285,7 +287,7 @@
       }
     };
 
-    /* AMBIENT AUDIO ENGINE (LOCKSTEP PLAYBACK & BOOSTED VOLUME) */
+    /* DEDICATED BIBLE AMBIENT AUDIO ENGINE (ambient.mp3) */
     const bibleMusicAudio = new Audio('ambient.mp3');
     bibleMusicAudio.loop = true;
     bibleMusicAudio.volume = 0.22;
@@ -336,7 +338,7 @@
       }
     }
 
-    /* SCRIPTURE CADENCE PREPROCESSOR */
+    /* SCRIPTURE CADENCE & PAUSE PREPROCESSOR */
     function preprocessBibleText(rawText) {
       if (!rawText) return "";
       let text = rawText;

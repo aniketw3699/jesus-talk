@@ -13,8 +13,8 @@
   
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Sacred Blogs & Scripture Devotionals | You With Jesus</title>
-  <meta name="description" content="Daily Christian devotionals, scripture reflections, and biblical guidance for your spiritual journey." />
+  <title>Sacred Blogs & Devotionals | You With Jesus</title>
+  <meta name="description" content="Daily Christian devotionals, scripture reflections, and biblical guidance for your spiritual walk." />
   <link rel="canonical" href="https://jesus-chat-bd89f.web.app/blogs.html" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,10 +28,11 @@
       --gold-vivid: #c99839;
       --gold-soft: #fbf5e8;
       --gold-border: rgba(184, 134, 40, 0.45);
-      --glass-panel: rgba(255, 255, 255, 0.88);
-      --glass-border: rgba(255, 255, 255, 0.7);
+      --glass-panel: rgba(255, 255, 255, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.75);
       --text-main: #191f28;
       --text-muted: #536070;
+      --cross-red: #d90429;
       --shadow-elevated: 0 16px 40px rgba(70, 50, 20, 0.15);
     }
 
@@ -64,7 +65,7 @@
 
     .blogs-header {
       padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px;
-      background: rgba(255, 255, 255, 0.94);
+      background: rgba(255, 255, 255, 0.96);
       border-bottom: 1px solid rgba(184, 134, 40, 0.25);
       display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
     }
@@ -75,7 +76,7 @@
 
     .back-sanctuary-btn {
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
-      font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 20px;
+      font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 20px;
       cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;
       transition: all 0.2s ease;
     }
@@ -88,9 +89,22 @@
     }
     .music-pill.off { background: #f1f3f6; color: var(--text-muted); border-color: rgba(0,0,0,0.15); }
 
-    .blogs-title-wrap { text-align: center; margin-top: 4px; }
+    .blogs-title-wrap { text-align: center; margin-top: 2px; }
     .blogs-main-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 700; letter-spacing: 2px; color: #1f1a10; }
     .blogs-sub-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; color: #534b3e; margin-top: 2px; }
+
+    .category-filter-strip {
+      display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; padding: 4px 0 2px 0;
+    }
+    .category-filter-strip::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex: 0 0 auto; background: #ffffff; border: 1px solid var(--gold-border); color: var(--gold-deep);
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px; cursor: pointer;
+    }
+    .filter-chip.active {
+      background: var(--gold-deep); color: #ffffff; border-color: var(--gold-deep);
+    }
 
     .blogs-feed {
       flex: 1; overflow-y: auto; padding: 16px 14px;
@@ -104,6 +118,10 @@
       background: #ffffff; border: 1.5px solid rgba(184, 134, 40, 0.25);
       border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px;
       box-shadow: 0 4px 16px rgba(143, 101, 28, 0.08); transition: transform 0.2s ease;
+    }
+    .blog-card.active-article {
+      border-color: var(--gold-deep);
+      box-shadow: 0 6px 22px rgba(143, 101, 28, 0.16);
     }
 
     .blog-tag {
@@ -121,7 +139,7 @@
       font-size: 13.5px; line-height: 1.7; color: #333d4b;
     }
     .blog-body p + p { margin-top: 10px; }
-    .blog-body em { font-family: 'Playfair Display', serif; color: var(--gold-deep); font-weight: 600; }
+    .blog-body em { font-family: 'Playfair Display', serif; color: var(--gold-deep); font-weight: 600; font-style: italic; }
 
     .blog-actions-row {
       display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 12px;
@@ -155,17 +173,26 @@
         <a href="index.html" class="back-sanctuary-btn">🕊️ Sanctuary</a>
         <button class="music-pill" id="blogMusicToggle" onclick="toggleBlogMusic()">🎵 Music: ON</button>
       </div>
+
       <div class="blogs-title-wrap">
         <h1 class="blogs-main-title">SACRED DEVOTIONALS</h1>
-        <p class="blogs-sub-title">Scripture wisdom and peace for your walk</p>
+        <p class="blogs-sub-title">Daily Scripture reflections and spiritual peace</p>
+      </div>
+
+      <div class="category-filter-strip">
+        <button class="filter-chip active" onclick="filterCategory('all', this)">All Devotionals</button>
+        <button class="filter-chip" onclick="filterCategory('anxiety', this)">Anxiety & Peace</button>
+        <button class="filter-chip" onclick="filterCategory('strength', this)">Strength & Weariness</button>
+        <button class="filter-chip" onclick="filterCategory('trust', this)">Trust & Provision</button>
+        <button class="filter-chip" onclick="filterCategory('healing', this)">Grief & Healing</button>
       </div>
     </header>
 
     <section class="blogs-feed" id="blogsFeed">
       
-      <!-- ARTICLE 1 -->
-      <article class="blog-card" id="article1">
-        <span class="blog-tag">Overcoming Anxiety</span>
+      <!-- DEVOTIONAL 1 -->
+      <article class="blog-card" id="article1" data-category="anxiety">
+        <span class="blog-tag">Anxiety & Peace</span>
         <h2 class="blog-heading">Stillness in the Midst of Life’s Storms</h2>
         <div class="blog-body">
           <p>When the weight of tomorrow presses heavily upon your heart, remember that peace is not the absence of trouble, but the presence of Christ. In the quiet moments before dawn, bring every racing thought before the altar of His grace.</p>
@@ -178,12 +205,12 @@
         </div>
       </article>
 
-      <!-- ARTICLE 2 -->
-      <article class="blog-card" id="article2">
-        <span class="blog-tag">Daily Strength</span>
+      <!-- DEVOTIONAL 2 -->
+      <article class="blog-card" id="article2" data-category="strength">
+        <span class="blog-tag">Strength & Weariness</span>
         <h2 class="blog-heading">When You Feel Weary and Depleted</h2>
         <div class="blog-body">
-          <p>Human strength will always have its limits, but divine grace knows no exhaustion. When fatigue clouds your spirit and the walk feels long, pause and receive His quiet renewal.</p>
+          <p>Human strength will always reach its limits, but divine grace knows no exhaustion. When fatigue clouds your spirit and the walk feels long, pause and receive His quiet renewal.</p>
           <p>Surrendering your exhaustion is not a sign of weakness; it is the doorway through which His supernatural strength enters your life.</p>
           <p><em>“Come to me, all who labor and are heavy laden, and I will give you rest. Take my yoke upon you, and learn from me, for I am gentle and lowly in heart.” (Matthew 11:28-29)</em></p>
         </div>
@@ -193,8 +220,8 @@
         </div>
       </article>
 
-      <!-- ARTICLE 3 -->
-      <article class="blog-card" id="article3">
+      <!-- DEVOTIONAL 3 -->
+      <article class="blog-card" id="article3" data-category="trust">
         <span class="blog-tag">Trust & Provision</span>
         <h2 class="blog-heading">Releasing Financial Fear into God’s Hands</h2>
         <div class="blog-body">
@@ -208,11 +235,26 @@
         </div>
       </article>
 
+      <!-- DEVOTIONAL 4 -->
+      <article class="blog-card" id="article4" data-category="healing">
+        <span class="blog-tag">Grief & Healing</span>
+        <h2 class="blog-heading">He Is Near to the Brokenhearted</h2>
+        <div class="blog-body">
+          <p>In seasons of deep heartbreak and silent grief, you are never alone. God does not stand distant from your sorrow; He draws closest when your heart is in pieces.</p>
+          <p>Give yourself permission to grieve in His presence. Every tear is seen, and every wounded prayer is held in eternal love.</p>
+          <p><em>“The Lord is near to the brokenhearted and saves the crushed in spirit.” (Psalm 34:18)</em></p>
+        </div>
+        <div class="blog-actions-row">
+          <button class="listen-blog-btn" onclick="narrateBlogArticle(this, 'article4')">🔊 Listen</button>
+          <a href="index.html?prompt=Lord,%20draw%20near%20to%20my%20broken%20heart%20and%20heal%20my%20spirit." class="reflect-blog-btn">✝ Reflect in Sanctuary</a>
+        </div>
+      </article>
+
     </section>
   </main>
 
   <script>
-    /* BLOG AMBIENT AUDIO ENGINE */
+    /* DEDICATED BLOG AMBIENT AUDIO ENGINE (blog-ambient.mp3) */
     const blogMusicAudio = new Audio('blog-ambient.mp3');
     blogMusicAudio.loop = true;
     blogMusicAudio.volume = 0.22;
@@ -250,7 +292,7 @@
           playPromise.catch(e => console.log("Blog audio autoplay note:", e));
         }
       } catch (e) {
-        console.log("Audio play error:", e);
+        console.log("Audio error:", e);
       }
     }
 
@@ -263,13 +305,14 @@
       }
     }
 
-    /* SCRIPTURE CADENCE PREPROCESSOR */
+    /* SCRIPTURE CADENCE & PAUSE PREPROCESSOR */
     function preprocessBlogText(rawText) {
       if (!rawText) return "";
       let text = rawText;
       text = text.replace(/<[^>]*>/g, ' ');
       text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
 
+      // Convert scripture citations into rhythmic pauses
       text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (match, book, chapter, verse) => {
         return `... ${book.trim()}, chapter ${chapter}, verse ${verse}. ... `;
       });
@@ -284,8 +327,9 @@
       return text;
     }
 
-    /* BARITONE VOICE SELECTION */
+    /* STRICT REVERENT BARITONE VOICE SELECTION (DANIEL PRIORITY) */
     let availableVoices = [];
+
     function populateVoices() {
       if ('speechSynthesis' in window) {
         availableVoices = speechSynthesis.getVoices();
@@ -301,18 +345,21 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
+      // 1. Apple Daniel (iOS & macOS parity)
       const danielVoice = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us'));
       });
       if (danielVoice) return danielVoice;
 
+      // 2. Apple Male Baritone
       const appleMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi')) && !id.includes('female');
       });
       if (appleMale) return appleMale;
 
+      // 3. Android / Google Natural Male
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('google uk english male') || id.includes('google us english male') || id.includes('male');
@@ -322,7 +369,7 @@
       return englishVoices[0] || availableVoices[0] || null;
     }
 
-    /* LONG-FORM SEQUENTIAL PARAGRAPH QUEUE ENGINE */
+    /* LONG-FORM SEQUENTIAL PARAGRAPH QUEUE (ANTI-CUTOFF ENGINE) */
     let activeUtterance = null;
     let currentlyPlayingBtn = null;
     let blogSyncInterval = null;
@@ -333,6 +380,7 @@
       }
       stopBlogMusic();
       if (blogSyncInterval) clearInterval(blogSyncInterval);
+      document.querySelectorAll('.blog-card').forEach(c => c.classList.remove('active-article'));
       if (currentlyPlayingBtn) {
         currentlyPlayingBtn.innerHTML = "🔊 Listen";
         currentlyPlayingBtn = null;
@@ -353,12 +401,15 @@
       stopAllBlogAudio();
 
       const articleEl = document.getElementById(articleId);
+      if (!articleEl) return;
+
       const paragraphs = Array.from(articleEl.querySelectorAll('.blog-heading, .blog-body p'));
       const textChunks = paragraphs.map(p => preprocessBlogText(p.textContent || p.innerText)).filter(t => t.length > 0);
 
       if (textChunks.length === 0) return;
 
       currentlyPlayingBtn = btn;
+      articleEl.classList.add('active-article');
       btn.innerHTML = "⏸ Pause";
       startBlogMusic();
 
@@ -398,6 +449,21 @@
       }, 300);
 
       speakNextChunk();
+    }
+
+    /* CATEGORY FILTER */
+    function filterCategory(category, chipBtn) {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chipBtn.classList.add('active');
+
+      const cards = document.querySelectorAll('.blog-card');
+      cards.forEach(card => {
+        if (category === 'all' || card.dataset.category === category) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
     }
 
     document.addEventListener("visibilitychange", function() {
