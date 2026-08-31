@@ -107,7 +107,7 @@
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
       font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 20px;
       letter-spacing: 0.2px; white-space: nowrap; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-      display: inline-flex; align-items: center; gap: 4px;
+      display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
     }
 
     .action-btn {
@@ -749,7 +749,7 @@
     
     <header class="sacred-header">
       <div class="nav-scroll-strip">
-        <span class="credit-pill" id="creditBadge">🕊️ 1 Free Blessing Ready</span>
+        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()">🕊️ 1 Free Blessing Ready</button>
         <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
@@ -1129,7 +1129,7 @@
     /* DEDICATED SACRED AMBIENT MUSIC ENGINE */
     const sacredMusicAudio = new Audio('ambient.mp3');
     sacredMusicAudio.loop = true;
-    sacredMusicAudio.volume = 0.22; // Boosted volume
+    sacredMusicAudio.volume = 0.22;
     let isMusicEnabled = localStorage.getItem("jesus_music_enabled") !== "false";
 
     function toggleMusicSetting() {
@@ -1513,6 +1513,14 @@
       }
     }
 
+    function handleCreditPillAction() {
+      if (!currentUser) {
+        openTimeAwareBlessingModal(false);
+      } else if (!isSubscribed && userCredits <= 0) {
+        openPlansModal();
+      }
+    }
+
     function handleAuthAction() {
       if (currentUser) {
         if (confirm("Would you like to sign out? (Your local reflections remain safe on this device)")) {
@@ -1738,12 +1746,8 @@
       }, 15000);
     }
 
-    /* TIME-AWARE BLESSING - AUTH GATED */
+    /* TIME-AWARE BLESSING (ALLOWS GUEST PREVIEW / FREE BLESSING) */
     function openTimeAwareBlessingModal(isManual = false) {
-      if (!currentUser) {
-        openPrivacyModal();
-        return;
-      }
       stopAllAudio();
       const currentHour = new Date().getHours();
       let title = "MORNING BLESSING";
@@ -2211,12 +2215,10 @@
 
       btn.innerHTML = "⏸ Pause";
 
-      // Synchronize music start exactly when spoken voice starts
       currentUtterance.onstart = () => {
         startSacredMusic();
       };
 
-      // Synchronize music stop exactly when spoken voice ends
       const cleanupVoiceAndMusic = () => {
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         stopSacredMusic();
@@ -2226,7 +2228,6 @@
       currentUtterance.onend = cleanupVoiceAndMusic;
       currentUtterance.onerror = cleanupVoiceAndMusic;
 
-      // Realtime polling watcher for mobile browsers
       voiceSyncInterval = setInterval(() => {
         if (!speechSynthesis.speaking) {
           cleanupVoiceAndMusic();
