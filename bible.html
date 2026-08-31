@@ -1,293 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-HZPYCF859M');
-  </script>
-  
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Holy Bible | Scripture Recitation & Audio Sanctuary</title>
-  <meta name="description" content="Read, listen, and reflect upon the Holy Bible with reverent audio recitation and sacred background harmony." />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Holy Scripture Reader | You With Jesus</title>
+  <meta name="description" content="Read the complete Old and New Testaments. Reflect upon sacred scripture directly with Jesus." />
+  <meta property="og:site_name" content="You With Jesus" />
+  <meta property="og:title" content="Holy Scripture Reader | You With Jesus" />
+  <meta property="og:description" content="Read the complete Old and New Testaments with direct sanctuary reflections." />
   <link rel="canonical" href="https://jesus-chat-bd89f.web.app/bible.html" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg-celestial: #f3eee6;
-      --gold-deep: #8f651c;
-      --gold-vivid: #c99839;
-      --gold-soft: #fbf5e8;
-      --gold-border: rgba(184, 134, 40, 0.45);
-      --glass-panel: rgba(255, 255, 255, 0.92);
-      --glass-border: rgba(255, 255, 255, 0.75);
-      --text-main: #191f28;
-      --text-muted: #536070;
-      --cross-red: #d90429;
-      --shadow-elevated: 0 16px 40px rgba(70, 50, 20, 0.15);
+      --bg: #09090b;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #e2b764;
+      --gold-glow: rgba(226, 183, 100, 0.15);
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
+      background-color: var(--bg);
+      color: var(--text-primary);
       font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #d8cdbe;
-      color: var(--text-main);
-      min-height: 100vh;
-      min-height: 100dvh;
-      display: flex; justify-content: center; align-items: center;
-      position: relative;
+      line-height: 1.8;
+      padding: 24px 16px 80px;
     }
 
-    .sacred-wallpaper {
-      position: fixed; inset: 0;
-      background-image: url('BG1.png'); background-position: center top; background-repeat: no-repeat; background-size: cover;
-      opacity: 0.88; z-index: 0; pointer-events: none;
-    }
-
-    .bible-app-container {
-      position: relative; z-index: 1;
-      width: 100%; max-width: 580px; height: 100vh; height: 100dvh;
-      display: flex; flex-direction: column;
-      background: var(--glass-panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-left: 1px solid var(--glass-border); border-right: 1px solid var(--glass-border);
-      box-shadow: var(--shadow-elevated);
-    }
-
-    /* Top Navigation Header */
-    .bible-header {
-      padding: max(10px, env(safe-area-inset-top)) 16px 10px 16px;
-      background: rgba(255, 255, 255, 0.96);
-      border-bottom: 1px solid rgba(184, 134, 40, 0.25);
-      display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
-    }
-
-    .bible-nav-row {
-      display: flex; justify-content: space-between; align-items: center; width: 100%;
-    }
-
-    .back-sanctuary-btn {
-      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
-      font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 20px;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .back-sanctuary-btn:hover { background: var(--gold-soft); border-color: var(--gold-deep); }
-
-    .music-pill {
-      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
-      font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px;
-      display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
-    }
-    .music-pill.off { background: #f1f3f6; color: var(--text-muted); border-color: rgba(0,0,0,0.15); }
-
-    /* Book & Chapter Selection Strip */
-    .selector-strip {
-      display: flex; gap: 8px; align-items: center; justify-content: center;
-    }
-
-    .select-dropdown {
-      background: #faf8f4; border: 1.5px solid var(--gold-border);
-      border-radius: 12px; padding: 6px 10px; font-size: 13px; font-weight: 700;
-      color: #221c12; font-family: inherit; outline: none; cursor: pointer;
-    }
-
-    .listen-chapter-btn {
-      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
-      border: none; color: #ffffff;
-      font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 14px;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
-      box-shadow: 0 3px 10px rgba(184, 134, 40, 0.25);
-    }
-    .listen-chapter-btn:active { transform: scale(0.96); }
-
-    /* Bible Verses Feed */
-    .bible-verses-feed {
-      flex: 1; overflow-y: auto; padding: 16px 14px;
-      display: flex; flex-direction: column; gap: 12px;
-      scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
-    }
-    .bible-verses-feed::-webkit-scrollbar { width: 4px; }
-    .bible-verses-feed::-webkit-scrollbar-thumb { background: rgba(184, 134, 40, 0.25); border-radius: 4px; }
-
-    .chapter-heading-card {
-      background: #ffffff; border: 1px solid var(--gold-border);
-      border-radius: 16px; padding: 14px; text-align: center;
-      margin-bottom: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-    .chapter-title { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 700; color: #1f1a10; letter-spacing: 1px; }
-    .chapter-subtitle { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12px; color: #534b3e; margin-top: 2px; }
-
-    .verse-card {
-      background: #ffffff; border: 1.5px solid rgba(184, 134, 40, 0.2);
-      border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
-      box-shadow: 0 3px 12px rgba(143, 101, 28, 0.05); transition: border-color 0.2s ease;
-    }
-    .verse-card.playing-verse {
-      border: 1.5px solid var(--gold-deep);
-      background: #fffdf9;
-      box-shadow: 0 6px 18px rgba(143, 101, 28, 0.14);
-    }
-
-    .verse-header-row {
+    .container { max-width: 860px; margin: 0 auto; }
+    
+    .nav-top {
       display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
     }
-    .verse-num-badge {
-      font-size: 11px; font-weight: 800; color: var(--gold-deep);
-      background: var(--gold-soft); border: 1px solid var(--gold-border);
-      padding: 2px 8px; border-radius: 8px; letter-spacing: 0.3px;
+    .back-home {
+      display: inline-flex; align-items: center; gap: 8px; color: var(--gold);
+      text-decoration: none; font-size: 14px; font-weight: 600;
+    }
+    .music-pill {
+      background: #18181b; border: 1px solid rgba(226, 183, 100, 0.3); color: var(--gold);
+      font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 20px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+    }
+    .music-pill.off { opacity: 0.55; border-color: var(--border); color: var(--text-secondary); }
+
+    .header-box { text-align: center; margin-bottom: 32px; }
+    .header-box h1 {
+      font-family: 'Cinzel', serif; font-size: clamp(26px, 4vw, 36px);
+      color: #fff; letter-spacing: 1px; margin-bottom: 6px;
+    }
+    .header-box p { color: var(--text-secondary); font-size: 14px; }
+
+    /* Controls Bar */
+    .controls-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      padding: 14px; border-radius: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 600px) {
+      .controls-grid { grid-template-columns: 1fr; }
     }
 
-    .verse-actions-wrap {
-      display: flex; gap: 6px; align-items: center;
+    select {
+      background: #18181b; border: 1px solid rgba(226, 183, 100, 0.3);
+      color: var(--text-primary); padding: 10px 14px; border-radius: 10px;
+      font-family: inherit; font-size: 14px; outline: none;
+    }
+    select:focus { border-color: var(--gold); }
+
+    /* Chapter Navigation Pills */
+    .chapter-bar {
+      display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px;
+      margin-bottom: 24px; scrollbar-width: none;
+    }
+    .chapter-bar::-webkit-scrollbar { display: none; }
+    .chap-pill {
+      flex: 0 0 auto; padding: 6px 14px; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .chap-pill.active, .chap-pill:hover {
+      background: var(--gold-glow); border-color: var(--gold); color: var(--gold);
     }
 
+    /* Scripture Content Area */
+    .scripture-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 24px; min-height: 300px;
+    }
+    .passage-title-row {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 24px;
+    }
+    .passage-title {
+      font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold);
+      text-align: left;
+    }
+    .listen-chap-btn {
+      background: transparent; border: 1.5px solid var(--gold);
+      color: var(--gold); font-size: 12px; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700; padding: 5px 14px; border-radius: 16px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;
+    }
+    .listen-chap-btn:hover { background: var(--gold-glow); }
+
+    .verse-row {
+      display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px;
+      font-family: 'Playfair Display', serif; font-size: 17px; line-height: 1.8; color: #f4f4f5;
+      padding: 6px 8px; border-radius: 10px; transition: background 0.2s;
+    }
+    .verse-row.playing-verse {
+      background: var(--gold-glow);
+    }
+    .verse-num {
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 700;
+      color: var(--gold); vertical-align: super; flex-shrink: 0;
+    }
+    .verse-text { flex-grow: 1; }
+    
+    .actions-wrap {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; margin-left: 8px;
+    }
     .verse-listen-btn {
-      background: #ffffff; border: 1px solid var(--gold-border); color: var(--gold-deep);
-      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      background: transparent; border: 1px solid rgba(226, 183, 100, 0.3);
+      color: var(--gold); font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; padding: 3px 8px; border-radius: 12px; cursor: pointer;
+      opacity: 0.85; transition: all 0.2s;
     }
-    .verse-listen-btn:hover { background: var(--gold-soft); }
+    .verse-listen-btn:hover { opacity: 1; border-color: var(--gold); background: var(--gold-glow); }
 
-    .verse-reflect-btn {
-      background: #ffffff; border: 1px solid rgba(217, 4, 41, 0.35); color: #1f364d;
-      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px;
-      cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+    .reflect-btn {
+      background: transparent; border: 1px solid rgba(226, 183, 100, 0.3);
+      color: var(--gold); font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600; padding: 3px 10px; border-radius: 12px; cursor: pointer;
+      opacity: 0.85; transition: all 0.2s;
     }
-    .verse-reflect-btn:hover { background: #fff5f5; border-color: var(--cross-red); }
+    .reflect-btn:hover, .reflect-btn:active { opacity: 1; border-color: var(--gold); background: var(--gold-glow); }
 
-    .verse-text {
-      font-size: 14px; line-height: 1.65; color: #2a333f;
+    .loading-spinner {
+      text-align: center; padding: 40px 0; color: var(--gold);
+      font-family: 'Cinzel', serif; font-size: 16px;
     }
-    .verse-text em { font-family: 'Playfair Display', serif; font-style: italic; color: #1f1a10; }
   </style>
 </head>
 <body>
-
-  <div class="sacred-wallpaper"></div>
-
-  <main class="bible-app-container">
-    <header class="bible-header">
-      <div class="bible-nav-row">
-        <a href="index.html" class="back-sanctuary-btn">🕊️ Sanctuary</a>
+  <div class="container">
+    
+    <div class="nav-top">
+      <a href="index.html?_v=2" class="back-home">← Return to Sacred Sanctuary</a>
+      <div style="display: flex; gap: 12px; align-items: center;">
         <button class="music-pill" id="bibleMusicToggle" onclick="toggleBibleMusic()">🎵 Music: ON</button>
+        <a href="blogs.html" class="back-home">📜 Sacred Blogs</a>
       </div>
+    </div>
 
-      <div class="selector-strip">
-        <select class="select-dropdown" id="bookSelect" onchange="loadSelectedPassage()">
-          <option value="psalms23">Psalm 23 (The Good Shepherd)</option>
-          <option value="matthew11">Matthew 11 (Come to Me & Rest)</option>
-          <option value="john14">John 14 (The Way, Truth & Life)</option>
-          <option value="philippians4">Philippians 4 (Peace Above Anxiety)</option>
-          <option value="romans8">Romans 8 (More Than Conquerors)</option>
-          <option value="proverbs3">Proverbs 3 (Trust in the Lord)</option>
-          <option value="isaiah40">Isaiah 40 (Renewed Strength)</option>
-          <option value="1corinthians13">1 Corinthians 13 (The Power of Love)</option>
-        </select>
-
-        <button class="listen-chapter-btn" id="listenChapterBtn" onclick="toggleChapterRecitation()">
-          🔊 Listen Chapter
-        </button>
-      </div>
+    <header class="header-box">
+      <h1>THE HOLY SCRIPTURES</h1>
+      <p>Explore the Living Word. Click any verse to reflect directly with Jesus.</p>
     </header>
 
-    <section class="bible-verses-feed" id="versesFeed"></section>
-  </main>
+    <div class="controls-grid">
+      <select id="bookSelect" onchange="handleBookChange()"></select>
+      <select id="chapterSelect" onchange="loadCurrentChapter()"></select>
+      <select id="translationSelect" onchange="loadCurrentChapter()">
+        <option value="web">World English (WEB)</option>
+        <option value="kjv">King James (KJV)</option>
+      </select>
+    </div>
+
+    <div class="chapter-bar" id="chapterPills"></div>
+
+    <main class="scripture-card">
+      <div class="passage-title-row">
+        <h2 class="passage-title" id="passageHeader">Loading Scripture...</h2>
+        <button class="listen-chap-btn" id="listenChapBtn" onclick="toggleChapterAudio()">🔊 Listen Chapter</button>
+      </div>
+      <div id="versesContainer"></div>
+    </main>
+
+  </div>
 
   <script>
-    /* SCRIPTURE PASSAGES REPOSITORY */
-    const SCRIPTURE_DATA = {
-      psalms23: {
-        title: "Psalm 23",
-        subtitle: "A Psalm of David — The Lord is my shepherd",
-        verses: [
-          { num: "1", text: "The Lord is my shepherd; I shall not want." },
-          { num: "2", text: "He maketh me to lie down in green pastures: he leadeth me beside the still waters." },
-          { num: "3", text: "He restoreth my soul: he leadeth me in the paths of righteousness for his name's sake." },
-          { num: "4", text: "Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me; thy rod and thy staff they comfort me." },
-          { num: "5", text: "Thou preparest a table before me in the presence of mine enemies: thou anointest my head with oil; my cup runneth over." },
-          { num: "6", text: "Surely goodness and mercy shall follow me all the days of my life: and I will dwell in the house of the Lord for ever." }
-        ]
-      },
-      matthew11: {
-        title: "Matthew 11:28–30",
-        subtitle: "The Sacred Invitation — Rest for the Heavy Laden",
-        verses: [
-          { num: "28", text: "Come unto me, all ye that labour and are heavy laden, and I will give you rest." },
-          { num: "29", text: "Take my yoke upon you, and learn of me; for I am meek and lowly in heart: and ye shall find rest unto your souls." },
-          { num: "30", text: "For my yoke is easy, and my burden is light." }
-        ]
-      },
-      john14: {
-        title: "John 14:1–6, 27",
-        subtitle: "Comfort for Troubled Hearts — The Promise of Peace",
-        verses: [
-          { num: "1", text: "Let not your heart be troubled: ye believe in God, believe also in me." },
-          { num: "2", text: "In my Father's house are many mansions: if it were not so, I would have told you. I go to prepare a place for you." },
-          { num: "3", text: "And if I go and prepare a place for you, I will come again, and receive you unto myself; that where I am, there ye may be also." },
-          { num: "6", text: "Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me." },
-          { num: "27", text: "Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid." }
-        ]
-      },
-      philippians4: {
-        title: "Philippians 4:4–8, 19",
-        subtitle: "Peace That Surpasses Understanding",
-        verses: [
-          { num: "4", text: "Rejoice in the Lord always: and again I say, Rejoice." },
-          { num: "6", text: "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God." },
-          { num: "7", text: "And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus." },
-          { num: "8", text: "Finally, brethren, whatsoever things are true, honest, just, pure, and lovely; think on these things." },
-          { num: "19", text: "But my God shall supply all your need according to his riches in glory by Christ Jesus." }
-        ]
-      },
-      romans8: {
-        title: "Romans 8:31, 38–39",
-        subtitle: "Everlasting Love & Victory",
-        verses: [
-          { num: "31", text: "What shall we then say to these things? If God be for us, who can be against us?" },
-          { num: "38", text: "For I am persuaded, that neither death, nor life, nor angels, nor principalities, nor powers, nor things present, nor things to come," },
-          { num: "39", text: "Nor height, nor depth, nor any other creature, shall be able to separate us from the love of God, which is in Christ Jesus our Lord." }
-        ]
-      },
-      proverbs3: {
-        title: "Proverbs 3:5–6",
-        subtitle: "Guidance for Life's Journey",
-        verses: [
-          { num: "5", text: "Trust in the Lord with all thine heart; and lean not unto thine own understanding." },
-          { num: "6", text: "In all thy ways acknowledge him, and he shall direct thy paths." }
-        ]
-      },
-      isaiah40: {
-        title: "Isaiah 40:29–31",
-        subtitle: "Strength for the Weary Soul",
-        verses: [
-          { num: "29", text: "He giveth power to the faint; and to them that have no might he increaseth strength." },
-          { num: "30", text: "Even the youths shall faint and be weary, and the young men shall utterly fall:" },
-          { num: "31", text: "But they that wait upon the Lord shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint." }
-        ]
-      },
-      "1corinthians13": {
-        title: "1 Corinthians 13:4–8, 13",
-        subtitle: "The Way of Divine Love",
-        verses: [
-          { num: "4", text: "Charity suffereth long, and is kind; charity envieth not; charity vaunteth not itself, is not puffed up," },
-          { num: "7", text: "Beareth all things, believeth all things, hopeth all things, endureth all things." },
-          { num: "8", text: "Charity never faileth: but whether there be prophecies, they shall fail; whether there be tongues, they shall cease." },
-          { num: "13", text: "And now abideth faith, hope, charity, these three; but the greatest of these is charity." }
-        ]
-      }
-    };
+    const BIBLE_BOOKS = [
+      // Old Testament
+      { name: "Genesis", chapters: 50, testament: "OT" },
+      { name: "Exodus", chapters: 40, testament: "OT" },
+      { name: "Leviticus", chapters: 27, testament: "OT" },
+      { name: "Numbers", chapters: 36, testament: "OT" },
+      { name: "Deuteronomy", chapters: 34, testament: "OT" },
+      { name: "Joshua", chapters: 24, testament: "OT" },
+      { name: "Judges", chapters: 21, testament: "OT" },
+      { name: "Ruth", chapters: 4, testament: "OT" },
+      { name: "1 Samuel", chapters: 31, testament: "OT" },
+      { name: "2 Samuel", chapters: 24, testament: "OT" },
+      { name: "1 Kings", chapters: 22, testament: "OT" },
+      { name: "2 Kings", chapters: 25, testament: "OT" },
+      { name: "1 Chronicles", chapters: 29, testament: "OT" },
+      { name: "2 Chronicles", chapters: 36, testament: "OT" },
+      { name: "Ezra", chapters: 10, testament: "OT" },
+      { name: "Nehemiah", chapters: 13, testament: "OT" },
+      { name: "Esther", chapters: 10, testament: "OT" },
+      { name: "Job", chapters: 42, testament: "OT" },
+      { name: "Psalms", chapters: 150, testament: "OT" },
+      { name: "Proverbs", chapters: 31, testament: "OT" },
+      { name: "Ecclesiastes", chapters: 12, testament: "OT" },
+      { name: "Song of Solomon", chapters: 8, testament: "OT" },
+      { name: "Isaiah", chapters: 66, testament: "OT" },
+      { name: "Jeremiah", chapters: 52, testament: "OT" },
+      { name: "Lamentations", chapters: 5, testament: "OT" },
+      { name: "Ezekiel", chapters: 48, testament: "OT" },
+      { name: "Daniel", chapters: 12, testament: "OT" },
+      { name: "Hosea", chapters: 14, testament: "OT" },
+      { name: "Joel", chapters: 3, testament: "OT" },
+      { name: "Amos", chapters: 9, testament: "OT" },
+      { name: "Obadiah", chapters: 1, testament: "OT" },
+      { name: "Jonah", chapters: 4, testament: "OT" },
+      { name: "Micah", chapters: 7, testament: "OT" },
+      { name: "Nahum", chapters: 3, testament: "OT" },
+      { name: "Habakkuk", chapters: 3, testament: "OT" },
+      { name: "Zephaniah", chapters: 3, testament: "OT" },
+      { name: "Haggai", chapters: 2, testament: "OT" },
+      { name: "Zechariah", chapters: 14, testament: "OT" },
+      { name: "Malachi", chapters: 4, testament: "OT" },
 
-    /* DEDICATED BIBLE AMBIENT AUDIO ENGINE (ambient.mp3) */
+      // New Testament
+      { name: "Matthew", chapters: 28, testament: "NT" },
+      { name: "Mark", chapters: 16, testament: "NT" },
+      { name: "Luke", chapters: 24, testament: "NT" },
+      { name: "John", chapters: 21, testament: "NT" },
+      { name: "Acts", chapters: 28, testament: "NT" },
+      { name: "Romans", chapters: 16, testament: "NT" },
+      { name: "1 Corinthians", chapters: 16, testament: "NT" },
+      { name: "2 Corinthians", chapters: 13, testament: "NT" },
+      { name: "Galatians", chapters: 6, testament: "NT" },
+      { name: "Ephesians", chapters: 6, testament: "NT" },
+      { name: "Philippians", chapters: 4, testament: "NT" },
+      { name: "Colossians", chapters: 4, testament: "NT" },
+      { name: "1 Thessalonians", chapters: 5, testament: "NT" },
+      { name: "2 Thessalonians", chapters: 3, testament: "NT" },
+      { name: "1 Timothy", chapters: 6, testament: "NT" },
+      { name: "2 Timothy", chapters: 4, testament: "NT" },
+      { name: "Titus", chapters: 3, testament: "NT" },
+      { name: "Philemon", chapters: 1, testament: "NT" },
+      { name: "Hebrews", chapters: 13, testament: "NT" },
+      { name: "James", chapters: 5, testament: "NT" },
+      { name: "1 Peter", chapters: 5, testament: "NT" },
+      { name: "2 Peter", chapters: 3, testament: "NT" },
+      { name: "1 John", chapters: 5, testament: "NT" },
+      { name: "2 John", chapters: 1, testament: "NT" },
+      { name: "3 John", chapters: 1, testament: "NT" },
+      { name: "Jude", chapters: 1, testament: "NT" },
+      { name: "Revelation", chapters: 22, testament: "NT" }
+    ];
+
+    const bookSelect = document.getElementById("bookSelect");
+    const chapterSelect = document.getElementById("chapterSelect");
+    const translationSelect = document.getElementById("translationSelect");
+    const chapterPills = document.getElementById("chapterPills");
+    const passageHeader = document.getElementById("passageHeader");
+    const versesContainer = document.getElementById("versesContainer");
+    const listenChapBtn = document.getElementById("listenChapBtn");
+
+    let currentLoadedVerses = [];
+
+    /* AMBIENT AUDIO ENGINE (ambient.mp3) */
     const bibleMusicAudio = new Audio('ambient.mp3');
     bibleMusicAudio.loop = true;
     bibleMusicAudio.volume = 0.22;
@@ -297,21 +284,14 @@
       isBibleMusicEnabled = !isBibleMusicEnabled;
       localStorage.setItem("jesus_bible_music_enabled", isBibleMusicEnabled);
       updateBibleMusicUI();
-      if (!isBibleMusicEnabled) {
-        stopBibleMusic();
-      }
+      if (!isBibleMusicEnabled) stopBibleMusic();
     }
 
     function updateBibleMusicUI() {
       const btn = document.getElementById("bibleMusicToggle");
       if (btn) {
-        if (isBibleMusicEnabled) {
-          btn.innerHTML = "🎵 Music: ON";
-          btn.classList.remove("off");
-        } else {
-          btn.innerHTML = "🔇 Music: OFF";
-          btn.classList.add("off");
-        }
+        btn.innerHTML = isBibleMusicEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
+        btn.classList.toggle("off", !isBibleMusicEnabled);
       }
     }
 
@@ -320,52 +300,32 @@
       try {
         bibleMusicAudio.currentTime = 0;
         bibleMusicAudio.volume = 0.22;
-        const playPromise = bibleMusicAudio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(e => console.log("Audio autoplay note:", e));
-        }
-      } catch (e) {
-        console.log("Audio error:", e);
-      }
+        bibleMusicAudio.play().catch(e => console.log("Audio play note:", e));
+      } catch (e) {}
     }
 
     function stopBibleMusic() {
       try {
         bibleMusicAudio.pause();
         bibleMusicAudio.currentTime = 0;
-      } catch (e) {
-        console.log("Audio pause note:", e);
-      }
+      } catch (e) {}
     }
 
     /* SCRIPTURE CADENCE & PAUSE PREPROCESSOR */
     function preprocessBibleText(rawText) {
       if (!rawText) return "";
-      let text = rawText;
-      text = text.replace(/<[^>]*>/g, ' ');
+      let text = rawText.replace(/<[^>]*>/g, ' ');
       text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
-
-      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (match, book, chapter, verse) => {
-        return `... ${book.trim()}, chapter ${chapter}, verse ${verse}. ... `;
-      });
-
-      text = text.replace(/[—–]/g, ', ');
-      text = text.replace(/”|"/g, ' ... ');
-      text = text.replace(/“/g, ' ');
-      text = text.replace(/\.\s+/g, '. ... ');
-      text = text.replace(/;\s+/g, '; ... ');
-      text = text.replace(/:\s+/g, ': ... ');
-      text = text.replace(/\s+/g, ' ').trim();
-      return text;
+      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (m, b, c, v) => `... ${b.trim()}, chapter ${c}, verse ${v}. ... `);
+      text = text.replace(/[—–]/g, ', ').replace(/”|"/g, ' ... ').replace(/“/g, ' ');
+      text = text.replace(/\.\s+/g, '. ... ').replace(/;\s+/g, '; ... ').replace(/:\s+/g, ': ... ');
+      return text.replace(/\s+/g, ' ').trim();
     }
 
-    /* STRICT REVERENT BARITONE VOICE SELECTION (DANIEL PRIORITY) */
+    /* BARITONE VOICE SELECTION (DANIEL PRIORITY) */
     let availableVoices = [];
-
     function populateVoices() {
-      if ('speechSynthesis' in window) {
-        availableVoices = speechSynthesis.getVoices();
-      }
+      if ('speechSynthesis' in window) availableVoices = speechSynthesis.getVoices();
     }
     populateVoices();
     if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
@@ -377,21 +337,18 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
-      // 1. Apple Daniel (iOS & macOS parity)
       const danielVoice = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us'));
       });
       if (danielVoice) return danielVoice;
 
-      // 2. Apple Male Baritone
       const appleMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi')) && !id.includes('female');
       });
       if (appleMale) return appleMale;
 
-      // 3. Android / Google Natural Male
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('google uk english male') || id.includes('google us english male') || id.includes('male');
@@ -401,191 +358,222 @@
       return englishVoices[0] || availableVoices[0] || null;
     }
 
-    /* PASSAGE RENDERING ENGINE */
-    const versesFeed = document.getElementById("versesFeed");
-    const bookSelect = document.getElementById("bookSelect");
-    const listenChapterBtn = document.getElementById("listenChapterBtn");
-
-    let isChapterPlaying = false;
+    let activeUtterance = null;
     let currentlyPlayingVerseIndex = -1;
-    let activeVerseUtterance = null;
-    let chapterSyncWatcher = null;
-
-    function loadSelectedPassage() {
-      stopAllBibleAudio();
-      const key = bookSelect.value;
-      const data = SCRIPTURE_DATA[key];
-      if (!data) return;
-
-      versesFeed.innerHTML = `
-        <div class="chapter-heading-card">
-          <h2 class="chapter-title">${data.title}</h2>
-          <p class="chapter-subtitle">${data.subtitle}</p>
-        </div>
-        ${data.verses.map((v, idx) => `
-          <article class="verse-card" id="verseCard_${idx}">
-            <div class="verse-header-row">
-              <span class="verse-num-badge">Verse ${v.num}</span>
-              <div class="verse-actions-wrap">
-                <button class="verse-listen-btn" id="verseBtn_${idx}" onclick="narrateSingleVerse(${idx})">🔊 Listen</button>
-                <a href="index.html?prompt=Lord,%20speak%20peace%20to%20my%20soul%20through%20${encodeURIComponent(data.title)}: verse ${v.num} — “${encodeURIComponent(v.text)}”" class="verse-reflect-btn">✝ Reflect</a>
-              </div>
-            </div>
-            <p class="verse-text"><em>“${v.text}”</em></p>
-          </article>
-        `).join('')}
-      `;
-    }
+    let isChapterPlaying = false;
+    let syncInterval = null;
 
     function stopAllBibleAudio() {
-      if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
-      }
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
       stopBibleMusic();
-      if (chapterSyncWatcher) clearInterval(chapterSyncWatcher);
-
-      isChapterPlaying = false;
+      if (syncInterval) clearInterval(syncInterval);
       currentlyPlayingVerseIndex = -1;
-      listenChapterBtn.innerHTML = "🔊 Listen Chapter";
-
-      document.querySelectorAll(".verse-card").forEach(c => c.classList.remove("playing-verse"));
-      document.querySelectorAll(".verse-listen-btn").forEach(b => b.innerHTML = "🔊 Listen");
+      isChapterPlaying = false;
+      listenChapBtn.innerHTML = "🔊 Listen Chapter";
+      document.querySelectorAll(".verse-row").forEach(r => r.classList.remove("playing-verse"));
+      document.querySelectorAll(".verse-listen-btn").forEach(b => b.innerHTML = "🔊");
     }
 
-    /* VERSE-BY-VERSE AUDIO RECITATION */
     function narrateSingleVerse(index) {
-      if (!('speechSynthesis' in window)) {
-        alert("Audio recitation is not supported on this browser.");
-        return;
-      }
-
-      const key = bookSelect.value;
-      const data = SCRIPTURE_DATA[key];
-      const verse = data.verses[index];
-      if (!verse) return;
-
-      const verseCard = document.getElementById(`verseCard_${index}`);
-      const verseBtn = document.getElementById(`verseBtn_${index}`);
-
+      if (!('speechSynthesis' in window)) return;
       if (currentlyPlayingVerseIndex === index && speechSynthesis.speaking) {
         stopAllBibleAudio();
         return;
       }
-
       stopAllBibleAudio();
 
+      const v = currentLoadedVerses[index];
+      if (!v) return;
+
       currentlyPlayingVerseIndex = index;
-      verseCard.classList.add("playing-verse");
-      verseBtn.innerHTML = "⏸ Pause";
+      const row = document.getElementById(`verseRow_${index}`);
+      const btn = document.getElementById(`verseBtn_${index}`);
+      if (row) row.classList.add("playing-verse");
+      if (btn) btn.innerHTML = "⏸";
 
-      const speechText = preprocessBibleText(`${data.title}, verse ${verse.num}. ${verse.text}`);
-      activeVerseUtterance = new SpeechSynthesisUtterance(speechText);
-      
-      const chosenVoice = getSacredVoice();
-      if (chosenVoice) {
-        activeVerseUtterance.voice = chosenVoice;
-        activeVerseUtterance.lang = chosenVoice.lang || 'en-US';
-      }
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
+      const cadenceText = preprocessBibleText(`${book}, chapter ${chapter}, verse ${v.verse}. ${v.text}`);
 
-      activeVerseUtterance.rate = 0.84;
-      activeVerseUtterance.pitch = 0.78;
+      activeUtterance = new SpeechSynthesisUtterance(cadenceText);
+      const voice = getSacredVoice();
+      if (voice) activeUtterance.voice = voice;
+      activeUtterance.rate = 0.84;
+      activeUtterance.pitch = 0.78;
 
-      activeVerseUtterance.onstart = () => {
-        startBibleMusic();
-      };
+      activeUtterance.onstart = () => startBibleMusic();
+      activeUtterance.onend = () => stopAllBibleAudio();
+      activeUtterance.onerror = () => stopAllBibleAudio();
 
-      activeVerseUtterance.onend = () => {
-        stopAllBibleAudio();
-      };
-
-      activeVerseUtterance.onerror = () => {
-        stopAllBibleAudio();
-      };
-
-      setTimeout(() => {
-        speechSynthesis.speak(activeVerseUtterance);
-      }, 50);
+      setTimeout(() => speechSynthesis.speak(activeUtterance), 50);
     }
 
-    /* CHAPTER-LEVEL SEQUENTIAL AUDIO RECITATION */
-    function toggleChapterRecitation() {
-      if (!('speechSynthesis' in window)) {
-        alert("Audio recitation is not supported on this browser.");
-        return;
-      }
-
+    function toggleChapterAudio() {
+      if (!('speechSynthesis' in window)) return;
       if (isChapterPlaying) {
         stopAllBibleAudio();
         return;
       }
-
       stopAllBibleAudio();
 
-      const key = bookSelect.value;
-      const data = SCRIPTURE_DATA[key];
-      if (!data || data.verses.length === 0) return;
+      if (currentLoadedVerses.length === 0) return;
 
       isChapterPlaying = true;
-      listenChapterBtn.innerHTML = "⏸ Pause Chapter";
+      listenChapBtn.innerHTML = "⏸ Pause Chapter";
       startBibleMusic();
 
-      let currentVerse = 0;
+      let verseIdx = 0;
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
 
-      function speakNextInChapter() {
-        if (!isChapterPlaying || currentVerse >= data.verses.length) {
+      function speakNextVerse() {
+        if (!isChapterPlaying || verseIdx >= currentLoadedVerses.length) {
           stopAllBibleAudio();
           return;
         }
 
-        document.querySelectorAll(".verse-card").forEach(c => c.classList.remove("playing-verse"));
-        const card = document.getElementById(`verseCard_${currentVerse}`);
-        if (card) {
-          card.classList.add("playing-verse");
-          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        document.querySelectorAll(".verse-row").forEach(r => r.classList.remove("playing-verse"));
+        const row = document.getElementById(`verseRow_${verseIdx}`);
+        if (row) {
+          row.classList.add("playing-verse");
+          row.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
 
-        const v = data.verses[currentVerse];
-        const verseIntro = currentVerse === 0 ? `${data.title}. Verse ${v.num}. ${v.text}` : `Verse ${v.num}. ${v.text}`;
-        const cadenceText = preprocessBibleText(verseIntro);
+        const v = currentLoadedVerses[verseIdx];
+        const intro = verseIdx === 0 ? `${book} chapter ${chapter}. Verse ${v.verse}. ${v.text}` : `Verse ${v.verse}. ${v.text}`;
+        const cadenceText = preprocessBibleText(intro);
 
-        activeVerseUtterance = new SpeechSynthesisUtterance(cadenceText);
+        activeUtterance = new SpeechSynthesisUtterance(cadenceText);
         const voice = getSacredVoice();
-        if (voice) {
-          activeVerseUtterance.voice = voice;
-          activeVerseUtterance.lang = voice.lang || 'en-US';
-        }
+        if (voice) activeUtterance.voice = voice;
+        activeUtterance.rate = 0.84;
+        activeUtterance.pitch = 0.78;
 
-        activeVerseUtterance.rate = 0.84;
-        activeVerseUtterance.pitch = 0.78;
-
-        activeVerseUtterance.onend = () => {
-          currentVerse++;
-          speakNextInChapter();
+        activeUtterance.onend = () => {
+          verseIdx++;
+          speakNextVerse();
         };
 
-        activeVerseUtterance.onerror = () => {
-          stopAllBibleAudio();
-        };
-
-        speechSynthesis.speak(activeVerseUtterance);
+        activeUtterance.onerror = () => stopAllBibleAudio();
+        speechSynthesis.speak(activeUtterance);
       }
 
-      chapterSyncWatcher = setInterval(() => {
-        if (!speechSynthesis.speaking && currentVerse >= data.verses.length) {
+      syncInterval = setInterval(() => {
+        if (!speechSynthesis.speaking && verseIdx >= currentLoadedVerses.length) {
           stopAllBibleAudio();
         }
       }, 300);
 
-      speakNextInChapter();
+      speakNextVerse();
     }
 
-    document.addEventListener("visibilitychange", function() {
-      if (document.hidden) stopAllBibleAudio();
-    });
+    function initBookDropdown() {
+      const otGroup = document.createElement("optgroup");
+      otGroup.label = "Old Testament";
+      const ntGroup = document.createElement("optgroup");
+      ntGroup.label = "New Testament";
 
-    window.onload = function() {
+      BIBLE_BOOKS.forEach(b => {
+        const opt = document.createElement("option");
+        opt.value = b.name;
+        opt.textContent = b.name;
+        if (b.testament === "OT") otGroup.appendChild(opt);
+        else ntGroup.appendChild(opt);
+      });
+
+      bookSelect.appendChild(otGroup);
+      bookSelect.appendChild(ntGroup);
+      bookSelect.value = "John";
+      handleBookChange(3);
+    }
+
+    function handleBookChange(targetChapter = 1) {
+      const bookObj = BIBLE_BOOKS.find(b => b.name === bookSelect.value);
+      chapterSelect.innerHTML = "";
+      chapterPills.innerHTML = "";
+
+      for (let i = 1; i <= bookObj.chapters; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Chapter ${i}`;
+        chapterSelect.appendChild(opt);
+
+        const pill = document.createElement("button");
+        pill.className = `chap-pill ${i === targetChapter ? 'active' : ''}`;
+        pill.textContent = i;
+        pill.onclick = () => {
+          chapterSelect.value = i;
+          loadCurrentChapter();
+        };
+        chapterPills.appendChild(pill);
+      }
+
+      chapterSelect.value = targetChapter;
+      loadCurrentChapter();
+    }
+
+    async function loadCurrentChapter() {
+      stopAllBibleAudio();
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
+      const translation = translationSelect.value;
+
+      document.querySelectorAll(".chap-pill").forEach(p => {
+        p.classList.toggle("active", p.textContent === chapter);
+      });
+
+      passageHeader.textContent = `${book} ${chapter}`;
+      versesContainer.innerHTML = `<div class="loading-spinner">🕊️ Gathering sacred verses...</div>`;
+
+      try {
+        const formattedQuery = encodeURIComponent(`${book} ${chapter}`);
+        const res = await fetch(`https://bible-api.com/${formattedQuery}?translation=${translation}`);
+        const data = await res.json();
+
+        if (data.verses && data.verses.length > 0) {
+          currentLoadedVerses = data.verses;
+          versesContainer.innerHTML = currentLoadedVerses.map((v, index) => `
+            <div class="verse-row" id="verseRow_${index}">
+              <span class="verse-num">${v.verse}</span>
+              <span class="verse-text">${escapeHtml(v.text.trim())}</span>
+              <div class="actions-wrap">
+                <button class="verse-listen-btn" id="verseBtn_${index}" onclick="narrateSingleVerse(${index})">🔊</button>
+                <button class="reflect-btn" onclick="triggerReflectByIndex(${index})">
+                  ✝ Reflect
+                </button>
+              </div>
+            </div>
+          `).join("");
+        } else {
+          currentLoadedVerses = [];
+          versesContainer.innerHTML = `<p style="text-align:center; color:#a1a1aa;">Scripture passage currently resting. Please select another chapter.</p>`;
+        }
+      } catch (err) {
+        currentLoadedVerses = [];
+        versesContainer.innerHTML = `<p style="text-align:center; color:#e07a5f;">Unable to load scripture at this moment. Please check your connection.</p>`;
+      }
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function triggerReflectByIndex(index) {
+      const v = currentLoadedVerses[index];
+      if (!v) return;
+
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
+      const cleanVerseText = v.text.trim().replace(/\r?\n|\r/g, " ");
+      
+      const prompt = `Lord Jesus, help me understand and reflect upon ${book} ${chapter}:${v.verse} — "${cleanVerseText}". What does this mean for my walk of faith today?`;
+      window.location.href = `index.html?prompt=${encodeURIComponent(prompt)}&_cb=${Date.now()}`;
+    }
+
+    document.addEventListener("visibilitychange", () => { if (document.hidden) stopAllBibleAudio(); });
+    window.onload = () => {
       updateBibleMusicUI();
-      loadSelectedPassage();
+      initBookDropdown();
     };
   </script>
 </body>
