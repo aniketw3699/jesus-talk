@@ -1,10 +1,12 @@
 /* ADVANCED WORD-BY-WORD AUDIOBOOK & PODCAST PLAYER INJECTOR */
 (function() {
   window.addEventListener('DOMContentLoaded', () => {
-    // 1. Target all distinct structural elements including badges and headings
+    // 1. Target all article text blocks (badges, headers, paragraphs, verses, FAQs)
     const selectors = '.badge, h1, .sec-h2, .body-p, .verse-text, .verse-ref, .step-h3, .step-p, .prayer-h3, .prayer-body, .faq-q, .faq-a';
     const textElements = document.querySelectorAll(selectors);
     
+    let globalWordIndex = 0;
+
     textElements.forEach(el => {
       if (!el.closest('.audio-word-wrapper') && el.textContent.trim().length > 0) {
         const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
@@ -16,6 +18,7 @@
 
         textNodes.forEach(textNode => {
           const content = textNode.nodeValue;
+          // Split by whitespace while preserving spacing
           const words = content.split(/(\s+)/);
           const frag = document.createDocumentFragment();
 
@@ -23,7 +26,16 @@
             if (word.trim().length > 0) {
               const span = document.createElement('span');
               span.className = 'audio-word';
+              span.dataset.wordIndex = globalWordIndex++;
               span.textContent = word;
+              span.title = "Click to play from here";
+              
+              // Enable click-to-play directly on this word
+              span.onclick = (e) => {
+                e.stopPropagation();
+                jumpToWord(parseInt(span.dataset.wordIndex, 10));
+              };
+
               frag.appendChild(span);
             } else {
               frag.appendChild(document.createTextNode(word));
@@ -40,23 +52,25 @@
       .audio-word {
         transition: background 0.15s ease, color 0.15s ease;
         cursor: pointer;
-        border-radius: 3px;
-        padding: 0 1px;
+        border-radius: 4px;
+        padding: 1px 2px;
       }
       .audio-word:hover {
-        background: rgba(226, 183, 100, 0.25);
+        background: rgba(226, 183, 100, 0.35);
+        color: #e2b764;
       }
       .audio-word.active-word {
         background: #e2b764 !important;
-        color: #000 !important;
-        font-weight: 600;
+        color: #000000 !important;
+        font-weight: 700 !important;
+        box-shadow: 0 0 8px rgba(226, 183, 100, 0.5);
       }
       .podcast-bar {
         position: fixed; bottom: 0; left: 0; right: 0;
-        background: rgba(15, 15, 18, 0.96); backdrop-filter: blur(12px);
-        border-top: 1px solid rgba(226, 183, 100, 0.35);
+        background: rgba(15, 15, 18, 0.97); backdrop-filter: blur(14px);
+        border-top: 1.5px solid rgba(226, 183, 100, 0.4);
         padding: 12px 20px; display: flex; align-items: center; justify-content: space-between;
-        z-index: 1000; box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
+        z-index: 1000; box-shadow: 0 -10px 30px rgba(0,0,0,0.7);
         max-width: 640px; margin: 0 auto; border-radius: 20px 20px 0 0;
       }
       .podcast-info { display: flex; flex-direction: column; }
@@ -65,10 +79,10 @@
       .podcast-controls { display: flex; gap: 12px; align-items: center; }
       .podcast-btn {
         background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
-        border: none; color: #000; font-weight: 800; font-size: 12.5px;
-        padding: 8px 18px; border-radius: 20px; cursor: pointer;
+        border: none; color: #000; font-weight: 800; font-size: 13px;
+        padding: 8px 20px; border-radius: 20px; cursor: pointer;
         display: inline-flex; align-items: center; gap: 6px;
-        box-shadow: 0 4px 12px rgba(226, 183, 100, 0.3);
+        box-shadow: 0 4px 14px rgba(226, 183, 100, 0.35);
       }
       .podcast-btn:active { transform: scale(0.96); }
     `;
@@ -94,7 +108,7 @@
     document.body.appendChild(container);
   });
 
-  // 4. Audiobook Narration with Structural Pauses & Highlighting
+  // 4. Audiobook Narration Engine with Natural Scripture Cadence
   const blogMusicAudio = new Audio('../blog-ambient.mp3');
   blogMusicAudio.loop = true;
   blogMusicAudio.volume = 0.22;
@@ -107,41 +121,90 @@
   let fullArticleText = "";
   let wordCharMap = [];
 
+  // Converts book references (e.g. Matthew 6:25–34) into natural spoken words
+  function cleanScriptureSpokenText(raw) {
+    if (!raw) return "";
+    let text = raw;
+
+    // Convert "1 Corinthians" -> "First Corinthians", "2 Peter" -> "Second Peter"
+    text = text.replace(/\b1\s+([A-Za-z]+)/g, "First $1");
+    text = text.replace(/\b2\s+([A-Za-z]+)/g, "Second $1");
+    text = text.replace(/\b3\s+([A-Za-z]+)/g, "Third $1");
+
+    // Convert Chapter:Verse-Range e.g. "6:25–34" -> "chapter 6, verses 25 to 34"
+    text = text.replace(/\b(\d+)[:\.](\d+)[–—-—](\d+)\b/g, "chapter $1, verses $2 to $3");
+
+    // Convert Single Chapter:Verse e.g. "6:25" -> "chapter 6, verse 25"
+    text = text.replace(/\b(\d+)[:\.](\d+)\b/g, "chapter $1, verse $2");
+
+    // Remove raw Greek/Hebrew in brackets so voice doesn't stumble
+    text = text.replace(/\([^\w\s\d,.:;–—-—]+\)/g, '');
+
+    // Replace harsh brackets & dashes with calm speech pauses
+    text = text.replace(/[\(\)\[\]]/g, ' ... ');
+    text = text.replace(/[—–]/g, ', ');
+
+    return text;
+  }
+
   function buildTextAndMap() {
     wordElements = Array.from(document.querySelectorAll('.audio-word'));
     fullArticleText = "";
     wordCharMap = [];
 
-    // Group by parent block elements to inject natural pauses between structural line breaks
     const blockSelectors = '.badge, h1, .sec-h2, .body-p, .verse-text, .verse-ref, .step-h3, .step-p, .prayer-h3, .prayer-body, .faq-q, .faq-a';
     const blocks = document.querySelectorAll(blockSelectors);
 
     blocks.forEach(block => {
       const blockWords = block.querySelectorAll('.audio-word');
       blockWords.forEach(el => {
-        const wordText = el.textContent;
+        let rawWord = el.textContent || '';
+        let spokenWord = cleanScriptureSpokenText(rawWord);
+
         const startIndex = fullArticleText.length;
-        fullArticleText += wordText + " ";
+        fullArticleText += spokenWord + " ";
         const endIndex = fullArticleText.length;
+
         wordCharMap.push({ startIndex, endIndex, element: el, index: wordCharMap.length });
       });
-      // Append a distinct pause/period break at the end of each block element (Badge, H1, H2, Paragraph)
+
+      // Insert clean breath pause between headers, titles, and paragraphs
       if (blockWords.length > 0) {
-        fullArticleText = fullArticleText.trimEnd() + ". ";
+        fullArticleText = fullArticleText.trimEnd() + ". ... ";
       }
     });
 
-    // Re-index wordElements to match wordCharMap exactly
     wordElements = wordCharMap.map(m => m.element);
   }
 
+  // Exact parity for Apple Daniel on macOS and iOS
   function getSacredVoice() {
     const voices = window.speechSynthesis.getVoices();
-    const english = voices.filter(v => v.lang && v.lang.startsWith('en'));
-    const daniel = english.find(v => (v.name || '').toLowerCase().includes('daniel'));
-    if (daniel) return daniel;
-    const male = english.find(v => !['female','woman','girl','samantha','victoria','zira','karen'].some(f => (v.name||'').toLowerCase().includes(f)));
-    return male || english[0] || voices[0];
+    const englishVoices = voices.filter(v => v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng')));
+
+    // 1. Apple Daniel (En-GB / En-US Baritone)
+    const danielVoice = englishVoices.find(v => {
+      const name = (v.name || '').toLowerCase();
+      const uri = (v.voiceURI || '').toLowerCase();
+      return (name.includes('daniel') || uri.includes('daniel')) && !name.includes('female');
+    });
+    if (danielVoice) return danielVoice;
+
+    // 2. Secondary Apple Male Baritones
+    const appleMale = englishVoices.find(v => {
+      const name = (v.name || '').toLowerCase();
+      return (name.includes('oliver') || name.includes('arthur') || name.includes('george') || name.includes('rishi')) && !name.includes('female');
+    });
+    if (appleMale) return appleMale;
+
+    // 3. Android / Google Natural UK Male
+    const androidMale = englishVoices.find(v => {
+      const name = (v.name || '').toLowerCase();
+      return name.includes('uk english male') || name.includes('male');
+    });
+    if (androidMale) return androidMale;
+
+    return englishVoices[0] || voices[0] || null;
   }
 
   window.toggleAudiobook = function() {
@@ -180,6 +243,15 @@
     startNarrationFrom(currentWordIndex);
   };
 
+  window.jumpToWord = function(wordIdx) {
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+    }
+    blogMusicAudio.pause();
+    currentWordIndex = wordIdx;
+    startNarrationFrom(currentWordIndex);
+  };
+
   function startNarrationFrom(startIndex) {
     if (wordElements.length === 0) buildTextAndMap();
     if (startIndex >= wordCharMap.length) {
@@ -191,13 +263,16 @@
     const targetMapObj = wordCharMap[currentWordIndex];
     if (!targetMapObj) return;
 
+    // Slice text from the exact character position of the chosen word
     const textToSpeak = fullArticleText.substring(targetMapObj.startIndex);
 
     activeUtterance = new SpeechSynthesisUtterance(textToSpeak);
     const voice = getSacredVoice();
     if (voice) activeUtterance.voice = voice;
-    activeUtterance.rate = 0.84;
-    activeUtterance.pitch = 0.78;
+    
+    // Reverent, steady human cadence
+    activeUtterance.rate = 0.80;
+    activeUtterance.pitch = 0.82;
 
     activeUtterance.onboundary = (event) => {
       if (event.name === 'word') {
