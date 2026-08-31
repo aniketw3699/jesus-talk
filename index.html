@@ -193,6 +193,32 @@
     .share-badge:hover { background: #fff8f8; border-color: var(--cross-red); }
     .listen-badge:active, .share-badge:active { transform: scale(0.96); }
 
+    .save-journal-banner {
+      margin-top: 10px;
+      background: linear-gradient(135deg, #fffcf5 0%, #f7ecd2 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(143, 101, 28, 0.08);
+      animation: gentleRise 0.35s ease forwards;
+    }
+    .save-journal-banner p { font-size: 12px; font-weight: 600; color: #3a2e1c; line-height: 1.4; }
+    .save-journal-banner button {
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      border: none;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .thinking-box {
       display: none; align-items: center; gap: 10px; padding: 10px 16px;
       background: #ffffff; border: 1px solid var(--gold-border); border-radius: 18px;
@@ -270,6 +296,64 @@
       width: 100%; padding: 11px; background: #ffffff; border: 1.5px solid var(--gold-border);
       border-radius: 14px; color: var(--gold-deep); font-size: 13.5px; font-weight: 700;
       cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+
+    /* Spiritual Intake Quiz */
+    .quiz-step-container { display: none; flex-direction: column; gap: 12px; }
+    .quiz-step-container.active { display: flex; animation: gentleRise 0.3s ease forwards; }
+
+    .quiz-option-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 10px 0 16px 0;
+    }
+
+    .quiz-option-card {
+      background: #faf8f4;
+      border: 1.5px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .quiz-option-card:hover {
+      border-color: var(--gold-deep);
+      background: #fdfaf2;
+      transform: translateY(-1px);
+    }
+
+    .quiz-option-card.selected {
+      border: 2px solid var(--gold-deep);
+      background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%);
+      color: #191f28;
+    }
+
+    .quiz-progress-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .quiz-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e2d9cc;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .quiz-dot.active {
+      background: var(--gold-deep);
+      transform: scale(1.25);
     }
 
     .blessing-text-area {
@@ -665,7 +749,7 @@
     
     <header class="sacred-header">
       <div class="nav-scroll-strip">
-        <span class="credit-pill" id="creditBadge">📿 Sign In Required</span>
+        <span class="credit-pill" id="creditBadge">🕊️ 1 Free Blessing Ready</span>
         <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
@@ -679,7 +763,7 @@
       </div>
       <div class="header-titles">
         <h1 class="title-main">YOU WITH JESUS</h1>
-        <p class="subtitle-grace" id="userGreeting">Sign in to begin your sanctuary</p>
+        <p class="subtitle-grace" id="userGreeting">Scripture Guidance & Daily Prayer Sanctuary</p>
       </div>
     </header>
 
@@ -711,7 +795,7 @@
           type="text" 
           id="messageInput" 
           class="prayer-input" 
-          placeholder="Sign in with Google to speak your heart..." 
+          placeholder="Bring your burdens, prayer requests, or Scripture questions..." 
           autocomplete="off"
         />
         <button type="submit" class="send-btn" aria-label="Send Prayer">
@@ -722,6 +806,76 @@
       </form>
     </footer>
   </main>
+
+  <!-- SPIRITUAL INTAKE ONBOARDING MODAL -->
+  <div class="modal-backdrop" id="intakeModal" style="display: none;">
+    <div class="modal-card">
+      <div class="quiz-progress-dots">
+        <span class="quiz-dot active" id="qDot1"></span>
+        <span class="quiz-dot" id="qDot2"></span>
+        <span class="quiz-dot" id="qDot3"></span>
+      </div>
+
+      <!-- Step 1: Burden / Struggle -->
+      <div class="quiz-step-container active" id="quizStep1">
+        <div class="modal-header">
+          <h3 class="modal-title">WHAT WEIGHS ON YOUR HEART?</h3>
+          <p class="modal-desc">Select what is troubling your spirit today.</p>
+        </div>
+        <div class="quiz-option-grid">
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Overcoming Anxiety & Restless Mind', 'Lord, calm the storms in my mind and grant me your supernatural peace.')">
+            <span>🕊️ Overwhelming Anxiety & Fear</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Grief, Heartbreak & Loneliness', 'Lord, comfort my broken heart and hold me in my sorrow.')">
+            <span>💔 Grief, Heartbreak & Loss</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Financial Pressure & Uncertainty', 'Lord, release me from financial fear and lead me with your provision.')">
+            <span>💼 Financial Fear & Heavy Debts</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Seeking God\'s Life Direction', 'Lord, guide my steps and make your path clear to my spirit.')">
+            <span>🧭 Seeking Clarity & Life Purpose</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Gratitude & Deepening Faith', 'Lord, strengthen my daily walk and fill my spirit with thankfulness.')">
+            <span>✝ Daily Gratitude & Deepening Walk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Time / Disconnect Moment -->
+      <div class="quiz-step-container" id="quizStep2">
+        <div class="modal-header">
+          <h3 class="modal-title">WHEN IS THE STRUGGLE HEAVIEST?</h3>
+          <p class="modal-desc">Tell us when you feel most in need of stillness.</p>
+        </div>
+        <div class="quiz-option-grid">
+          <div class="quiz-option-card" onclick="selectQuizTime('Morning Awakening with Burden')">
+            <span>🌅 Morning waking up with heavy dread</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizTime('Midday Stress & Exhaustion')">
+            <span>☀️ Midday noise, pressure & burnout</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizTime('Late Night Racing Thoughts')">
+            <span>🌙 Late night insomnia & overthinking</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Emotional Breakthrough & Entry -->
+      <div class="quiz-step-container" id="quizStep3">
+        <div class="modal-header">
+          <h3 class="modal-title">YOUR PROMISED REST</h3>
+          <p class="modal-desc">A tailored word prepared for your spirit.</p>
+        </div>
+        <div class="blessing-text-area" id="quizTailoredBlessing"></div>
+        <button class="secondary-soft-btn" id="listenQuizBlessingBtn" onclick="listenToQuizBlessing()">
+          🔊 Listen to Promised Rest
+        </button>
+        <button class="primary-gold-btn" onclick="completeIntakeAndEnter()">
+          <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Enter Your Sanctuary
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- GETHSEMANE CONFESSIONAL -->
   <div class="modal-backdrop" id="confessionalModal">
@@ -768,7 +922,7 @@
       <div class="privacy-notice-box">
         <p>We operate on a strict zero-knowledge standard. 100% of your conversation history and soul reflections are stored locally on your device only.</p>
         <p>We never store, read, or track your prayers, confessions, or reflections on our servers. Our servers maintain zero personal chat data.</p>
-        <p>Google Sign-In is solely used exclusively to secure your account, link your access, and manage your reply credits.</p>
+        <p>Google Sign-In is solely used to secure your account, link your access, and manage your reply credits.</p>
       </div>
 
       <button class="primary-gold-btn" onclick="proceedToGoogleAuth()">
@@ -966,10 +1120,16 @@
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
 
+    let intakeData = {
+      struggle: '',
+      initialPrompt: '',
+      timeSlot: ''
+    };
+
     /* DEDICATED SACRED AMBIENT MUSIC ENGINE */
     const sacredMusicAudio = new Audio('ambient.mp3');
     sacredMusicAudio.loop = true;
-    sacredMusicAudio.volume = 0.22; // Boosted by +2 points
+    sacredMusicAudio.volume = 0.22; // Boosted volume
     let isMusicEnabled = localStorage.getItem("jesus_music_enabled") !== "false";
 
     function toggleMusicSetting() {
@@ -1126,6 +1286,7 @@
       renderPlans();
       initFirebaseAuth();
       startTimeSlotLiveWatcher();
+      checkAndShowIntakeQuiz();
       updateMusicToggleUI();
     };
 
@@ -1142,9 +1303,65 @@
       stopSacredMusic();
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
+      const listenQuizBlessingBtn = document.getElementById("listenQuizBlessingBtn");
+      if (listenQuizBlessingBtn) listenQuizBlessingBtn.innerHTML = "🔊 Listen to Promised Rest";
       document.querySelectorAll(".listen-badge").forEach(btn => {
         btn.innerHTML = "🔊 Listen";
       });
+    }
+
+    /* INTAKE ONBOARDING LOGIC */
+    function checkAndShowIntakeQuiz() {
+      const completed = localStorage.getItem("jesus_intake_completed");
+      if (!completed && !pendingPrompt) {
+        document.getElementById("intakeModal").style.display = "flex";
+      }
+    }
+
+    function selectQuizStruggle(struggleText, promptText) {
+      intakeData.struggle = struggleText;
+      intakeData.initialPrompt = promptText;
+      
+      document.getElementById("quizStep1").classList.remove("active");
+      document.getElementById("quizStep2").classList.add("active");
+      document.getElementById("qDot1").classList.remove("active");
+      document.getElementById("qDot2").classList.add("active");
+    }
+
+    function selectQuizTime(timeText) {
+      intakeData.timeSlot = timeText;
+      
+      const blessingArea = document.getElementById("quizTailoredBlessing");
+      blessingArea.innerHTML = `
+        <p>Beloved soul, you carry the heavy weight of <strong>${intakeData.struggle}</strong>, especially during <strong>${intakeData.timeSlot.toLowerCase()}</strong>.</p>
+        <p>Lay down this burden right here. No sorrow is beyond His mercy, and no prayer is forgotten.</p>
+        <p><em>“Cast all your anxiety on Him because He cares for you.” (1 Peter 5:7)</em></p>
+      `;
+
+      document.getElementById("quizStep2").classList.remove("active");
+      document.getElementById("quizStep3").classList.add("active");
+      document.getElementById("qDot2").classList.remove("active");
+      document.getElementById("qDot3").classList.add("active");
+    }
+
+    function listenToQuizBlessing() {
+      const btn = document.getElementById("listenQuizBlessingBtn");
+      const cleanText = document.getElementById("quizTailoredBlessing").textContent || document.getElementById("quizTailoredBlessing").innerText;
+      playVoice(btn, cleanText, "Listen to Promised Rest");
+    }
+
+    function completeIntakeAndEnter() {
+      stopAllAudio();
+      localStorage.setItem("jesus_intake_completed", "true");
+      document.getElementById("intakeModal").style.display = "none";
+      
+      currentPsyche = `A soul seeking deliverance from ${intakeData.struggle}`;
+      localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
+
+      if (intakeData.initialPrompt) {
+        messageInput.value = intakeData.initialPrompt;
+        handleUserSubmit(new Event('submit'));
+      }
     }
 
     function checkUrlPromptBridge() {
@@ -1247,7 +1464,13 @@
 
             await syncUserCreditsWithCloud(user);
 
+            // Remove guest conversion banners upon login
+            document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
+
             const hasRestoredSession = restoreActiveChatSession();
+
+            // Clear any banner artifacts from restored history
+            document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
 
             if (pendingPrompt) {
               const promptToExecute = pendingPrompt;
@@ -1270,10 +1493,10 @@
           } else {
             currentUser = null;
             currentUserName = "beloved";
-            userGreeting.textContent = "Sign in to begin your sanctuary";
+            userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
-            creditBadge.textContent = "📿 Sign In Required";
-            messageInput.placeholder = "Sign in with Google to speak your heart...";
+            updateCreditUI();
+            messageInput.placeholder = "Bring your prayer request or Scripture question...";
           }
         });
       }
@@ -1281,7 +1504,8 @@
 
     function updateCreditUI() {
       if (!currentUser) {
-        creditBadge.textContent = "📿 Sign In Required";
+        const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
+        creditBadge.textContent = guestUsed ? "📿 Sign In to Continue" : "🕊️ 1 Free Blessing Ready";
       } else if (isSubscribed) {
         creditBadge.textContent = "✨ Unlimited Sanctuary";
       } else {
@@ -1798,7 +2022,8 @@
     function closePlansModal() { plansModal.style.display = "none"; }
 
     function sendQuickPrompt(promptText) {
-      if (!currentUser) {
+      const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
+      if (!currentUser && guestUsed) {
         openPrivacyModal();
         return;
       }
@@ -1809,15 +2034,19 @@
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       
-      if (!currentUser) {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      const guestInteractionUsed = localStorage.getItem("jesus_guest_interaction_used");
+
+      // Check Guest Status
+      if (!currentUser && guestInteractionUsed) {
         openPrivacyModal();
         return;
       }
 
-      const text = messageInput.value.trim();
-      if (!text) return;
-
-      if (!isSubscribed && userCredits <= 0) {
+      // Check Paid Limits for Signed-In Users
+      if (currentUser && !isSubscribed && userCredits <= 0) {
         openPlansModal();
         return;
       }
@@ -1826,13 +2055,16 @@
       messageInput.value = "";
       showThinking(true);
 
+      const resolvedUserId = currentUser ? currentUser.uid : "guest_" + (localStorage.getItem("jesus_guest_id") || Date.now());
+      const resolvedUserEmail = currentUser ? currentUser.email : "guest@sanctuary.app";
+
       try {
         const res = await fetch(`${BACKEND_API_URL}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: currentUser.uid,
-            userEmail: currentUser.email,
+            userId: resolvedUserId,
+            userEmail: resolvedUserEmail,
             message: text,
             userName: currentUserName,
             userPsyche: currentPsyche,
@@ -1852,7 +2084,11 @@
           appendBotBubble(data.reply);
           if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
           
-          if (!isSubscribed) {
+          if (!currentUser) {
+            localStorage.setItem("jesus_guest_interaction_used", "true");
+            updateCreditUI();
+            appendGuestConversionPrompt();
+          } else if (!isSubscribed) {
             userCredits = Math.max(0, userCredits - 1);
             localStorage.setItem(`jesus_credits_${currentUser.uid}`, userCredits);
             updateCreditUI();
@@ -1879,6 +2115,19 @@
         appendBotBubble("Peace be with you. Lay down your burdens, for I am near.");
         saveActiveChatSession();
       }
+    }
+
+    function appendGuestConversionPrompt() {
+      if (currentUser) return;
+      document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
+      const banner = document.createElement("div");
+      banner.className = "save-journal-banner";
+      banner.innerHTML = `
+        <p>✨ <strong>Save Your Reflections:</strong> Sign in with Google to preserve this prayer in your Soul Journal and continue your walk.</p>
+        <button onclick="openPrivacyModal()">Sign In Free</button>
+      `;
+      chatFeed.appendChild(banner);
+      scrollToBottom();
     }
 
     function showThinking(show) {
@@ -2218,6 +2467,7 @@
       if (event.target == journalModal) closeJournalModal();
       if (event.target == privacyModal) closePrivacyModal();
       if (event.target == confessionalModal) closeConfessionalModal();
+      if (event.target == intakeModal) document.getElementById("intakeModal").style.display = "none";
     };
   </script>
 </body>
