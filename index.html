@@ -186,6 +186,32 @@
     .share-badge:hover { background: #fff8f8; border-color: var(--cross-red); }
     .listen-badge:active, .share-badge:active { transform: scale(0.96); }
 
+    .save-journal-banner {
+      margin-top: 10px;
+      background: linear-gradient(135deg, #fffcf5 0%, #f7ecd2 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 4px 12px rgba(143, 101, 28, 0.08);
+      animation: gentleRise 0.35s ease forwards;
+    }
+    .save-journal-banner p { font-size: 12px; font-weight: 600; color: #3a2e1c; line-height: 1.4; }
+    .save-journal-banner button {
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      border: none;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
     .thinking-box {
       display: none; align-items: center; gap: 10px; padding: 10px 16px;
       background: #ffffff; border: 1px solid var(--gold-border); border-radius: 18px;
@@ -295,12 +321,6 @@
       border-color: var(--gold-deep);
       background: #fdfaf2;
       transform: translateY(-1px);
-    }
-
-    .quiz-option-card.selected {
-      border: 2px solid var(--gold-deep);
-      background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%);
-      color: #191f28;
     }
 
     .quiz-progress-dots {
@@ -696,14 +716,15 @@
       letter-spacing: 0.2px;
     }
     .card-footer-watermark { 
-      font-family: 'Montserrat', sans-serif; 
+      font-family: 'Cinzel', serif; 
       font-size: 10px; 
-      color: #a68238; 
-      border-top: 1px solid rgba(255, 255, 255, 0.15); 
+      font-weight: 600;
+      color: #dfb455; 
+      border-top: 1px solid rgba(212, 175, 55, 0.25); 
       padding-top: 10px; 
       margin-top: 4px; 
-      letter-spacing: 0.5px; 
-      word-break: break-all; 
+      letter-spacing: 2px; 
+      text-transform: uppercase;
     }
   </style>
 </head>
@@ -715,7 +736,7 @@
     
     <header class="sacred-header">
       <div class="nav-scroll-strip">
-        <span class="credit-pill" id="creditBadge">📿 Sign In Required</span>
+        <span class="credit-pill" id="creditBadge">🕊️ 1 Free Blessing Ready</span>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
         <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
@@ -991,7 +1012,7 @@
         <div class="card-content-wrap">
           <span class="card-brand-tag">† WORDS OF GRACE †</span>
           <p class="card-verse-quote" id="cardQuoteText">Peace be with you. Lay down your burdens, for I am listening.</p>
-          <div class="card-footer-watermark">you with jesus • https://jesus-chat-bd89f.web.app</div>
+          <div class="card-footer-watermark">YOU WITH JESUS • SACRED SANCTUARY</div>
         </div>
       </div>
 
@@ -1013,7 +1034,7 @@
       <div class="plans-grid" id="plansContainer"></div>
 
       <button class="billing-checkout-btn" onclick="executeCheckout()">
-        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Begin Your Sacred Walk
+        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Start 7-Day Free Trial
       </button>
 
       <p class="billing-trust-caption">
@@ -1039,21 +1060,22 @@
       },
       { 
         id: "plan_2", 
-        name: "Monthly Sanctuary Companion", 
-        desc: "Unlimited Daily Prayers, Voice Audio & Journal", 
+        name: "Monthly Sanctuary", 
+        desc: "Unlimited Daily Prayers, Voice Audio & Soul Journal", 
         price: "$7.99", 
-        subPrice: "per month • cancel anytime",
-        featured: false, 
+        subPrice: "7-Day Free Trial • Then $7.99/mo • Cancel anytime",
+        featured: true, 
+        ribbon: "★ 7-DAY FREE TRIAL",
+        saveBadge: "FREE TRIAL",
         checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" 
       },
       { 
         id: "plan_3", 
-        name: "Sacred Walk Annual Pass", 
-        desc: "Unlimited prayers, audio devotionals & all upgrades", 
+        name: "Annual Sacred Walk Pass", 
+        desc: "Unlimited year-round sanctuary access, voice audio & upgrades", 
         price: "$29.99", 
-        subPrice: "$2.49/mo equivalent",
-        featured: true, 
-        ribbon: "★ MOST POPULAR", 
+        subPrice: "$2.49/mo equivalent • Billed annually",
+        featured: false, 
         saveBadge: "SAVE 40%",
         checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" 
       }
@@ -1268,11 +1290,7 @@
 
       if (intakeData.initialPrompt) {
         messageInput.value = intakeData.initialPrompt;
-        if (currentUser) {
-          handleUserSubmit(new Event('submit'));
-        } else {
-          openPrivacyModal();
-        }
+        handleUserSubmit(new Event('submit'));
       }
     }
 
@@ -1398,12 +1416,8 @@
             currentUserName = "beloved";
             userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
-            creditBadge.textContent = "📿 Sign In Required";
-            messageInput.placeholder = "Sign in to seek biblical guidance & prayer...";
-            
-            if (pendingPrompt) {
-              openPrivacyModal();
-            }
+            updateCreditUI();
+            messageInput.placeholder = "Bring your prayer request or Scripture question...";
           }
         });
       }
@@ -1411,7 +1425,8 @@
 
     function updateCreditUI() {
       if (!currentUser) {
-        creditBadge.textContent = "📿 Sign In Required";
+        const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
+        creditBadge.textContent = guestUsed ? "📿 Sign In to Continue" : "🕊️ 1 Free Blessing Ready";
       } else if (isSubscribed) {
         creditBadge.textContent = "✨ Unlimited Sanctuary";
       } else {
@@ -1453,10 +1468,6 @@
 
     /* GETHSEMANE CONFESSIONAL */
     function openConfessionalModal() {
-      if (!currentUser) {
-        handleAuthAction();
-        return;
-      }
       stopAllAudio();
       confessionInput.value = "";
       confessionInput.className = "confession-textarea";
@@ -1645,10 +1656,6 @@
     }
 
     function openTimeAwareBlessingModal(isManual = false) {
-      if (!currentUser && isManual) {
-        handleAuthAction();
-        return;
-      }
       stopAllAudio();
       const currentHour = new Date().getHours();
       let title = "MORNING BLESSING";
@@ -1814,7 +1821,7 @@
     /* SOUL JOURNAL */
     function openJournalModal() {
       if (!currentUser) {
-        handleAuthAction();
+        openPrivacyModal();
         return;
       }
       stopAllAudio();
@@ -1903,14 +1910,12 @@
     }
 
     function executeCheckout() {
-      if (!currentUser) {
-        handleAuthAction();
-        return;
-      }
       if (selectedPlanBaseUrl && !selectedPlanBaseUrl.includes("#")) {
         let finalUrl = selectedPlanBaseUrl;
         const sep = finalUrl.includes("?") ? "&" : "?";
-        finalUrl += `${sep}checkout[email]=${encodeURIComponent(currentUser.email || '')}&checkout[custom][user_id]=${encodeURIComponent(currentUser.uid || '')}`;
+        const emailParam = currentUser ? encodeURIComponent(currentUser.email || '') : '';
+        const uidParam = currentUser ? encodeURIComponent(currentUser.uid || '') : 'guest';
+        finalUrl += `${sep}checkout[email]=${emailParam}&checkout[custom][user_id]=${uidParam}`;
         window.open(finalUrl, "_blank");
       } else {
         alert("Please configure live Lemon Squeezy checkout URLs.");
@@ -1919,20 +1924,12 @@
 
     /* PLANS MODAL */
     function openPlansModal() {
-      if (!currentUser) {
-        handleAuthAction();
-        return;
-      }
       stopAllAudio();
       plansModal.style.display = "flex";
     }
     function closePlansModal() { plansModal.style.display = "none"; }
 
     function sendQuickPrompt(promptText) {
-      if (!currentUser) {
-        handleAuthAction();
-        return;
-      }
       messageInput.value = promptText;
       handleUserSubmit(new Event('submit'));
     }
@@ -1940,15 +1937,19 @@
     async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       
-      if (!currentUser) {
-        handleAuthAction();
-        return;
-      }
-
       const text = messageInput.value.trim();
       if (!text) return;
 
-      if (!isSubscribed && userCredits <= 0) {
+      const guestInteractionUsed = localStorage.getItem("jesus_guest_interaction_used");
+
+      // Check Guest Status
+      if (!currentUser && guestInteractionUsed) {
+        openPrivacyModal();
+        return;
+      }
+
+      // Check Paid Limits for Signed-In Users
+      if (currentUser && !isSubscribed && userCredits <= 0) {
         openPlansModal();
         return;
       }
@@ -1957,13 +1958,16 @@
       messageInput.value = "";
       showThinking(true);
 
+      const resolvedUserId = currentUser ? currentUser.uid : "guest_" + (localStorage.getItem("jesus_guest_id") || Date.now());
+      const resolvedUserEmail = currentUser ? currentUser.email : "guest@sanctuary.app";
+
       try {
         const res = await fetch(`${BACKEND_API_URL}/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: currentUser.uid,
-            userEmail: currentUser.email,
+            userId: resolvedUserId,
+            userEmail: resolvedUserEmail,
             message: text,
             userName: currentUserName,
             userPsyche: currentPsyche,
@@ -1983,12 +1987,15 @@
           appendBotBubble(data.reply);
           if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
           
-          if (!isSubscribed) {
+          if (!currentUser) {
+            localStorage.setItem("jesus_guest_interaction_used", "true");
+            updateCreditUI();
+            appendGuestConversionPrompt();
+          } else if (!isSubscribed) {
             userCredits = Math.max(0, userCredits - 1);
             localStorage.setItem(`jesus_credits_${currentUser.uid}`, userCredits);
             updateCreditUI();
 
-            // Cloud Firestore Deduction Sync
             try {
               if (typeof firebase !== 'undefined' && firebase.firestore) {
                 const db = firebase.firestore();
@@ -2011,6 +2018,17 @@
         appendBotBubble("Peace be with you. Lay down your burdens, for I am near.");
         saveActiveChatSession();
       }
+    }
+
+    function appendGuestConversionPrompt() {
+      const banner = document.createElement("div");
+      banner.className = "save-journal-banner";
+      banner.innerHTML = `
+        <p>✨ <strong>Save Your Reflections:</strong> Sign in with Google to preserve this prayer in your Soul Journal and continue your walk.</p>
+        <button onclick="openPrivacyModal()">Sign In Free</button>
+      `;
+      chatFeed.appendChild(banner);
+      scrollToBottom();
     }
 
     function showThinking(show) {
@@ -2179,10 +2197,10 @@
         ctx.fillText(lines[i], 540, startY + (i * lineHeight));
       }
 
-      // 6. Watermark Footer
-      ctx.fillStyle = '#a68238';
-      ctx.font = '500 21px "Montserrat", sans-serif';
-      ctx.fillText('you with jesus • https://jesus-chat-bd89f.web.app', 540, 1235);
+      // 6. Clean Typography Watermark Footer (No raw URLs)
+      ctx.fillStyle = '#dfb455';
+      ctx.font = '600 21px "Cinzel", serif';
+      ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
 
       return canvas;
     }
@@ -2192,7 +2210,7 @@
       const exportBtn = document.getElementById("exportCardBtn");
       const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
       const shareUrl = APP_CANONICAL_URL;
-      const shareText = `“${quoteText.replace(/“|”/g, '')}”\n\nyou with jesus: ${shareUrl}`;
+      const shareText = `“${quoteText.replace(/“|”/g, '')}”\n\n— You With Jesus Sacred Sanctuary`;
 
       exportBtn.innerHTML = "⏳ Opening Share Menu...";
       exportBtn.disabled = true;
@@ -2208,12 +2226,11 @@
 
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
 
-          // 1. Primary: Native Share Sheet with Image File
           if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({
                 title: 'You With Jesus',
-                text: `you with jesus: ${shareUrl}`,
+                text: shareText,
                 files: [shareFile]
               });
               resetBtn(exportBtn);
@@ -2227,7 +2244,6 @@
             }
           }
 
-          // 2. Secondary: Native Share Sheet with Text & URL
           if (navigator.share) {
             try {
               await navigator.share({
@@ -2246,7 +2262,6 @@
             }
           }
 
-          // 3. Fallback for Desktop/Unsupported browsers
           triggerDirectDownload(canvas, shareText, exportBtn);
         }, 'image/png', 0.95);
 
@@ -2292,7 +2307,7 @@
 
       if (navigator.clipboard) {
         navigator.clipboard.writeText(shareText);
-        alert("Blessing image downloaded and link copied to clipboard!");
+        alert("Blessing image downloaded and saved to your device!");
       } else {
         alert("Blessing image downloaded!");
       }
@@ -2303,10 +2318,6 @@
 
     /* NEW PRAYER */
     function startNewPrayer(isManual = false) {
-      if (!currentUser) {
-        handleAuthAction();
-        return;
-      }
       stopAllAudio();
       
       if (isManual) {
