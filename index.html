@@ -134,10 +134,10 @@
     }
     .action-btn.confession-nav-btn:hover { background: #fdfaf3; }
 
-    .action-btn.ambient-toggle-btn {
+    .action-btn.music-toggle-btn {
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep); font-weight: 700;
     }
-    .action-btn.ambient-toggle-btn.off {
+    .action-btn.music-toggle-btn.off {
       background: #f1f3f6; color: var(--text-muted); border-color: rgba(0,0,0,0.15);
     }
 
@@ -750,7 +750,7 @@
     <header class="sacred-header">
       <div class="nav-scroll-strip">
         <span class="credit-pill" id="creditBadge">🕊️ 1 Free Blessing Ready</span>
-        <button class="action-btn ambient-toggle-btn" id="ambientToggleBtn" onclick="toggleAmbianceSetting()">✨ Pad: ON</button>
+        <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
         <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
@@ -1126,89 +1126,75 @@
       timeSlot: ''
     };
 
-    /* CELESTIAL AMBIENT PAD SYNTHESIZER (ZERO-ASSET WEB AUDIO MIXING) */
-    let ambientCtx = null;
-    let ambientGainNode = null;
-    let ambientOscillators = [];
-    let isAmbianceEnabled = localStorage.getItem("jesus_ambiance_enabled") !== "false";
+    /* DEDICATED SACRED AMBIENT MUSIC ENGINE */
+    const sacredMusicAudio = new Audio('ambient.mp3');
+    sacredMusicAudio.loop = true;
+    sacredMusicAudio.volume = 0.15;
+    let isMusicEnabled = localStorage.getItem("jesus_music_enabled") !== "false";
+    let musicFadeInterval = null;
 
-    function toggleAmbianceSetting() {
-      isAmbianceEnabled = !isAmbianceEnabled;
-      localStorage.setItem("jesus_ambiance_enabled", isAmbianceEnabled);
-      updateAmbianceToggleUI();
-      if (!isAmbianceEnabled) {
-        stopSacredAmbiance(true);
+    function toggleMusicSetting() {
+      isMusicEnabled = !isMusicEnabled;
+      localStorage.setItem("jesus_music_enabled", isMusicEnabled);
+      updateMusicToggleUI();
+      if (!isMusicEnabled) {
+        stopSacredMusic(true);
       }
     }
 
-    function updateAmbianceToggleUI() {
-      const btn = document.getElementById("ambientToggleBtn");
+    function updateMusicToggleUI() {
+      const btn = document.getElementById("musicToggleBtn");
       if (btn) {
-        if (isAmbianceEnabled) {
-          btn.innerHTML = "✨ Pad: ON";
+        if (isMusicEnabled) {
+          btn.innerHTML = "🎵 Music: ON";
           btn.classList.remove("off");
         } else {
-          btn.innerHTML = "🔇 Pad: OFF";
+          btn.innerHTML = "🔇 Music: OFF";
           btn.classList.add("off");
         }
       }
     }
 
-    function startSacredAmbiance() {
-      if (!isAmbianceEnabled) return;
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        if (!ambientCtx) ambientCtx = new AudioCtx();
-        if (ambientCtx.state === 'suspended') ambientCtx.resume();
-
-        stopSacredAmbiance(false);
-
-        ambientGainNode = ambientCtx.createGain();
-        ambientGainNode.gain.setValueAtTime(0.0001, ambientCtx.currentTime);
-        // Fade in softly to 14% volume over 2.0s
-        ambientGainNode.gain.exponentialRampToValueAtTime(0.14, ambientCtx.currentTime + 2.0);
-
-        const filter = ambientCtx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.setValueAtTime(420, ambientCtx.currentTime); // warm dark cathedral resonance
-
-        ambientGainNode.connect(filter);
-        filter.connect(ambientCtx.destination);
-
-        // Harmonic C Major meditative frequencies (C3, G3, C4, E4 + slight detuning for shimmer)
-        const freqs = [130.81, 196.00, 261.63, 329.63, 131.2, 262.2];
-        ambientOscillators = freqs.map(f => {
-          const osc = ambientCtx.createOscillator();
-          osc.type = f < 200 ? 'sine' : 'triangle';
-          osc.frequency.setValueAtTime(f, ambientCtx.currentTime);
-          osc.connect(ambientGainNode);
-          osc.start();
-          return osc;
+    function startSacredMusic() {
+      if (!isMusicEnabled) return;
+      if (musicFadeInterval) clearInterval(musicFadeInterval);
+      sacredMusicAudio.volume = 0.01;
+      const playPromise = sacredMusicAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          let targetVol = 0.15;
+          let step = (targetVol - 0.01) / 15;
+          musicFadeInterval = setInterval(() => {
+            if (sacredMusicAudio.volume < targetVol - 0.01) {
+              sacredMusicAudio.volume = Math.min(targetVol, sacredMusicAudio.volume + step);
+            } else {
+              sacredMusicAudio.volume = targetVol;
+              clearInterval(musicFadeInterval);
+            }
+          }, 100);
+        }).catch(e => {
+          console.log("Audio autoplay note:", e);
         });
-      } catch(e) {
-        console.log("Ambient synthesizer note:", e);
       }
     }
 
-    function stopSacredAmbiance(smooth = true) {
-      if (!ambientCtx || !ambientGainNode) return;
-      if (smooth) {
-        try {
-          ambientGainNode.gain.cancelScheduledValues(ambientCtx.currentTime);
-          ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value || 0.14, ambientCtx.currentTime);
-          ambientGainNode.gain.exponentialRampToValueAtTime(0.00001, ambientCtx.currentTime + 1.8);
-          setTimeout(() => {
-            ambientOscillators.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
-            ambientOscillators = [];
-          }, 1850);
-        } catch(e) {
-          ambientOscillators.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
-          ambientOscillators = [];
-        }
+    function stopSacredMusic(smooth = true) {
+      if (musicFadeInterval) clearInterval(musicFadeInterval);
+      if (smooth && !sacredMusicAudio.paused) {
+        musicFadeInterval = setInterval(() => {
+          if (sacredMusicAudio.volume > 0.02) {
+            sacredMusicAudio.volume = Math.max(0, sacredMusicAudio.volume - 0.02);
+          } else {
+            clearInterval(musicFadeInterval);
+            sacredMusicAudio.pause();
+            sacredMusicAudio.currentTime = 0;
+            sacredMusicAudio.volume = 0.15;
+          }
+        }, 100);
       } else {
-        ambientOscillators.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
-        ambientOscillators = [];
+        sacredMusicAudio.pause();
+        sacredMusicAudio.currentTime = 0;
+        sacredMusicAudio.volume = 0.15;
       }
     }
 
@@ -1322,7 +1308,7 @@
       initFirebaseAuth();
       startTimeSlotLiveWatcher();
       checkAndShowIntakeQuiz();
-      updateAmbianceToggleUI();
+      updateMusicToggleUI();
     };
 
     document.addEventListener("visibilitychange", function() {
@@ -1335,7 +1321,7 @@
       if ('speechSynthesis' in window && speechSynthesis.speaking) {
         speechSynthesis.cancel();
       }
-      stopSacredAmbiance(true);
+      stopSacredMusic(true);
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
       const listenQuizBlessingBtn = document.getElementById("listenQuizBlessingBtn");
@@ -1493,7 +1479,7 @@
 
             await syncUserCreditsWithCloud(user);
 
-            // Remove guest conversion banners upon successful login
+            // Remove guest conversion banners upon login
             document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
 
             const hasRestoredSession = restoreActiveChatSession();
@@ -2194,7 +2180,7 @@
 
       if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
-        stopSacredAmbiance(true);
+        stopSacredMusic(true);
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         return;
       }
@@ -2217,16 +2203,16 @@
 
       btn.innerHTML = "⏸ Pause";
       
-      // Start ambient pad smoothly
-      startSacredAmbiance();
+      // Start background music smoothly
+      startSacredMusic();
 
       currentUtterance.onend = () => { 
         btn.innerHTML = `🔊 ${defaultBtnText}`;
-        stopSacredAmbiance(true);
+        stopSacredMusic(true);
       };
       currentUtterance.onerror = () => { 
         btn.innerHTML = `🔊 ${defaultBtnText}`;
-        stopSacredAmbiance(true);
+        stopSacredMusic(true);
       };
       
       setTimeout(() => {
@@ -2318,7 +2304,7 @@
         ctx.fillText(lines[i], 540, startY + (i * lineHeight));
       }
 
-      // 6. Clean Typography Watermark Footer (No raw URLs)
+      // 6. Clean Typography Watermark Footer
       ctx.fillStyle = '#dfb455';
       ctx.font = '600 21px "Cinzel", serif';
       ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
@@ -2326,7 +2312,7 @@
       return canvas;
     }
 
-    /* INSTANT NATIVE SHARING ENGINE (CLEAN LINK ONLY, NO TEXT DUMP) */
+    /* INSTANT NATIVE SHARING ENGINE */
     async function exportScriptureImage() {
       const exportBtn = document.getElementById("exportCardBtn");
       const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
@@ -2346,7 +2332,6 @@
 
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
 
-          // 1. Native Share Sheet with Image File & App Link
           if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({
@@ -2365,7 +2350,6 @@
             }
           }
 
-          // 2. Secondary: Native Share Sheet with URL
           if (navigator.share) {
             try {
               await navigator.share({
@@ -2384,7 +2368,6 @@
             }
           }
 
-          // 3. Desktop Fallback
           triggerDirectDownload(canvas, shareUrl, exportBtn);
         }, 'image/png', 0.95);
 
@@ -2419,7 +2402,7 @@
       alert("Sharing is not supported on this browser.");
     }
 
-    function triggerDirectDownload(canvas, shareText, exportBtn) {
+    function triggerDirectDownload(canvas, shareUrl, exportBtn) {
       const imageURL = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.download = 'words-of-jesus-hd.png';
@@ -2429,7 +2412,7 @@
       document.body.removeChild(link);
 
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareText);
+        navigator.clipboard.writeText(shareUrl);
         alert("Blessing image downloaded and link copied to clipboard!");
       } else {
         alert("Blessing image downloaded!");
