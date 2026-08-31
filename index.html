@@ -145,7 +145,7 @@
     }
     .subtitle-grace { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; color: #4b4539; margin-top: 1px; }
 
-    /* Time-Aware Daily Ritual Banner */
+    /* Dynamic Time-Aware Daily Ritual Banner */
     .ritual-banner-strip {
       margin: 4px 12px 0 12px;
       background: linear-gradient(135deg, #ffffff 0%, #faf3e2 100%);
@@ -227,7 +227,7 @@
     .mode-select-strip::-webkit-scrollbar { display: none; }
     .mode-pill {
       flex: 0 0 auto; background: #ffffff; border: 1px solid var(--gold-border); color: var(--text-muted);
-      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px; cursor: pointer;
+      font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 14px; cursor: pointer;
       transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
     }
     .mode-pill.active {
@@ -502,7 +502,7 @@
       </div>
     </section>
 
-    <!-- PASTORAL RESPONSE MODE STRIP (ROADMAP #11) -->
+    <!-- PASTORAL RESPONSE MODE STRIP -->
     <div class="mode-select-strip">
       <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')">🕊️ Comfort</button>
       <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')">📖 Scripture Study</button>
@@ -864,6 +864,16 @@
       { quote: "“Be still, and know that I am God.”", ref: "— Psalm 46:10" }
     ];
 
+    // Varied dynamic Scripture meditations to prevent repetitive answers
+    const WORDLESS_PRAYER_POOL = [
+      "Lord Jesus, I come to you with a quiet heart. When my own words fail and my spirit is exhausted, be my peace and my strength. (Romans 8:26)",
+      "Lord Jesus, calm the restlessness and racing thoughts within me right now. Cover my spirit with your supernatural stillness. (Philippians 4:6-7)",
+      "Lord Jesus, you are my shepherd and I lack nothing. Lead me beside still waters and restore my soul in this moment. (Psalm 23:1-3)",
+      "Lord Jesus, when fear and uncertainty surround me, remind my spirit that you hold my right hand and will uphold me. (Isaiah 41:10)",
+      "Lord Jesus, I release the heavy weight I have been trying to carry on my own. Grant me your deep, abiding rest. (Matthew 11:28-30)",
+      "Lord Jesus, teach my soul to be still and know that you are God, reigning above every trial and circumstance. (Psalm 46:10)"
+    ];
+
     let selectedPlanBaseUrl = LEMON_SQUEEZY_PLANS.find(p => p.featured)?.checkoutUrl || LEMON_SQUEEZY_PLANS[0].checkoutUrl;
     let currentUser = null;
     let currentUserName = "beloved";
@@ -879,7 +889,6 @@
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
 
-    /* GA4 EVENT TRACKER HELPER */
     function trackSanctuaryEvent(eventName, params = {}) {
       if (typeof gtag === 'function') {
         gtag('event', eventName, params);
@@ -918,13 +927,22 @@
       } catch(e) {}
     }
 
-    /* PASTORAL MODE SELECTOR (ROADMAP #11) */
+    /* DYNAMIC PASTORAL MODE SWITCHER */
     function setPastoralMode(modeKey) {
       currentPastoralMode = modeKey;
       document.querySelectorAll(".mode-pill").forEach(el => el.classList.remove("active"));
       const activeBtn = document.getElementById("mode" + modeKey.charAt(0).toUpperCase() + modeKey.slice(1));
       if (activeBtn) activeBtn.classList.add("active");
       trackSanctuaryEvent('mode_switched', { mode: modeKey });
+
+      // Immediate dynamic mode prompt
+      const modePrompts = {
+        comfort: "Lord Jesus, speak words of comfort and quiet reassurance to my heart right now.",
+        study: "Lord Jesus, open the Scriptures to me and reveal the deeper theological truth for my walk.",
+        prayer: "Lord Jesus, pray a powerful personal prayer over my life and circumstances today.",
+        guidance: "Lord Jesus, give me clear biblical wisdom and practical guidance for my next steps."
+      };
+      sendQuickPrompt(modePrompts[modeKey] || modePrompts.comfort);
     }
 
     function saveUserIntentions() {
@@ -935,7 +953,7 @@
       }
     }
 
-    /* SCRIPTURE CADENCE PREPROCESSOR (FIXES 'DOT' GLITCH) */
+    /* CLEAN SCRIPTURE SPEECH PREPROCESSOR */
     function preprocessTextForSpeech(rawText) {
       if (!rawText) return "";
       let text = rawText.replace(/\\n/g, ' ');
@@ -1079,14 +1097,16 @@
       }
     }
 
-    /* STILLNESS & WORDLESS SIGH */
+    /* STILLNESS & DYNAMIC WORDLESS PRAYER (NON-REPEATING) */
     function openStillnessModal() { stopAllAudio(); stillnessModal.style.display = "flex"; }
     function closeStillnessModal() { stillnessModal.style.display = "none"; }
 
     function prayWordlessSigh() {
       closeStillnessModal();
       trackSanctuaryEvent('wordless_prayer_clicked');
-      sendQuickPrompt("Lord Jesus, I don't know what to pray right now. My mind is tired and my heart is heavy. Be near to me, quiet my soul, and hold me in your peace.");
+      // Select randomized Scripture prompt from pool to avoid repetition
+      const randomPrompt = WORDLESS_PRAYER_POOL[Math.floor(Math.random() * WORDLESS_PRAYER_POOL.length)];
+      sendQuickPrompt(randomPrompt);
     }
 
     /* MULTI-DAY JOURNEYS */
