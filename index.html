@@ -1126,19 +1126,18 @@
       timeSlot: ''
     };
 
-    /* DEDICATED SACRED AMBIENT MUSIC ENGINE */
+    /* SYNCHRONOUS SACRED AMBIENT AUDIO ENGINE (LOCKSTEP PLAYBACK & BOOSTED VOLUME) */
     const sacredMusicAudio = new Audio('ambient.mp3');
     sacredMusicAudio.loop = true;
-    sacredMusicAudio.volume = 0.15;
+    sacredMusicAudio.volume = 0.22; // Boosted by +2 points (from 0.15 to 0.22)
     let isMusicEnabled = localStorage.getItem("jesus_music_enabled") !== "false";
-    let musicFadeInterval = null;
 
     function toggleMusicSetting() {
       isMusicEnabled = !isMusicEnabled;
       localStorage.setItem("jesus_music_enabled", isMusicEnabled);
       updateMusicToggleUI();
       if (!isMusicEnabled) {
-        stopSacredMusic(true);
+        stopSacredMusic();
       }
     }
 
@@ -1157,44 +1156,24 @@
 
     function startSacredMusic() {
       if (!isMusicEnabled) return;
-      if (musicFadeInterval) clearInterval(musicFadeInterval);
-      sacredMusicAudio.volume = 0.01;
-      const playPromise = sacredMusicAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          let targetVol = 0.15;
-          let step = (targetVol - 0.01) / 15;
-          musicFadeInterval = setInterval(() => {
-            if (sacredMusicAudio.volume < targetVol - 0.01) {
-              sacredMusicAudio.volume = Math.min(targetVol, sacredMusicAudio.volume + step);
-            } else {
-              sacredMusicAudio.volume = targetVol;
-              clearInterval(musicFadeInterval);
-            }
-          }, 100);
-        }).catch(e => {
-          console.log("Audio autoplay note:", e);
-        });
+      try {
+        sacredMusicAudio.currentTime = 0;
+        sacredMusicAudio.volume = 0.22;
+        const playPromise = sacredMusicAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => console.log("Music play prevented:", e));
+        }
+      } catch (e) {
+        console.log("Audio play error:", e);
       }
     }
 
-    function stopSacredMusic(smooth = true) {
-      if (musicFadeInterval) clearInterval(musicFadeInterval);
-      if (smooth && !sacredMusicAudio.paused) {
-        musicFadeInterval = setInterval(() => {
-          if (sacredMusicAudio.volume > 0.02) {
-            sacredMusicAudio.volume = Math.max(0, sacredMusicAudio.volume - 0.02);
-          } else {
-            clearInterval(musicFadeInterval);
-            sacredMusicAudio.pause();
-            sacredMusicAudio.currentTime = 0;
-            sacredMusicAudio.volume = 0.15;
-          }
-        }, 100);
-      } else {
+    function stopSacredMusic() {
+      try {
         sacredMusicAudio.pause();
         sacredMusicAudio.currentTime = 0;
-        sacredMusicAudio.volume = 0.15;
+      } catch (e) {
+        console.log("Audio pause error:", e);
       }
     }
 
@@ -1318,14 +1297,17 @@
     });
 
     function stopAllAudio() {
-      if ('speechSynthesis' in window && speechSynthesis.speaking) {
+      if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
       }
-      stopSacredMusic(true);
+      stopSacredMusic();
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
       const listenQuizBlessingBtn = document.getElementById("listenQuizBlessingBtn");
       if (listenQuizBlessingBtn) listenQuizBlessingBtn.innerHTML = "🔊 Listen to Promised Rest";
+      document.querySelectorAll(".listen-badge").forEach(btn => {
+        btn.innerHTML = "🔊 Listen";
+      });
     }
 
     /* INTAKE ONBOARDING LOGIC */
@@ -2172,6 +2154,8 @@
     function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
     let currentUtterance = null;
+    let voiceSyncInterval = null;
+
     function playVoice(btn, text, defaultBtnText = "Listen") {
       if (!('speechSynthesis' in window)) {
         alert("Audio speech is not supported on this browser.");
@@ -2180,12 +2164,15 @@
 
       if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
-        stopSacredMusic(true);
+        stopSacredMusic();
+        if (voiceSyncInterval) clearInterval(voiceSyncInterval);
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         return;
       }
 
       speechSynthesis.cancel();
+      stopSacredMusic();
+      if (voiceSyncInterval) clearInterval(voiceSyncInterval);
 
       const cleanText = text.replace(/[\(\)\[\]"]/g, "").replace(/✝/g, "");
       currentUtterance = new SpeechSynthesisUtterance(cleanText);
@@ -2202,18 +2189,28 @@
       currentUtterance.pitch = 0.78;
 
       btn.innerHTML = "⏸ Pause";
-      
-      // Start background music smoothly
-      startSacredMusic();
 
-      currentUtterance.onend = () => { 
-        btn.innerHTML = `🔊 ${defaultBtnText}`;
-        stopSacredMusic(true);
+      // Synchronize music start exactly when spoken voice starts
+      currentUtterance.onstart = () => {
+        startSacredMusic();
       };
-      currentUtterance.onerror = () => { 
+
+      // Synchronize music stop exactly when spoken voice ends
+      const cleanupVoiceAndMusic = () => {
         btn.innerHTML = `🔊 ${defaultBtnText}`;
-        stopSacredMusic(true);
+        stopSacredMusic();
+        if (voiceSyncInterval) clearInterval(voiceSyncInterval);
       };
+
+      currentUtterance.onend = cleanupVoiceAndMusic;
+      currentUtterance.onerror = cleanupVoiceAndMusic;
+
+      // Realtime polling watcher for mobile browsers
+      voiceSyncInterval = setInterval(() => {
+        if (!speechSynthesis.speaking) {
+          cleanupVoiceAndMusic();
+        }
+      }, 200);
       
       setTimeout(() => {
         speechSynthesis.speak(currentUtterance);
