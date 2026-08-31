@@ -385,25 +385,26 @@
     .blessing-text-area p + p { margin-top: 8px; }
     .blessing-text-area em { font-family: 'Playfair Display', serif; color: var(--gold-deep); font-weight: 600; }
 
-    /* Spiritual Fruit Dashboard */
-    .fruit-dashboard-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+    /* REAL HABIT & SPIRITUAL ACTIVITY METRICS DASHBOARD (ROADMAP #18) */
+    .spiritual-stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
     }
-    .fruit-card {
-      background: #fbf8f2; border: 1px solid rgba(184, 134, 40, 0.25);
-      border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+    .stat-metric-card {
+      background: #fbf8f2; border: 1.5px solid rgba(184, 134, 40, 0.25);
+      border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px;
+      transition: border-color 0.2s ease;
     }
-    .fruit-card-top {
+    .stat-metric-card:hover { border-color: var(--gold-vivid); }
+    .stat-metric-header {
       display: flex; justify-content: space-between; align-items: center;
       font-size: 11px; font-weight: 700; color: var(--gold-deep);
     }
-    .fruit-bar-bg {
-      width: 100%; height: 5px; background: #e8e0d2; border-radius: 4px; overflow: hidden;
+    .stat-metric-val {
+      font-size: 18px; font-weight: 800; color: #1f1a10; font-family: 'Cinzel', serif; letter-spacing: -0.5px;
     }
-    .fruit-bar-fill {
-      height: 100%; background: linear-gradient(90deg, #dfb455, #b88628); border-radius: 4px; transition: width 0.6s ease;
+    .stat-metric-sub {
+      font-size: 10px; color: var(--text-muted); font-weight: 500;
     }
-    .fruit-level-text { font-size: 9.5px; color: var(--text-muted); text-align: right; }
 
     .journal-psyche-box {
       background: var(--gold-soft); border: 1px solid var(--gold-border);
@@ -999,50 +1000,47 @@
     </div>
   </div>
 
-  <!-- SOUL JOURNAL MODAL WITH SPIRITUAL FRUIT VISUALIZER -->
+  <!-- SOUL JOURNAL MODAL WITH SPIRITUAL ACTIVITY DASHBOARD -->
   <div class="modal-backdrop" id="journalModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeJournalModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">SOUL JOURNAL</h3>
-        <p class="modal-desc">Your walk of peace and spiritual growth on this device.</p>
+        <p class="modal-desc">Your walk of peace and spiritual reflection on this device.</p>
       </div>
 
-      <div class="fruit-dashboard-grid" id="fruitDashboardGrid">
-        <div class="fruit-card">
-          <div class="fruit-card-top">
-            <span>🕊️ Peace</span>
-            <span id="peaceFruitScore">75%</span>
+      <!-- MEASURABLE ACTIVITY & STREAK METRICS (ROADMAP #18) -->
+      <div class="spiritual-stats-grid" id="spiritualStatsGrid">
+        <div class="stat-metric-card">
+          <div class="stat-metric-header">
+            <span>🔥 Prayer Streak</span>
           </div>
-          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="peaceFruitBar" style="width: 75%;"></div></div>
-          <span class="fruit-level-text" id="peaceFruitLabel">Anchored</span>
+          <div class="stat-metric-val" id="statStreakDays">1 Day</div>
+          <span class="stat-metric-sub" id="statStreakLabel">Daily Walk</span>
         </div>
 
-        <div class="fruit-card">
-          <div class="fruit-card-top">
-            <span>🛡️ Faith</span>
-            <span id="faithFruitScore">80%</span>
+        <div class="stat-metric-card">
+          <div class="stat-metric-header">
+            <span>🙏 Prayers Offered</span>
           </div>
-          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="faithFruitBar" style="width: 80%;"></div></div>
-          <span class="fruit-level-text" id="faithFruitLabel">Steadfast</span>
+          <div class="stat-metric-val" id="statPrayersCount">0</div>
+          <span class="stat-metric-sub">Recorded in Journal</span>
         </div>
 
-        <div class="fruit-card">
-          <div class="fruit-card-top">
-            <span>🌿 Strength</span>
-            <span id="strengthFruitScore">70%</span>
+        <div class="stat-metric-card">
+          <div class="stat-metric-header">
+            <span>📖 Scriptures</span>
           </div>
-          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="strengthFruitBar" style="width: 70%;"></div></div>
-          <span class="fruit-level-text" id="strengthFruitLabel">Renewed</span>
+          <div class="stat-metric-val" id="statScripturesCount">0</div>
+          <span class="stat-metric-sub">Promises Meditated</span>
         </div>
 
-        <div class="fruit-card">
-          <div class="fruit-card-top">
-            <span>✨ Gratitude</span>
-            <span id="gratitudeFruitScore">85%</span>
+        <div class="stat-metric-card">
+          <div class="stat-metric-header">
+            <span>✝ Surrendered</span>
           </div>
-          <div class="fruit-bar-bg"><div class="fruit-bar-fill" id="gratitudeFruitBar" style="width: 85%;"></div></div>
-          <span class="fruit-level-text" id="gratitudeFruitLabel">Abundant</span>
+          <div class="stat-metric-val" id="statBurdensCount">0</div>
+          <span class="stat-metric-sub">Burdens Released</span>
         </div>
       </div>
 
@@ -1175,7 +1173,7 @@
       timeSlot: ''
     };
 
-    /* DEDICATED SACRED AMBIENT MUSIC ENGINE */
+    /* AMBIENT AUDIO ENGINE */
     const sacredMusicAudio = new Audio('ambient.mp3');
     sacredMusicAudio.loop = true;
     sacredMusicAudio.volume = 0.22;
@@ -1226,7 +1224,7 @@
       }
     }
 
-    /* DYNAMIC DAILY RITUAL WIDGET UPDATER */
+    /* DYNAMIC DAILY RITUAL WIDGET */
     function updateDailyRitualWidget() {
       const hour = new Date().getHours();
       const icon = document.getElementById("ritualIcon");
@@ -1260,7 +1258,7 @@
       }
     }
 
-    /* BULLETPROOF SCRIPTURE CADENCE PREPROCESSOR */
+    /* SCRIPTURE CADENCE PREPROCESSOR */
     function preprocessTextForSpeech(rawText) {
       if (!rawText) return "";
       let text = rawText;
@@ -1318,7 +1316,7 @@
     const surrenderBtn = document.getElementById("surrenderBtn");
     const intercessoryModal = document.getElementById("intercessoryModal");
 
-    /* STRICT REVERENT BARITONE VOICE ENGINE (APPLE DANIEL PRIORITY) */
+    /* STRICT REVERENT BARITONE VOICE ENGINE */
     let availableVoices = [];
 
     function populateVoices() {
@@ -1375,6 +1373,7 @@
       checkAndShowIntakeQuiz();
       updateMusicToggleUI();
       updateDailyRitualWidget();
+      trackDailyStreak();
     };
 
     document.addEventListener("visibilitychange", function() {
@@ -1706,6 +1705,10 @@
         return;
       }
 
+      // Track Surrendered Burden Count
+      const prevSurrendered = parseInt(localStorage.getItem("jesus_surrendered_count") || "0", 10);
+      localStorage.setItem("jesus_surrendered_count", prevSurrendered + 1);
+
       const randomScripture = SURRENDER_SCRIPTURES[Math.floor(Math.random() * SURRENDER_SCRIPTURES.length)];
       surrenderScriptureQuote.textContent = randomScripture.quote;
       surrenderScriptureRef.textContent = randomScripture.ref;
@@ -1941,89 +1944,57 @@
       localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
     }
 
-    function calculateSpiritualFruits() {
-      const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
-      
-      let peace = 48;
-      let faith = 52;
-      let strength = 45;
-      let gratitude = 50;
+    /* DAILY STREAK AND ACTIVITY CALCULATOR */
+    function trackDailyStreak() {
+      const today = new Date().toISOString().slice(0, 10);
+      const lastDay = localStorage.getItem("jesus_last_streak_date");
+      let streak = parseInt(localStorage.getItem("jesus_prayer_streak") || "1", 10);
 
-      const userMessages = [];
+      if (!lastDay) {
+        streak = 1;
+        localStorage.setItem("jesus_prayer_streak", streak);
+        localStorage.setItem("jesus_last_streak_date", today);
+      } else if (lastDay !== today) {
+        const lastDate = new Date(lastDay);
+        const currDate = new Date(today);
+        const diffDays = Math.round((currDate - lastDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          streak += 1;
+        } else if (diffDays > 1) {
+          streak = 1;
+        }
+        localStorage.setItem("jesus_prayer_streak", streak);
+        localStorage.setItem("jesus_last_streak_date", today);
+      }
+    }
+
+    function updateSpiritualActivityDashboard() {
+      trackDailyStreak();
+      const streak = parseInt(localStorage.getItem("jesus_prayer_streak") || "1", 10);
+      const surrendered = parseInt(localStorage.getItem("jesus_surrendered_count") || "0", 10);
+      const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
+
+      let totalPrayers = 0;
+      let totalScriptures = 0;
+
       sessions.forEach(s => {
         s.turns.forEach(t => {
-          if (t.user) userMessages.push(t.user.toLowerCase());
+          if (t.user) totalPrayers++;
+          if (t.bot) {
+            // Count Scripture verse patterns
+            const matches = t.bot.match(/\([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\)/g);
+            if (matches) totalScriptures += matches.length;
+            else totalScriptures += 1; // Default minimum 1 verse per bot message
+          }
         });
       });
 
-      if (userMessages.length > 0) {
-        userMessages.forEach((msg, idx) => {
-          const recencyWeight = (idx >= userMessages.length - 2) ? 2.5 : 1.0;
-
-          if (/(anxious|anxiety|panic|worry|worried|fear|scared|dread|racing|insomnia|overwhelmed|restless)/.test(msg)) {
-            peace -= 14 * recencyWeight;
-          }
-          if (/(peace|calm|quiet|stillness|safe|rest|relax|breathe|serene|tranquil)/.test(msg)) {
-            peace += 12 * recencyWeight;
-          }
-
-          if (/(doubt|unbelief|where are you|why me|lost|hopeless|abandoned|alone|forgotten|skeptical)/.test(msg)) {
-            faith -= 12 * recencyWeight;
-          }
-          if (/(trust|faith|believe|surrender|lord|jesus|cross|amen|guidance|promise|prayer)/.test(msg)) {
-            faith += 10 * recencyWeight;
-          }
-
-          if (/(tired|exhausted|burnout|weary|weak|faint|collapse|heavy|burden|giving up|broken|sick|pain)/.test(msg)) {
-            strength -= 13 * recencyWeight;
-          }
-          if (/(strength|endure|power|overcome|rise|courage|strong|renewed|heal|healing)/.test(msg)) {
-            strength += 11 * recencyWeight;
-          }
-
-          if (/(complain|angry|bitter|unfair|hate|frustrated|empty|why|resentment)/.test(msg)) {
-            gratitude -= 12 * recencyWeight;
-          }
-          if (/(thank|thankful|gratitude|grateful|praise|blessing|blessed|hallelujah|grace|joy|rejoice)/.test(msg)) {
-            gratitude += 14 * recencyWeight;
-          }
-        });
-      }
-
-      const psycheLow = currentPsyche.toLowerCase();
-      if (/anxious|struggling|weary|broken|burdened/.test(psycheLow)) {
-        peace -= 8;
-        strength -= 8;
-      }
-      if (/peace|anchored|steadfast|hopeful|restored/.test(psycheLow)) {
-        peace += 8;
-        faith += 8;
-      }
-
-      peace = Math.max(5, Math.min(98, Math.round(peace)));
-      faith = Math.max(8, Math.min(98, Math.round(faith)));
-      strength = Math.max(5, Math.min(98, Math.round(strength)));
-      gratitude = Math.max(8, Math.min(98, Math.round(gratitude)));
-
-      document.getElementById("peaceFruitScore").textContent = `${peace}%`;
-      document.getElementById("peaceFruitBar").style.width = `${peace}%`;
-      document.getElementById("peaceFruitLabel").textContent = 
-        peace >= 75 ? "Anchored" : peace >= 50 ? "Restoring" : peace >= 30 ? "Restless" : "Turbulent";
-
-      document.getElementById("faithFruitScore").textContent = `${faith}%`;
-      document.getElementById("faithFruitBar").style.width = `${faith}%`;
-      document.getElementById("faithFruitLabel").textContent = 
-        faith >= 75 ? "Steadfast" : faith >= 50 ? "Growing" : faith >= 30 ? "Searching" : "Shaken";
-
-      document.getElementById("strengthFruitScore").textContent = `${strength}%`;
-      document.getElementById("strengthFruitBar").style.width = `${strength}%`;
-      document.getElementById("strengthFruitLabel").textContent = 
-        strength >= 75 ? "Renewed" : strength >= 50 ? "Enduring" : strength >= 30 ? "Weary" : "Depleted";
-
-      document.getElementById("gratitudeFruitScore").textContent = `${gratitude}%`;
-      document.getElementById("gratitudeFruitBar").style.width = `${gratitude}%`;
-      document.getElementById("gratitudeFruitLabel").textContent = 
-        gratitude >= 75 ? "Abundant" : gratitude >= 50 ? "Reflective" : gratitude >= 30 ? "Opening" : "Burdened";
+      document.getElementById("statStreakDays").textContent = `${streak} Day${streak > 1 ? 's' : ''}`;
+      document.getElementById("statStreakLabel").textContent = streak > 3 ? "🔥 Steadfast Walk" : "Daily Walk";
+      document.getElementById("statPrayersCount").textContent = totalPrayers;
+      document.getElementById("statScripturesCount").textContent = totalScriptures;
+      document.getElementById("statBurdensCount").textContent = surrendered;
     }
 
     /* SOUL JOURNAL - AUTH GATED */
@@ -2034,7 +2005,7 @@
       }
       stopAllAudio();
       journalPsycheDisplay.textContent = `Spiritual State: ${currentPsyche}`;
-      calculateSpiritualFruits();
+      updateSpiritualActivityDashboard();
 
       const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
 
@@ -2076,6 +2047,7 @@
         localStorage.removeItem("jesus_soul_journey_psyche");
         localStorage.removeItem("jesus_active_conversation_history");
         localStorage.removeItem("jesus_active_feed_html");
+        localStorage.removeItem("jesus_surrendered_count");
         activeConversationHistory = [];
         currentPsyche = "A soul seeking peace";
         currentSessionTimestamp = null;
@@ -2159,13 +2131,11 @@
 
       const guestInteractionUsed = localStorage.getItem("jesus_guest_interaction_used");
 
-      // Check Guest Status
       if (!currentUser && guestInteractionUsed) {
         openPrivacyModal();
         return;
       }
 
-      // Check Paid Limits for Signed-In Users
       if (currentUser && !isSubscribed && userCredits <= 0) {
         openPlansModal();
         return;
@@ -2371,7 +2341,7 @@
       shareCardModal.style.display = "none";
     }
 
-    /* 4:5 PORTRAIT CANVAS GENERATOR (1080 x 1350) */
+    /* 4:5 PORTRAIT CANVAS GENERATOR */
     function drawDirectSacredCard(rawText) {
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
