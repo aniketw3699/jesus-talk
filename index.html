@@ -134,6 +134,13 @@
     }
     .action-btn.confession-nav-btn:hover { background: #fdfaf3; }
 
+    .action-btn.ambient-toggle-btn {
+      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep); font-weight: 700;
+    }
+    .action-btn.ambient-toggle-btn.off {
+      background: #f1f3f6; color: var(--text-muted); border-color: rgba(0,0,0,0.15);
+    }
+
     .action-btn.auth-btn {
       background: #ffffff; border: 1px solid rgba(0, 0, 0, 0.15); color: var(--text-main); font-weight: 700;
     }
@@ -321,6 +328,12 @@
       border-color: var(--gold-deep);
       background: #fdfaf2;
       transform: translateY(-1px);
+    }
+
+    .quiz-option-card.selected {
+      border: 2px solid var(--gold-deep);
+      background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%);
+      color: #191f28;
     }
 
     .quiz-progress-dots {
@@ -724,7 +737,7 @@
       padding-top: 10px; 
       margin-top: 4px; 
       letter-spacing: 2px; 
-      text-transform: uppercase;
+      text-transform: uppercase; 
     }
   </style>
 </head>
@@ -737,6 +750,7 @@
     <header class="sacred-header">
       <div class="nav-scroll-strip">
         <span class="credit-pill" id="creditBadge">🕊️ 1 Free Blessing Ready</span>
+        <button class="action-btn ambient-toggle-btn" id="ambientToggleBtn" onclick="toggleAmbianceSetting()">✨ Pad: ON</button>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
         <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
@@ -1112,6 +1126,92 @@
       timeSlot: ''
     };
 
+    /* CELESTIAL AMBIENT PAD SYNTHESIZER (ZERO-ASSET WEB AUDIO MIXING) */
+    let ambientCtx = null;
+    let ambientGainNode = null;
+    let ambientOscillators = [];
+    let isAmbianceEnabled = localStorage.getItem("jesus_ambiance_enabled") !== "false";
+
+    function toggleAmbianceSetting() {
+      isAmbianceEnabled = !isAmbianceEnabled;
+      localStorage.setItem("jesus_ambiance_enabled", isAmbianceEnabled);
+      updateAmbianceToggleUI();
+      if (!isAmbianceEnabled) {
+        stopSacredAmbiance(true);
+      }
+    }
+
+    function updateAmbianceToggleUI() {
+      const btn = document.getElementById("ambientToggleBtn");
+      if (btn) {
+        if (isAmbianceEnabled) {
+          btn.innerHTML = "✨ Pad: ON";
+          btn.classList.remove("off");
+        } else {
+          btn.innerHTML = "🔇 Pad: OFF";
+          btn.classList.add("off");
+        }
+      }
+    }
+
+    function startSacredAmbiance() {
+      if (!isAmbianceEnabled) return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!ambientCtx) ambientCtx = new AudioCtx();
+        if (ambientCtx.state === 'suspended') ambientCtx.resume();
+
+        stopSacredAmbiance(false);
+
+        ambientGainNode = ambientCtx.createGain();
+        ambientGainNode.gain.setValueAtTime(0.0001, ambientCtx.currentTime);
+        // Fade in softly to 14% volume over 2.0s
+        ambientGainNode.gain.exponentialRampToValueAtTime(0.14, ambientCtx.currentTime + 2.0);
+
+        const filter = ambientCtx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(420, ambientCtx.currentTime); // warm dark cathedral resonance
+
+        ambientGainNode.connect(filter);
+        filter.connect(ambientCtx.destination);
+
+        // Harmonic C Major meditative frequencies (C3, G3, C4, E4 + slight detuning for shimmer)
+        const freqs = [130.81, 196.00, 261.63, 329.63, 131.2, 262.2];
+        ambientOscillators = freqs.map(f => {
+          const osc = ambientCtx.createOscillator();
+          osc.type = f < 200 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(f, ambientCtx.currentTime);
+          osc.connect(ambientGainNode);
+          osc.start();
+          return osc;
+        });
+      } catch(e) {
+        console.log("Ambient synthesizer note:", e);
+      }
+    }
+
+    function stopSacredAmbiance(smooth = true) {
+      if (!ambientCtx || !ambientGainNode) return;
+      if (smooth) {
+        try {
+          ambientGainNode.gain.cancelScheduledValues(ambientCtx.currentTime);
+          ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value || 0.14, ambientCtx.currentTime);
+          ambientGainNode.gain.exponentialRampToValueAtTime(0.00001, ambientCtx.currentTime + 1.8);
+          setTimeout(() => {
+            ambientOscillators.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
+            ambientOscillators = [];
+          }, 1850);
+        } catch(e) {
+          ambientOscillators.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
+          ambientOscillators = [];
+        }
+      } else {
+        ambientOscillators.forEach(osc => { try { osc.stop(); osc.disconnect(); } catch(e){} });
+        ambientOscillators = [];
+      }
+    }
+
     /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR INSTANT NATIVE SHARING */
     const preloadedJesusImg = new Image();
     preloadedJesusImg.crossOrigin = "anonymous";
@@ -1144,7 +1244,7 @@
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
 
-    /* SACRED AUDIO ENGINE */
+    /* SACRED BARITONE AUDIO ENGINE */
     let availableVoices = [];
 
     function populateVoices() {
@@ -1222,6 +1322,7 @@
       initFirebaseAuth();
       startTimeSlotLiveWatcher();
       checkAndShowIntakeQuiz();
+      updateAmbianceToggleUI();
     };
 
     document.addEventListener("visibilitychange", function() {
@@ -1234,6 +1335,7 @@
       if ('speechSynthesis' in window && speechSynthesis.speaking) {
         speechSynthesis.cancel();
       }
+      stopSacredAmbiance(true);
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
       const listenQuizBlessingBtn = document.getElementById("listenQuizBlessingBtn");
@@ -2092,6 +2194,7 @@
 
       if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
+        stopSacredAmbiance(true);
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         return;
       }
@@ -2113,8 +2216,18 @@
       currentUtterance.pitch = 0.78;
 
       btn.innerHTML = "⏸ Pause";
-      currentUtterance.onend = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
-      currentUtterance.onerror = () => { btn.innerHTML = `🔊 ${defaultBtnText}`; };
+      
+      // Start ambient pad smoothly
+      startSacredAmbiance();
+
+      currentUtterance.onend = () => { 
+        btn.innerHTML = `🔊 ${defaultBtnText}`;
+        stopSacredAmbiance(true);
+      };
+      currentUtterance.onerror = () => { 
+        btn.innerHTML = `🔊 ${defaultBtnText}`;
+        stopSacredAmbiance(true);
+      };
       
       setTimeout(() => {
         speechSynthesis.speak(currentUtterance);
@@ -2205,7 +2318,7 @@
         ctx.fillText(lines[i], 540, startY + (i * lineHeight));
       }
 
-      // 6. Clean Typography Watermark Footer
+      // 6. Clean Typography Watermark Footer (No raw URLs)
       ctx.fillStyle = '#dfb455';
       ctx.font = '600 21px "Cinzel", serif';
       ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
@@ -2306,7 +2419,7 @@
       alert("Sharing is not supported on this browser.");
     }
 
-    function triggerDirectDownload(canvas, shareUrl, exportBtn) {
+    function triggerDirectDownload(canvas, shareText, exportBtn) {
       const imageURL = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.download = 'words-of-jesus-hd.png';
@@ -2316,7 +2429,7 @@
       document.body.removeChild(link);
 
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareUrl);
+        navigator.clipboard.writeText(shareText);
         alert("Blessing image downloaded and link copied to clipboard!");
       } else {
         alert("Blessing image downloaded!");
