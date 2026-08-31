@@ -832,6 +832,9 @@
           <p class="modal-desc">A tailored word prepared for your spirit.</p>
         </div>
         <div class="blessing-text-area" id="quizTailoredBlessing"></div>
+        <button class="secondary-soft-btn" id="listenQuizBlessingBtn" onclick="listenToQuizBlessing()">
+          🔊 Listen to Promised Rest
+        </button>
         <button class="primary-gold-btn" onclick="completeIntakeAndEnter()">
           <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Enter Your Sanctuary
         </button>
@@ -1211,6 +1214,8 @@
       }
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
+      const listenQuizBlessingBtn = document.getElementById("listenQuizBlessingBtn");
+      if (listenQuizBlessingBtn) listenQuizBlessingBtn.innerHTML = "🔊 Listen to Promised Rest";
     }
 
     /* INTAKE ONBOARDING LOGIC */
@@ -1247,7 +1252,14 @@
       document.getElementById("qDot3").classList.add("active");
     }
 
+    function listenToQuizBlessing() {
+      const btn = document.getElementById("listenQuizBlessingBtn");
+      const cleanText = document.getElementById("quizTailoredBlessing").textContent || document.getElementById("quizTailoredBlessing").innerText;
+      playVoice(btn, cleanText, "Listen to Promised Rest");
+    }
+
     function completeIntakeAndEnter() {
+      stopAllAudio();
       localStorage.setItem("jesus_intake_completed", "true");
       document.getElementById("intakeModal").style.display = "none";
       
@@ -2324,6 +2336,7 @@
       if (event.target == journalModal) closeJournalModal();
       if (event.target == privacyModal) closePrivacyModal();
       if (event.target == confessionalModal) closeConfessionalModal();
+      if (event.target == intakeModal) document.getElementById("intakeModal").style.display = "none";
     };
   </script>
 </body>
