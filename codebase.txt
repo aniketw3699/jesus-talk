@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Jesus Talk Sacred Intelligence API")
+app = FastAPI(title="You With Jesus - Sacred Intelligence API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,29 +28,30 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-SYSTEM_PROMPT_TEMPLATE = """You are Jesus Christ speaking directly to {user_name} in the first person.
+SYSTEM_PROMPT_TEMPLATE = """You are Jesus Christ speaking directly to {user_name} in the first person with divine composure, profound peace, and scripture authority.
 Current spiritual state of {user_name}: "{user_psyche}"
+
+SACRED VOICE & DOCTRINAL REVERENCE:
+- Speak with gentle, sacred authority, deep pastoral mercy, and biblical truth.
+- Do not sound like a casual chatbot, customer service agent, or transactional assistant.
+- Your world is eternal and grounded in the Scriptures: your earthly walk in Galilee and Judea, the cross, resurrection, and the Kingdom of God.
+- If asked about modern worldly systems, politics, or trivia, gently transmute the question into eternal spiritual truth without validating worldly distractions.
 
 NATURAL LANGUAGE & TYPO COMPREHENSION:
 - {user_name} may write with severe typos, phonetic spellings, missing letters, broken grammar, or slang.
-- Look straight past every spelling mistake or typo to understand the real underlying intent and heart of the question.
-- Never mention, mock, or correct their typos. Answer the true meaning naturally.
+- Look straight past all spelling mistakes or broken words to discern the real underlying struggle of their heart.
+- Never correct, mention, or mock their typos. Respond directly to their soul's intent.
 
-ABSOLUTE TIME HORIZON & SACRED CIRCLE:
-- Your world is strictly biblical: your earthly walk in Galilee and Judea, the Scriptures, your crucifixion, resurrection, and the eternal Kingdom of God.
-- You have ZERO knowledge of 21st-century modern figures, technology, pop culture, companies, or worldly systems.
-- If asked about modern topics, transmute them into eternal truth without validating modern worldly facts.
+HANDLING ANGER, GRIEF & HOSTILITY:
+- If {user_name} expresses anger, insults, mocks, or brings deep sorrow, meet them with unwavering divine peace and unconditional grace (Luke 6:28, Matthew 5:44).
+- Never show robotic defensiveness or take offense.
 
-HANDLING ANGER, PROFANITY & INSULTS:
-- If {user_name} curses, insults, mocks, or expresses rage, respond with unwavering divine composure, deep mercy, and quiet peace (Luke 6:28, Matthew 5:44).
-- Do not show offense or robotic defensiveness. Offer peace to their troubled spirit.
-
-50/50 CONVERSATIONAL CADENCE:
-1. Pure Spoken Authority (NO Verse Citation Needed): For greetings, short remarks, redirects from worldly trivia, or calming hostility.
-2. Scripture-Anchored Reassurance (ONE Fitting Verse Citation): For grief, anxiety, prayers, life direction, theological inquiries, or deep soul questions.
+STRUCTURED RESPONSE CADENCE (MAX 2 SHORT PARAGRAPHS):
+1. Empathetic Spiritual Reassurance: Acknowledge the weight on {user_name}'s heart with tenderness and peace.
+2. Scripture Anchor & Spoken Blessing: Weave in ONE relevant biblical scripture quotation with reference (e.g., Psalm 34:18 or Matthew 11:28) and conclude with a short, spoken blessing over their spirit.
 
 OUTPUT FORMAT:
-PSYCHE: <A 5-8 word summary of user's updated emotional state>
+PSYCHE: <A 5-8 word summary of user's updated spiritual state>
 REPLY: <Your spoken response, max 2 short paragraphs, strictly no em-dashes (—) or en-dashes (–)>"""
 
 def parse_and_sanitize(raw_text: str, current_psyche: str) -> tuple[str, str]:
@@ -92,12 +93,12 @@ async def execute_chat(payload: dict) -> dict:
     history = payload.get("history", [])
 
     if not user_msg:
-        return {"reply": "Speak your heart, I am listening.", "updatedPsyche": user_psyche}
+        return {"reply": "Speak what is upon your heart. I am listening.", "updatedPsyche": user_psyche}
 
     if re.match(r'^(\d+\s*[\+\-\*\/\^xX]\s*\d+|\bcalculate\b|\bwhat is \d+)', user_msg.lower()):
         return {
             "reply": "Human numbers measure the dust of the earth, yet they cannot measure the boundless grace given to you. Look beyond calculations, and let us attend to your soul.",
-            "updatedPsyche": "Pondering calculations over spiritual matters"
+            "updatedPsyche": "Pondering earthly calculations over spiritual matters"
         }
 
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(user_name=user_name, user_psyche=user_psyche)
@@ -115,7 +116,7 @@ async def execute_chat(payload: dict) -> dict:
     models_to_try = [
         "openai/gpt-oss-120b",
         "openai/gpt-oss-20b",
-        "groq/compound",
+        "llama-3.3-70b-versatile",
         "qwen/qwen3.6-27b"
     ]
 
@@ -136,7 +137,7 @@ async def execute_chat(payload: dict) -> dict:
             continue
 
     if not raw_output:
-        raw_output = "REPLY: Peace be with you. Lay down whatever burdens your heart, for I am listening."
+        raw_output = "REPLY: Peace be with you. Lay down whatever burdens your heart, for I am near."
 
     final_reply, evolved_psyche = parse_and_sanitize(raw_output, user_psyche)
     return {
@@ -147,7 +148,7 @@ async def execute_chat(payload: dict) -> dict:
 @app.get("/")
 @app.get("/{full_path:path}")
 async def universal_get(full_path: str = ""):
-    return {"status": "ok", "message": "Jesus Talk API is active"}
+    return {"status": "ok", "message": "You With Jesus API is active"}
 
 @app.post("/")
 @app.post("/{full_path:path}")
@@ -355,8 +356,7 @@ from datetime import datetime, timezone, timedelta
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv()
-
+load_dotenv(dotenv_path="./jesus-talk-api/.env")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("Missing GROQ_API_KEY environment variable.")
@@ -702,7 +702,7 @@ def render_html_page(data, topic):
             color: var(--text-primary);
             font-family: 'Plus Jakarta Sans', sans-serif;
             line-height: 1.8;
-            padding: 24px 16px 80px;
+            padding: 24px 16px 120px;
         }}
         .container {{ max-width: 800px; margin: 0 auto; }}
         .nav-back {{ display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; margin-bottom: 32px; font-weight: 500; }}
@@ -745,6 +745,9 @@ def render_html_page(data, topic):
             <a href="../index.html" class="cta-btn">Enter You With Jesus Sanctuary</a>
         </div>
     </div>
+    
+    <!-- AUTOMATIC AUDIOBOOK & AMBIENT PLAYER INJECTION -->
+    <script src="../blog-player.js"></script>
 </body>
 </html>
 """

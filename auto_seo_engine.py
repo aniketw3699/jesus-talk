@@ -5,10 +5,13 @@ from datetime import datetime, timezone, timedelta
 from groq import Groq
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv(dotenv_path="./jesus-talk-api/.env")
+load_dotenv()
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
-    raise ValueError("Missing GROQ_API_KEY environment variable.")
+    raise ValueError("Missing GROQ_API_KEY. Please ensure it is set in your .env file.")
 
 client = Groq(api_key=GROQ_API_KEY)
 
@@ -21,6 +24,7 @@ BLOGS_HUB_FILE = "blogs.html"
 SITEMAP_FILE = "sitemap.xml"
 PRAYERS_DIR = "prayers"
 
+# Expanded High-Intent Devotional Topic Pool (Prevents duplicates)
 TOPIC_POOL = [
     {
         "keyword": "Prayer for peace of mind and clarity in chaos",
@@ -81,6 +85,30 @@ TOPIC_POOL = [
         "slug": "prayer-and-biblical-guide-to-rebuilding-broken-relationships",
         "category": "Love & Relationships",
         "primary_verse": "1 Corinthians 13:4-7"
+    },
+    {
+        "keyword": "Finding peace when your heart is broken and hope feels lost",
+        "slug": "finding-peace-heart-broken-hope-lost",
+        "category": "Grief & Comfort",
+        "primary_verse": "Psalm 34:18"
+    },
+    {
+        "keyword": "Finding God's peace during panic attacks: Biblical hope",
+        "slug": "finding-gods-peace-during-panic-attacks-biblical-hope",
+        "category": "Anxiety & Healing",
+        "primary_verse": "Isaiah 41:10"
+    },
+    {
+        "keyword": "Surrender control: Finding peace when leadership feels empty",
+        "slug": "surrender-control-finding-peace-leadership-empty",
+        "category": "Leadership & Faith",
+        "primary_verse": "Proverbs 3:5-6"
+    },
+    {
+        "keyword": "Finding true rest when success feels empty",
+        "slug": "finding-true-rest-when-success-feels-empty",
+        "category": "Purpose & Direction",
+        "primary_verse": "Ecclesiastes 3:11"
     }
 ]
 
@@ -88,31 +116,17 @@ def get_best_available_model(groq_client):
     try:
         models_list = groq_client.models.list()
         active_models = [m.id for m in models_list.data if getattr(m, 'active', True)]
-        print(f"Active Groq models detected: {active_models}")
-
         preferred_order = [
             "openai/gpt-oss-120b",
-            "qwen/qwen3.8-27b",
-            "openai/gpt-oss-20b",
-            "qwen/qwen3.6-27b",
             "llama-3.3-70b-versatile",
             "llama-3.1-70b-versatile",
             "llama-3.1-8b-instant"
         ]
-
         for candidate in preferred_order:
             if candidate in active_models:
-                print(f"Selected model: {candidate}")
                 return candidate
-
-        for m_id in active_models:
-            m_lower = m_id.lower()
-            if not any(x in m_lower for x in ["whisper", "guard", "compound", "orpheus"]):
-                print(f"Selected fallback active model: {m_id}")
-                return m_id
     except Exception as err:
         print(f"Model detection note: {err}")
-
     return "openai/gpt-oss-120b"
 
 def load_published_slugs():
@@ -128,82 +142,77 @@ def save_published_slugs(slugs):
     with open(SLUGS_FILE, "w", encoding="utf-8") as f:
         json.dump(slugs, f, indent=2)
 
-def select_next_topic(published):
+def select_next_topic(published_slugs_list):
     for topic in TOPIC_POOL:
-        if topic["slug"] not in published:
+        if topic["slug"] not in published_slugs_list:
             return topic
-    date_str = datetime.now(IST).strftime("%Y-%m-%d")
-    base = TOPIC_POOL[len(published) % len(TOPIC_POOL)]
+    
+    # Fallback rotation that maintains clean SEO slugs
+    idx = len(published_slugs_list) % len(TOPIC_POOL)
+    base = TOPIC_POOL[idx]
+    now_str = datetime.now(IST).strftime('%Y-%m-%d')
     return {
-        "keyword": f"{base['keyword']} (Spiritual Reflection {date_str})",
-        "slug": f"{base['slug']}-{datetime.now(IST).strftime('%m%d%H%M')}",
+        "keyword": f"{base['keyword']} (Devotional Walk {now_str})",
+        "slug": f"{base['slug']}-{datetime.now(IST).strftime('%m%d')}",
         "category": base["category"],
         "primary_verse": base["primary_verse"]
     }
 
 def generate_full_article(topic):
     selected_model = get_best_available_model(client)
-    print(f"Requesting generation using model: {selected_model}")
+    print(f"Generating content using model: {selected_model}")
 
     prompt = f"""
-Write an exhaustive, deeply empathetic, comprehensive 1,200+ word Christian spiritual guide and prayer breakdown.
+Write an authentic, deeply comforting, and authoritative 1,200+ word Christian prayer guide and meditation breakdown.
 
 TOPIC: "{topic['keyword']}"
 CATEGORY: "{topic['category']}"
 ANCHOR SCRIPTURE: "{topic['primary_verse']}"
 
 FORMAT INSTRUCTIONS:
-Return STRICTLY raw valid JSON without markdown wrapping. Format:
+Return STRICTLY valid JSON without Markdown blocks. Format:
 {{
-  "meta_title": "SEO Title (55-60 chars, compelling)",
-  "meta_description": "Search snippet meta description (145-155 chars)",
-  "h1": "Main Title",
+  "meta_title": "SEO Title (55-60 chars)",
+  "meta_description": "Snippet description (145-155 chars)",
+  "h1": "Main Article Heading",
   "read_time": "6 min read",
   "excerpt": "Compelling 2-sentence summary.",
   "sections": [
     {{
-      "h2": "Conversational Question H2 (e.g. Why Does Anxiety Overwhelm the Spirit?)",
-      "content": "Deep 250-word theological and practical exploration in multiple paragraphs."
+      "h2": "Conversational Question H2 (e.g. Why Does Anxiety Cloud the Soul?)",
+      "content": "Deep 250-word exploration across 2 paragraphs."
     }},
     {{
       "h2": "Scriptural Anchor & Biblical Exegesis",
       "verse_quote": "Full text of {topic['primary_verse']}",
       "verse_ref": "{topic['primary_verse']}",
-      "content": "Deep 250-word verse breakdown explaining the Hebrew/Greek context and modern application."
+      "content": "250-word verse breakdown explaining original meaning and modern spiritual application."
     }},
     {{
-      "h2": "3-Step Spiritual Framework for Daily Practice",
+      "h2": "3-Step Spiritual Framework for Daily Rest",
       "steps": [
-        {{"title": "Step 1: Surrender the Heavy Weight", "description": "100-word concrete spiritual discipline."}},
-        {{"title": "Step 2: Anchor Your Thoughts in Truth", "description": "100-word scripture alignment practice."}},
-        {{"title": "Step 3: Breathe in Divine Grace", "description": "100-word daily prayer habit."}}
+        {{"title": "Step 1: Surrender the Heavy Weight", "description": "100-word daily discipline."}},
+        {{"title": "Step 2: Anchor Your Thoughts in Truth", "description": "100-word scripture practice."}},
+        {{"title": "Step 3: Breathe in Divine Grace", "description": "100-word prayer habit."}}
       ]
     }},
     {{
-      "h2": "3 Direct, Heartfelt Prayers for This Exact Struggle",
+      "h2": "3 Direct, Heartfelt Prayers for This Walk",
       "prayers": [
-        {{"name": "1. The Morning Surrender Prayer", "text": "Deep 120-word heartfelt conversational prayer."}},
-        {{"name": "2. The Midday Peace Restoration Prayer", "text": "Deep 120-word centering prayer."}},
-        {{"name": "3. The Nighttime Release & Rest Prayer", "text": "Deep 120-word prayer to release worry into God's hands."}}
+        {{"name": "1. The Morning Surrender Prayer", "text": "120-word heartfelt prayer."}},
+        {{"name": "2. The Midday Peace Restoration Prayer", "text": "120-word centering prayer."}},
+        {{"name": "3. The Nighttime Release & Rest Prayer", "text": "120-word prayer to release fear."}}
       ]
     }}
   ],
   "faq": [
     {{
-      "question": "Conversational search query 1 regarding {topic['keyword']}?",
-      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
+      "question": "Practical question regarding {topic['keyword']}?",
+      "answer": "Direct 75-word answer for Google search snippets."
     }},
     {{
-      "question": "Conversational search query 2 regarding {topic['keyword']}?",
-      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
-    }},
-    {{
-      "question": "Conversational search query 3 regarding {topic['keyword']}?",
-      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
-    }},
-    {{
-      "question": "Conversational search query 4 regarding {topic['keyword']}?",
-      "answer": "Detailed 75-word direct answer formatted for Google featured snippets."
+      "question": "Scripture question regarding {topic['keyword']}?",
+      "answer": "Direct 75-word answer for Google search snippets."
     }}
   ]
 }}
@@ -211,31 +220,28 @@ Return STRICTLY raw valid JSON without markdown wrapping. Format:
     response = client.chat.completions.create(
         model=selected_model,
         messages=[
-            {"role": "system", "content": "You are an expert theologian, spiritual mentor, and master SEO content strategist for You With Jesus. You write thorough, compassionate, 1200+ word guides rich in practical wisdom and biblical depth."},
+            {"role": "system", "content": "You are an expert theologian, pastor, and SEO writer for You With Jesus. You create deeply compassionate, scripture-anchored articles."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.7,
         max_tokens=4096,
         response_format={"type": "json_object"}
     )
-    raw_content = response.choices[0].message.content.strip()
-    return json.loads(raw_content)
+    return json.loads(response.choices[0].message.content.strip())
 
 def render_html_page(data, topic):
     now_ist = datetime.now(IST)
     now_iso = now_ist.isoformat()
     page_url = f"{DOMAINS_URL}/prayers/{topic['slug']}.html"
 
-    faq_entities = []
-    for item in data.get("faq", []):
-        faq_entities.append({
+    faq_entities = [
+        {
             "@type": "Question",
             "name": item["question"],
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": item["answer"]
-            }
-        })
+            "acceptedAnswer": {"@type": "Answer", "text": item["answer"]}
+        }
+        for item in data.get("faq", [])
+    ]
 
     schema_json = {
         "@context": "https://schema.org",
@@ -247,25 +253,15 @@ def render_html_page(data, topic):
                 "description": data.get("meta_description"),
                 "datePublished": now_iso,
                 "dateModified": now_iso,
-                "author": {
-                    "@type": "Organization",
-                    "name": "You With Jesus Sanctuary"
-                },
+                "author": {"@type": "Organization", "name": "You With Jesus Sanctuary"},
                 "publisher": {
                     "@type": "Organization",
                     "name": "You With Jesus",
-                    "logo": {
-                        "@type": "ImageObject",
-                        "url": f"{DOMAINS_URL}/BG1.png"
-                    }
+                    "logo": {"@type": "ImageObject", "url": f"{DOMAINS_URL}/BG1.png"}
                 },
                 "mainEntityOfPage": page_url
             },
-            {
-                "@type": "FAQPage",
-                "@id": f"{page_url}#faq",
-                "mainEntity": faq_entities
-            }
+            {"@type": "FAQPage", "@id": f"{page_url}#faq", "mainEntity": faq_entities}
         ]
     }
 
@@ -316,7 +312,7 @@ def render_html_page(data, topic):
         """
     faq_html += "</section>\n"
 
-    template = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -400,7 +396,6 @@ def render_html_page(data, topic):
 </body>
 </html>
 """
-    return template
 
 def update_blogs_hub(published_list):
     os.makedirs(PRAYERS_DIR, exist_ok=True)
@@ -497,6 +492,12 @@ def update_sitemap(published_list):
     <lastmod>{today_ist}</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+  </url>""",
+        f"""  <url>
+    <loc>{DOMAINS_URL}/bible.html</loc>
+    <lastmod>{today_ist}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>"""
     ]
     for item in published_list:
@@ -546,8 +547,8 @@ def main():
     update_blogs_hub(updated_published)
     update_sitemap(updated_published)
 
-    print(f"Successfully created: {article_path}")
-    print("Updated blogs.html and sitemap.xml for You With Jesus.")
+    print(f"Successfully generated: {article_path}")
+    print("Updated blogs.html and sitemap.xml cleanly.")
 
 if __name__ == "__main__":
     main()
