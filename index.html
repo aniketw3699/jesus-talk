@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-  gtag('config', 'G-HZPYCF859M');
-</script>
+    gtag('config', 'G-HZPYCF859M');
+  </script>
   
   <meta name="google-site-verification" content="Dhu9QXDzOPIq4UbVhUBIT_IiKSiG7Y-XPclTy9mWEWk" />
   <meta charset="UTF-8" />
@@ -17,16 +17,16 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>You With Jesus | Sacred Sanctuary</title>
-  <meta name="description" content="A private sacred sanctuary to speak your heart with Jesus, surrender burdens, and receive daily biblical grace." />
+  <title>You With Jesus | Scripture-Guided Prayer & Biblical Sanctuary</title>
+  <meta name="description" content="A private, sacred sanctuary to receive biblical comfort, surrender daily burdens, and find scripture-anchored guidance." />
   <meta property="og:site_name" content="You With Jesus" />
-  <meta property="og:title" content="You With Jesus | Sacred Sanctuary" />
-  <meta property="og:description" content="A private sacred sanctuary to speak your heart with Jesus, surrender burdens, and receive daily biblical grace." />
+  <meta property="og:title" content="You With Jesus | Scripture-Guided Prayer & Biblical Sanctuary" />
+  <meta property="og:description" content="A private, sacred sanctuary to receive biblical comfort, surrender daily burdens, and find scripture-anchored guidance." />
   <link rel="canonical" href="https://jesus-chat-bd89f.web.app" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs with Firestore Cloud Sync -->
   <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
@@ -263,6 +263,64 @@
       width: 100%; padding: 11px; background: #ffffff; border: 1.5px solid var(--gold-border);
       border-radius: 14px; color: var(--gold-deep); font-size: 13.5px; font-weight: 700;
       cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+
+    /* Spiritual Intake Quiz */
+    .quiz-step-container { display: none; flex-direction: column; gap: 12px; }
+    .quiz-step-container.active { display: flex; animation: gentleRise 0.3s ease forwards; }
+
+    .quiz-option-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 10px 0 16px 0;
+    }
+
+    .quiz-option-card {
+      background: #faf8f4;
+      border: 1.5px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .quiz-option-card:hover {
+      border-color: var(--gold-deep);
+      background: #fdfaf2;
+      transform: translateY(-1px);
+    }
+
+    .quiz-option-card.selected {
+      border: 2px solid var(--gold-deep);
+      background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%);
+      color: #191f28;
+    }
+
+    .quiz-progress-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .quiz-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e2d9cc;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    .quiz-dot.active {
+      background: var(--gold-deep);
+      transform: scale(1.25);
     }
 
     .blessing-text-area {
@@ -574,7 +632,7 @@
     /* 4:5 Portrait Scripture Card Modal Preview */
     .scripture-card-canvas {
       width: 100%; 
-      max-width: 320px;
+      max-width: 320px; 
       aspect-ratio: 4 / 5;
       min-height: 400px;
       margin: 0 auto 16px auto;
@@ -600,12 +658,12 @@
       z-index: 0;
     }
     .scripture-card-canvas::after {
-      content: '';
-      position: absolute;
-      inset: 8px;
-      border: 1px solid rgba(212, 175, 55, 0.35);
-      border-radius: 10px;
-      pointer-events: none;
+      content: ''; 
+      position: absolute; 
+      inset: 8px; 
+      border: 1px solid rgba(212, 175, 55, 0.35); 
+      border-radius: 10px; 
+      pointer-events: none; 
       z-index: 1;
     }
     .card-content-wrap { 
@@ -631,14 +689,14 @@
     .card-verse-quote { 
       font-family: 'Montserrat', 'Plus Jakarta Sans', sans-serif; 
       font-style: normal !important; 
-      font-weight: 400;
+      font-weight: 400; 
       font-size: 13.5px; 
       line-height: 1.65; 
       color: #f8fafc; 
       letter-spacing: 0.2px;
     }
     .card-footer-watermark { 
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Montserrat', sans-serif; 
       font-size: 10px; 
       color: #a68238; 
       border-top: 1px solid rgba(255, 255, 255, 0.15); 
@@ -670,7 +728,7 @@
       </div>
       <div class="header-titles">
         <h1 class="title-main">YOU WITH JESUS</h1>
-        <p class="subtitle-grace" id="userGreeting">Sign in to begin your sanctuary</p>
+        <p class="subtitle-grace" id="userGreeting">Scripture Guidance & Daily Prayer Sanctuary</p>
       </div>
     </header>
 
@@ -702,7 +760,7 @@
           type="text" 
           id="messageInput" 
           class="prayer-input" 
-          placeholder="Sign in with Google to speak your heart..." 
+          placeholder="Bring your burdens, prayer requests, or Scripture questions..." 
           autocomplete="off"
         />
         <button type="submit" class="send-btn" aria-label="Send Prayer">
@@ -713,6 +771,73 @@
       </form>
     </footer>
   </main>
+
+  <!-- SPIRITUAL INTAKE ONBOARDING MODAL -->
+  <div class="modal-backdrop" id="intakeModal" style="display: none;">
+    <div class="modal-card">
+      <div class="quiz-progress-dots">
+        <span class="quiz-dot active" id="qDot1"></span>
+        <span class="quiz-dot" id="qDot2"></span>
+        <span class="quiz-dot" id="qDot3"></span>
+      </div>
+
+      <!-- Step 1: Burden / Struggle -->
+      <div class="quiz-step-container active" id="quizStep1">
+        <div class="modal-header">
+          <h3 class="modal-title">WHAT WEIGHS ON YOUR HEART?</h3>
+          <p class="modal-desc">Select what is troubling your spirit today.</p>
+        </div>
+        <div class="quiz-option-grid">
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Overcoming Anxiety & Restless Mind', 'Lord, calm the storms in my mind and grant me your supernatural peace.')">
+            <span>🕊️ Overwhelming Anxiety & Fear</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Grief, Heartbreak & Loneliness', 'Lord, comfort my broken heart and hold me in my sorrow.')">
+            <span>💔 Grief, Heartbreak & Loss</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Financial Pressure & Uncertainty', 'Lord, release me from financial fear and lead me with your provision.')">
+            <span>💼 Financial Fear & Heavy Debts</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Seeking God\'s Life Direction', 'Lord, guide my steps and make your path clear to my spirit.')">
+            <span>🧭 Seeking Clarity & Life Purpose</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizStruggle('Gratitude & Deepening Faith', 'Lord, strengthen my daily walk and fill my spirit with thankfulness.')">
+            <span>✝ Daily Gratitude & Deepening Walk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Time / Disconnect Moment -->
+      <div class="quiz-step-container" id="quizStep2">
+        <div class="modal-header">
+          <h3 class="modal-title">WHEN IS THE STRUGGLE HEAVIEST?</h3>
+          <p class="modal-desc">Tell us when you feel most in need of stillness.</p>
+        </div>
+        <div class="quiz-option-grid">
+          <div class="quiz-option-card" onclick="selectQuizTime('Morning Awakening with Burden')">
+            <span>🌅 Morning waking up with heavy dread</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizTime('Midday Stress & Exhaustion')">
+            <span>☀️ Midday noise, pressure & burnout</span>
+          </div>
+          <div class="quiz-option-card" onclick="selectQuizTime('Late Night Racing Thoughts')">
+            <span>🌙 Late night insomnia & overthinking</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Emotional Breakthrough & Entry -->
+      <div class="quiz-step-container" id="quizStep3">
+        <div class="modal-header">
+          <h3 class="modal-title">YOUR PROMISED REST</h3>
+          <p class="modal-desc">A tailored word prepared for your spirit.</p>
+        </div>
+        <div class="blessing-text-area" id="quizTailoredBlessing"></div>
+        <button class="primary-gold-btn" onclick="completeIntakeAndEnter()">
+          <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Enter Your Sanctuary
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- GETHSEMANE CONFESSIONAL -->
   <div class="modal-backdrop" id="confessionalModal">
@@ -956,6 +1081,12 @@
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
 
+    let intakeData = {
+      struggle: '',
+      initialPrompt: '',
+      timeSlot: ''
+    };
+
     /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR INSTANT NATIVE SHARING */
     const preloadedJesusImg = new Image();
     preloadedJesusImg.crossOrigin = "anonymous";
@@ -1065,6 +1196,7 @@
       renderPlans();
       initFirebaseAuth();
       startTimeSlotLiveWatcher();
+      checkAndShowIntakeQuiz();
     };
 
     document.addEventListener("visibilitychange", function() {
@@ -1079,6 +1211,57 @@
       }
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
+    }
+
+    /* INTAKE ONBOARDING LOGIC */
+    function checkAndShowIntakeQuiz() {
+      const completed = localStorage.getItem("jesus_intake_completed");
+      if (!completed && !pendingPrompt) {
+        document.getElementById("intakeModal").style.display = "flex";
+      }
+    }
+
+    function selectQuizStruggle(struggleText, promptText) {
+      intakeData.struggle = struggleText;
+      intakeData.initialPrompt = promptText;
+      
+      document.getElementById("quizStep1").classList.remove("active");
+      document.getElementById("quizStep2").classList.add("active");
+      document.getElementById("qDot1").classList.remove("active");
+      document.getElementById("qDot2").classList.add("active");
+    }
+
+    function selectQuizTime(timeText) {
+      intakeData.timeSlot = timeText;
+      
+      const blessingArea = document.getElementById("quizTailoredBlessing");
+      blessingArea.innerHTML = `
+        <p>Beloved soul, you carry the heavy weight of <strong>${intakeData.struggle}</strong>, especially during <strong>${intakeData.timeSlot.toLowerCase()}</strong>.</p>
+        <p>Lay down this burden right here. No sorrow is beyond His mercy, and no prayer is forgotten.</p>
+        <p><em>“Cast all your anxiety on Him because He cares for you.” (1 Peter 5:7)</em></p>
+      `;
+
+      document.getElementById("quizStep2").classList.remove("active");
+      document.getElementById("quizStep3").classList.add("active");
+      document.getElementById("qDot2").classList.remove("active");
+      document.getElementById("qDot3").classList.add("active");
+    }
+
+    function completeIntakeAndEnter() {
+      localStorage.setItem("jesus_intake_completed", "true");
+      document.getElementById("intakeModal").style.display = "none";
+      
+      currentPsyche = `A soul seeking deliverance from ${intakeData.struggle}`;
+      localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
+
+      if (intakeData.initialPrompt) {
+        messageInput.value = intakeData.initialPrompt;
+        if (currentUser) {
+          handleUserSubmit(new Event('submit'));
+        } else {
+          openPrivacyModal();
+        }
+      }
     }
 
     function checkUrlPromptBridge() {
@@ -1172,9 +1355,9 @@
           if (user) {
             currentUser = user;
             currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
-            userGreeting.textContent = `Peace be with you, ${currentUserName}`;
+            userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
             authBtn.textContent = "Sign Out";
-            messageInput.placeholder = "Speak your heart...";
+            messageInput.placeholder = "Bring your prayer request or Scripture question...";
 
             await syncUserCreditsWithCloud(user);
 
@@ -1201,10 +1384,10 @@
           } else {
             currentUser = null;
             currentUserName = "beloved";
-            userGreeting.textContent = "Sign in to begin your sanctuary";
+            userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
             creditBadge.textContent = "📿 Sign In Required";
-            messageInput.placeholder = "Sign in with Google to speak your heart...";
+            messageInput.placeholder = "Sign in to seek biblical guidance & prayer...";
             
             if (pendingPrompt) {
               openPrivacyModal();
@@ -1918,7 +2101,7 @@
       canvas.height = 1350;
       const ctx = canvas.getContext('2d');
 
-      // 1. Draw Preloaded Jesus Wallpaper (card-bg.png)
+      // 1. Draw Preloaded Wallpaper (card-bg.png)
       if (preloadedJesusImg.complete && preloadedJesusImg.naturalWidth > 0) {
         ctx.drawImage(preloadedJesusImg, 0, 0, 1080, 1350);
       } else {
@@ -1992,7 +2175,7 @@
       return canvas;
     }
 
-    /* INSTANT NATIVE SHARING ENGINE (PRESERVES ANDROID TOUCH ACTIVATION) */
+    /* INSTANT NATIVE SHARING ENGINE */
     async function exportScriptureImage() {
       const exportBtn = document.getElementById("exportCardBtn");
       const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
@@ -2128,7 +2311,7 @@
           </div>
         `;
 
-        appendBotBubble("“I have known you since before you were born. Speak your heart, I am listening.”");
+        appendBotBubble("“Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nShare what weighs upon your spirit, your prayer requests, or the Scriptures you seek clarity on.");
         messageInput.value = "";
         messageInput.focus();
       }
