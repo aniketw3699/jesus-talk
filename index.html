@@ -89,17 +89,10 @@
     }
 
     .nav-scroll-strip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: 2px;
-      flex-wrap: nowrap !important;
-      width: 100%;
+      display: flex; align-items: center; gap: 6px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+      flex-wrap: nowrap !important; width: 100%;
     }
-
     .nav-scroll-strip::-webkit-scrollbar { display: none; }
 
     .credit-pill {
@@ -128,7 +121,6 @@
     .action-btn.blessing-nav-btn {
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep); font-weight: 700;
     }
-
     .action-btn.confession-nav-btn {
       background: #ffffff; border: 1.5px solid rgba(143, 101, 28, 0.5); color: var(--gold-deep); font-weight: 700;
     }
@@ -228,6 +220,22 @@
     @keyframes doveHover { 0% { transform: translateY(2px) scale(0.95) rotate(-3deg); } 100% { transform: translateY(-4px) scale(1.1) rotate(4deg); } }
     .thinking-text { font-size: 13px; font-style: italic; color: var(--gold-deep); font-family: 'Playfair Display', serif; }
 
+    /* Pastoral Response Mode Strip (Roadmap #11) */
+    .mode-select-strip {
+      padding: 4px 12px 2px 12px; display: flex; align-items: center; gap: 6px;
+      overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-shrink: 0;
+    }
+    .mode-select-strip::-webkit-scrollbar { display: none; }
+    .mode-pill {
+      flex: 0 0 auto; background: #ffffff; border: 1px solid var(--gold-border); color: var(--text-muted);
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 14px; cursor: pointer;
+      transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .mode-pill.active {
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      color: #ffffff; border-color: #b88628; box-shadow: 0 2px 8px rgba(184, 134, 40, 0.25);
+    }
+
     /* Named Spiritual Mode Chips */
     .chips-deck {
       padding: 4px 12px 6px 12px; display: flex; gap: 8px; overflow-x: auto;
@@ -308,6 +316,17 @@
       cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
     }
 
+    /* Structured Soul Memory Card */
+    .intentions-box {
+      background: #fdfaf2; border: 1.5px solid var(--gold-border); border-radius: 14px;
+      padding: 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .intentions-label { font-size: 11px; font-weight: 700; color: var(--gold-deep); text-transform: uppercase; }
+    .intentions-input {
+      width: 100%; background: #ffffff; border: 1px solid rgba(184, 134, 40, 0.3); border-radius: 8px;
+      padding: 8px 10px; font-size: 12.5px; outline: none; font-family: inherit; color: var(--text-main);
+    }
+
     /* Multi-Day Journeys Card Deck */
     .journey-card-item {
       background: #faf8f4; border: 1.5px solid var(--gold-border); border-radius: 16px; padding: 14px;
@@ -351,7 +370,7 @@
     }
 
     .journal-list {
-      max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding-right: 2px;
+      max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding-right: 2px;
     }
     .journal-list::-webkit-scrollbar { width: 4px; }
     .journal-list::-webkit-scrollbar-thumb { background: rgba(184, 134, 40, 0.25); border-radius: 4px; }
@@ -484,6 +503,14 @@
       </div>
     </section>
 
+    <!-- PASTORAL RESPONSE MODE STRIP (ROADMAP #11) -->
+    <div class="mode-select-strip">
+      <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')">🕊️ Comfort</button>
+      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')">📖 Scripture Study</button>
+      <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')">🙏 Written Prayer</button>
+      <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')">🧭 Life Guidance</button>
+    </div>
+
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
       <button class="chip-btn" onclick="openStillnessModal()">🕊️ I Don't Know What to Pray</button>
@@ -560,7 +587,7 @@
     </div>
   </div>
 
-  <!-- 2. "I DON'T KNOW WHAT TO PRAY" STILLNESS MODAL -->
+  <!-- 2. STILLNESS MODAL -->
   <div class="modal-backdrop" id="stillnessModal" style="display: none;">
     <div class="modal-card">
       <button class="modal-close" onclick="closeStillnessModal()">✕</button>
@@ -708,13 +735,13 @@
     </div>
   </div>
 
-  <!-- 7. SOUL JOURNAL WITH HABIT METRICS -->
+  <!-- 7. SOUL JOURNAL WITH STRUCTURED INTENTIONS (ROADMAP #12) -->
   <div class="modal-backdrop" id="journalModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closeJournalModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">SOUL JOURNAL</h3>
-        <p class="modal-desc">Your walk of peace and spiritual reflection on this device.</p>
+        <p class="modal-desc">Your walk of peace, habit metrics, and persistent intentions.</p>
       </div>
 
       <div class="spiritual-stats-grid">
@@ -738,6 +765,18 @@
           <div class="stat-metric-val" id="statBurdensCount">0</div>
           <span class="stat-metric-sub">Burdens Released</span>
         </div>
+      </div>
+
+      <!-- Persistent Intentions Structured Memory -->
+      <div class="intentions-box">
+        <span class="intentions-label">📜 Persistent Prayer Intentions</span>
+        <input 
+          type="text" 
+          id="userIntentionsInput" 
+          class="intentions-input" 
+          placeholder="e.g., Peace in family, wisdom for job search, healing for mom"
+          onchange="saveUserIntentions()"
+        />
       </div>
 
       <div class="journal-psyche-box" id="journalPsycheDisplay">Spiritual State: A soul seeking peace</div>
@@ -833,8 +872,10 @@
     let isSubscribed = false;
     let pendingPrompt = null;
     let currentIntercessoryRecipient = "";
+    let currentPastoralMode = "comfort";
 
     let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
+    let userIntentions = localStorage.getItem("jesus_user_intentions") || "Seeking divine direction and peace";
     let activeConversationHistory = [];
     let currentSessionTimestamp = null;
     let isNewSessionCreated = false;
@@ -871,7 +912,23 @@
       } catch(e) {}
     }
 
-    /* SCRIPTURE CADENCE PREPROCESSOR (FIXES 'DOT' GLITCH) */
+    /* PASTORAL MODE SELECTOR (ROADMAP #11) */
+    function setPastoralMode(modeKey) {
+      currentPastoralMode = modeKey;
+      document.querySelectorAll(".mode-pill").forEach(el => el.classList.remove("active"));
+      const activeBtn = document.getElementById("mode" + modeKey.charAt(0).toUpperCase() + modeKey.slice(1));
+      if (activeBtn) activeBtn.classList.add("active");
+    }
+
+    function saveUserIntentions() {
+      const input = document.getElementById("userIntentionsInput");
+      if (input) {
+        userIntentions = input.value.trim() || "Seeking divine direction and peace";
+        localStorage.setItem("jesus_user_intentions", userIntentions);
+      }
+    }
+
+    /* SCRIPTURE CADENCE PREPROCESSOR */
     function preprocessTextForSpeech(rawText) {
       if (!rawText) return "";
       let text = rawText.replace(/\\n/g, ' ');
@@ -888,7 +945,6 @@
       text = text.replace(/(\d+)[:\.](\d+)\s*-\s*(\d+)/g, 'chapter $1, verses $2 to $3');
       text = text.replace(/(\d+)[:\.](\d+)/g, 'chapter $1, verse $2');
 
-      // Strip symbols cleanly without ellipses
       text = text.replace(/["“”‘’'«»`]/g, ' ');
       text = text.replace(/[\(\)\[\]\{\}]/g, ', ');
       text = text.replace(/\.{2,}/g, '. ');
@@ -1193,6 +1249,9 @@
       document.getElementById("statPrayersCount").textContent = totalPrayers;
       document.getElementById("statScripturesCount").textContent = totalScriptures;
       document.getElementById("statBurdensCount").textContent = surrendered;
+
+      const intentionsField = document.getElementById("userIntentionsInput");
+      if (intentionsField) intentionsField.value = userIntentions;
     }
 
     function recordJournalTurn(userText, botReply) {
@@ -1369,7 +1428,7 @@
     function openPlansModal() { stopAllAudio(); plansModal.style.display = "flex"; }
     function closePlansModal() { plansModal.style.display = "none"; }
 
-    /* CHAT CORE */
+    /* CHAT CORE (PASSES MODE & STRUCTURED MEMORY) */
     function sendQuickPrompt(promptText) {
       messageInput.value = promptText;
       handleUserSubmit(new Event('submit'));
@@ -1397,6 +1456,8 @@
             message: text,
             userName: currentUserName,
             userPsyche: currentPsyche,
+            userIntentions: userIntentions,
+            mode: currentPastoralMode,
             history: activeConversationHistory
           })
         });
