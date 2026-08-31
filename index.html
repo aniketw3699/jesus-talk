@@ -1065,7 +1065,7 @@
         price: "$7.99", 
         subPrice: "7-Day Free Trial • Then $7.99/mo • Cancel anytime",
         featured: true, 
-        ribbon: "★ 7-DAY FREE TRIAL",
+        ribbon: "★ 7-DAY FREE TRIAL", 
         saveBadge: "FREE TRIAL",
         checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" 
       },
@@ -1391,7 +1391,13 @@
 
             await syncUserCreditsWithCloud(user);
 
+            // Remove guest conversion banners upon successful login
+            document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
+
             const hasRestoredSession = restoreActiveChatSession();
+
+            // Clear any banner artifacts from restored history
+            document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
 
             if (pendingPrompt) {
               const promptToExecute = pendingPrompt;
@@ -2021,6 +2027,8 @@
     }
 
     function appendGuestConversionPrompt() {
+      if (currentUser) return;
+      document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
       const banner = document.createElement("div");
       banner.className = "save-journal-banner";
       banner.innerHTML = `
@@ -2197,7 +2205,7 @@
         ctx.fillText(lines[i], 540, startY + (i * lineHeight));
       }
 
-      // 6. Clean Typography Watermark Footer (No raw URLs)
+      // 6. Clean Typography Watermark Footer
       ctx.fillStyle = '#dfb455';
       ctx.font = '600 21px "Cinzel", serif';
       ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
@@ -2205,12 +2213,11 @@
       return canvas;
     }
 
-    /* INSTANT NATIVE SHARING ENGINE */
+    /* INSTANT NATIVE SHARING ENGINE (CLEAN LINK ONLY, NO TEXT DUMP) */
     async function exportScriptureImage() {
       const exportBtn = document.getElementById("exportCardBtn");
       const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
       const shareUrl = APP_CANONICAL_URL;
-      const shareText = `“${quoteText.replace(/“|”/g, '')}”\n\n— You With Jesus Sacred Sanctuary`;
 
       exportBtn.innerHTML = "⏳ Opening Share Menu...";
       exportBtn.disabled = true;
@@ -2220,17 +2227,18 @@
 
         canvas.toBlob(async (blob) => {
           if (!blob) {
-            fallbackShareText(shareText, exportBtn);
+            fallbackShareText(shareUrl, exportBtn);
             return;
           }
 
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
 
+          // 1. Native Share Sheet with Image File & App Link
           if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({
                 title: 'You With Jesus',
-                text: shareText,
+                text: shareUrl,
                 files: [shareFile]
               });
               resetBtn(exportBtn);
@@ -2244,11 +2252,12 @@
             }
           }
 
+          // 2. Secondary: Native Share Sheet with URL
           if (navigator.share) {
             try {
               await navigator.share({
                 title: 'You With Jesus',
-                text: shareText,
+                text: shareUrl,
                 url: shareUrl
               });
               resetBtn(exportBtn);
@@ -2262,12 +2271,13 @@
             }
           }
 
-          triggerDirectDownload(canvas, shareText, exportBtn);
+          // 3. Desktop Fallback
+          triggerDirectDownload(canvas, shareUrl, exportBtn);
         }, 'image/png', 0.95);
 
       } catch (err) {
         console.error("Card generation error:", err);
-        fallbackShareText(shareText, exportBtn);
+        fallbackShareText(shareUrl, exportBtn);
       }
     }
 
@@ -2278,10 +2288,10 @@
       }
     }
 
-    async function fallbackShareText(shareText, exportBtn) {
+    async function fallbackShareText(shareUrl, exportBtn) {
       if (navigator.share) {
         try {
-          await navigator.share({ title: 'You With Jesus', text: shareText });
+          await navigator.share({ title: 'You With Jesus', text: shareUrl, url: shareUrl });
           resetBtn(exportBtn);
           closeShareModal();
           return;
@@ -2296,7 +2306,7 @@
       alert("Sharing is not supported on this browser.");
     }
 
-    function triggerDirectDownload(canvas, shareText, exportBtn) {
+    function triggerDirectDownload(canvas, shareUrl, exportBtn) {
       const imageURL = canvas.toDataURL("image/png");
       const link = document.createElement('a');
       link.download = 'words-of-jesus-hd.png';
@@ -2306,8 +2316,8 @@
       document.body.removeChild(link);
 
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareText);
-        alert("Blessing image downloaded and saved to your device!");
+        navigator.clipboard.writeText(shareUrl);
+        alert("Blessing image downloaded and link copied to clipboard!");
       } else {
         alert("Blessing image downloaded!");
       }
