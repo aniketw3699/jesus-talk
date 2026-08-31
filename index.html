@@ -1177,6 +1177,28 @@
       }
     }
 
+    /* SCRIPTURE CADENCE & PAUSE PREPROCESSOR */
+    function preprocessTextForSpeech(rawText) {
+      if (!rawText) return "";
+      let text = rawText;
+      text = text.replace(/<[^>]*>/g, ' ');
+      text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
+
+      // Convert references like (Matthew 11:28) into rhythmic pauses: "... Matthew, chapter 11, verse 28. ... "
+      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (match, book, chapter, verse) => {
+        return `... ${book.trim()}, chapter ${chapter}, verse ${verse}. ... `;
+      });
+
+      text = text.replace(/[—–]/g, ', ');
+      text = text.replace(/”|"/g, ' ... ');
+      text = text.replace(/“/g, ' ');
+      text = text.replace(/\.\s+/g, '. ... ');
+      text = text.replace(/;\s+/g, '; ... ');
+      text = text.replace(/:\s+/g, ': ... ');
+      text = text.replace(/\s+/g, ' ').trim();
+      return text;
+    }
+
     /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR INSTANT NATIVE SHARING */
     const preloadedJesusImg = new Image();
     preloadedJesusImg.crossOrigin = "anonymous";
@@ -1209,7 +1231,7 @@
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
 
-    /* SACRED BARITONE AUDIO ENGINE */
+    /* STRICT REVERENT BARITONE VOICE ENGINE (APPLE DANIEL PRIORITY) */
     let availableVoices = [];
 
     function populateVoices() {
@@ -1231,52 +1253,33 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
+      // 1. Strict Apple Daniel (Exact cross-platform parity for iOS & macOS)
+      const danielVoice = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us') || id.includes('en_us'));
+      });
+      if (danielVoice) return danielVoice;
+
+      // 2. Secondary Apple Male Voices (Arthur, Oliver, George, Rishi, Malcolm)
       const appleMale = englishVoices.find(v => {
         const id = getIdentifier(v);
-        return id.includes('daniel') || id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi');
+        return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi') || id.includes('malcolm')) && !id.includes('female');
       });
       if (appleMale) return appleMale;
 
+      // 3. Android / Google Natural Male
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
-        return id.includes('iom') || 
-               id.includes('iob') || 
-               id.includes('tpc') || 
-               id.includes('rjs') || 
-               id.includes('fis') || 
-               id.includes('cxx') || 
-               id.includes('enc') || 
-               id.includes('aub') || 
-               id.includes('male') || 
-               id.includes('#male') || 
-               id.includes('google uk english male');
+        return id.includes('google uk english male') || id.includes('google us english male') || id.includes('iom') || id.includes('iob') || id.includes('tpc') || id.includes('rjs') || id.includes('fis') || id.includes('aub') || id.includes('male') || id.includes('#male');
       });
       if (androidMale) return androidMale;
 
-      const nonFemaleCandidates = englishVoices.filter(v => {
+      // 4. Any Non-Female English Candidate
+      const nonFemale = englishVoices.find(v => {
         const id = getIdentifier(v);
-        return !id.includes('sfg') && 
-               !id.includes('tpf') && 
-               !id.includes('iol') && 
-               !id.includes('gba') && 
-               !id.includes('gbb') && 
-               !id.includes('cxf') && 
-               !id.includes('end') && 
-               !id.includes('afh') && 
-               !id.includes('female') && 
-               !id.includes('woman') && 
-               !id.includes('girl') && 
-               !id.includes('samantha') && 
-               !id.includes('victoria') && 
-               !id.includes('zira') && 
-               !id.includes('karen') && 
-               !id.includes('tessa') && 
-               !id.includes('moira');
+        return !id.includes('female') && !id.includes('woman') && !id.includes('girl') && !id.includes('samantha') && !id.includes('victoria') && !id.includes('zira') && !id.includes('karen') && !id.includes('tessa') && !id.includes('moira');
       });
-
-      if (nonFemaleCandidates.length > 0) {
-        return nonFemaleCandidates[nonFemaleCandidates.length - 1];
-      }
+      if (nonFemale) return nonFemale;
 
       return englishVoices[0] || availableVoices[0] || null;
     }
@@ -1297,7 +1300,7 @@
     });
 
     function stopAllAudio() {
-      if ('speechSynthesis' in window && speechSynthesis.speaking) {
+      if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
       }
       stopSacredMusic();
@@ -1746,7 +1749,7 @@
       }, 15000);
     }
 
-    /* TIME-AWARE BLESSING (ALLOWS GUEST PREVIEW / FREE BLESSING) */
+    /* TIME-AWARE BLESSING */
     function openTimeAwareBlessingModal(isManual = false) {
       stopAllAudio();
       const currentHour = new Date().getHours();
@@ -2199,8 +2202,8 @@
       stopSacredMusic();
       if (voiceSyncInterval) clearInterval(voiceSyncInterval);
 
-      const cleanText = text.replace(/[\(\)\[\]"]/g, "").replace(/✝/g, "");
-      currentUtterance = new SpeechSynthesisUtterance(cleanText);
+      const cadenceText = preprocessTextForSpeech(text);
+      currentUtterance = new SpeechSynthesisUtterance(cadenceText);
       
       const chosenVoice = getSacredVoice();
       if (chosenVoice) {
@@ -2215,10 +2218,12 @@
 
       btn.innerHTML = "⏸ Pause";
 
+      // Synchronize music start exactly when spoken voice starts
       currentUtterance.onstart = () => {
         startSacredMusic();
       };
 
+      // Synchronize music stop exactly when spoken voice ends
       const cleanupVoiceAndMusic = () => {
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         stopSacredMusic();
@@ -2228,6 +2233,7 @@
       currentUtterance.onend = cleanupVoiceAndMusic;
       currentUtterance.onerror = cleanupVoiceAndMusic;
 
+      // Realtime polling watcher for mobile browsers
       voiceSyncInterval = setInterval(() => {
         if (!speechSynthesis.speaking) {
           cleanupVoiceAndMusic();

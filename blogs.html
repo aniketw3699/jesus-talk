@@ -1,170 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sacred Blog Archive & Daily Prayer Guides | You With Jesus</title>
-    <meta name="description" content="Explore comprehensive Christian prayer guides, spiritual reflections, and biblical answers to life's deepest struggles.">
-    <link rel="canonical" href="https://jesus-chat-bd89f.web.app/blogs.html">
-    <meta property="og:site_name" content="You With Jesus">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #09090b;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.08);
-            --gold: #e2b764;
-            --gold-glow: rgba(226, 183, 100, 0.15);
-            --text-primary: #f4f4f5;
-            --text-secondary: #a1a1aa;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background-color: var(--bg);
-            color: var(--text-primary);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            line-height: 1.6;
-            padding: 40px 16px 80px;
-        }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 56px; }
-        .header h1 { font-family: 'Cinzel', serif; font-size: clamp(32px, 5vw, 44px); color: #fff; margin-bottom: 12px; }
-        .header p { color: var(--text-secondary); font-size: 16px; max-width: 540px; margin: 0 auto; }
-        .back-home { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; margin-bottom: 32px; font-weight: 500; }
-        .blogs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 24px; }
-        @media (max-width: 600px) { .blogs-grid { grid-template-columns: 1fr; } }
-        .blog-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; }
-        .blog-card:hover { transform: translateY(-3px); border-color: rgba(226, 183, 100, 0.4); }
-        .blog-badge { display: inline-block; align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: var(--gold-glow); color: var(--gold); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 16px; border: 1px solid rgba(226, 183, 100, 0.2); }
-        .blog-title { font-family: 'Cinzel', serif; font-size: 20px; line-height: 1.35; margin-bottom: 12px; }
-        .blog-title a { color: #fff; text-decoration: none; transition: color 0.2s; }
-        .blog-title a:hover { color: var(--gold); }
-        .blog-excerpt { color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 20px; flex-grow: 1; }
-        .blog-meta { display: flex; gap: 12px; color: #71717a; font-size: 12px; border-top: 1px solid var(--border); padding-top: 16px; }
-    </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-HZPYCF859M');
+  </script>
+  
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Sacred Blogs & Scripture Devotionals | You With Jesus</title>
+  <meta name="description" content="Daily Christian devotionals, scripture reflections, and biblical guidance for your spiritual journey." />
+  <link rel="canonical" href="https://jesus-chat-bd89f.web.app/blogs.html" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-celestial: #f3eee6;
+      --gold-deep: #8f651c;
+      --gold-vivid: #c99839;
+      --gold-soft: #fbf5e8;
+      --gold-border: rgba(184, 134, 40, 0.45);
+      --glass-panel: rgba(255, 255, 255, 0.88);
+      --glass-border: rgba(255, 255, 255, 0.7);
+      --text-main: #191f28;
+      --text-muted: #536070;
+      --shadow-elevated: 0 16px 40px rgba(70, 50, 20, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #d8cdbe;
+      color: var(--text-main);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex; justify-content: center; align-items: center;
+      position: relative;
+    }
+
+    .sacred-wallpaper {
+      position: fixed; inset: 0;
+      background-image: url('BG1.png'); background-position: center top; background-repeat: no-repeat; background-size: cover;
+      opacity: 0.88; z-index: 0; pointer-events: none;
+    }
+
+    .blogs-app-container {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 580px; height: 100vh; height: 100dvh;
+      display: flex; flex-direction: column;
+      background: var(--glass-panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-left: 1px solid var(--glass-border); border-right: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-elevated);
+    }
+
+    .blogs-header {
+      padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px;
+      background: rgba(255, 255, 255, 0.94);
+      border-bottom: 1px solid rgba(184, 134, 40, 0.25);
+      display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;
+    }
+
+    .blogs-nav-row {
+      display: flex; justify-content: space-between; align-items: center; width: 100%;
+    }
+
+    .back-sanctuary-btn {
+      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
+      font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 20px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .back-sanctuary-btn:hover { background: var(--gold-soft); border-color: var(--gold-deep); }
+
+    .music-pill {
+      background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep);
+      font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+    }
+    .music-pill.off { background: #f1f3f6; color: var(--text-muted); border-color: rgba(0,0,0,0.15); }
+
+    .blogs-title-wrap { text-align: center; margin-top: 4px; }
+    .blogs-main-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 700; letter-spacing: 2px; color: #1f1a10; }
+    .blogs-sub-title { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; color: #534b3e; margin-top: 2px; }
+
+    .blogs-feed {
+      flex: 1; overflow-y: auto; padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 16px;
+      scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    }
+    .blogs-feed::-webkit-scrollbar { width: 4px; }
+    .blogs-feed::-webkit-scrollbar-thumb { background: rgba(184, 134, 40, 0.25); border-radius: 4px; }
+
+    .blog-card {
+      background: #ffffff; border: 1.5px solid rgba(184, 134, 40, 0.25);
+      border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 4px 16px rgba(143, 101, 28, 0.08); transition: transform 0.2s ease;
+    }
+
+    .blog-tag {
+      align-self: flex-start;
+      background: var(--gold-soft); border: 1px solid var(--gold-border);
+      color: var(--gold-deep); font-size: 10.5px; font-weight: 800; letter-spacing: 0.5px;
+      padding: 3px 8px; border-radius: 8px; text-transform: uppercase;
+    }
+
+    .blog-heading {
+      font-family: 'Cinzel', serif; font-size: 16.5px; font-weight: 700; color: #221c12; line-height: 1.4;
+    }
+
+    .blog-body {
+      font-size: 13.5px; line-height: 1.7; color: #333d4b;
+    }
+    .blog-body p + p { margin-top: 10px; }
+    .blog-body em { font-family: 'Playfair Display', serif; color: var(--gold-deep); font-weight: 600; }
+
+    .blog-actions-row {
+      display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 12px;
+      border-top: 1px solid rgba(184, 134, 40, 0.15);
+    }
+
+    .listen-blog-btn {
+      background: #ffffff; border: 1.5px solid var(--gold-deep); color: var(--gold-deep);
+      font-size: 11.5px; font-weight: 700; padding: 6px 14px; border-radius: 16px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+      transition: all 0.2s ease;
+    }
+    .listen-blog-btn:hover { background: var(--gold-soft); }
+
+    .reflect-blog-btn {
+      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
+      border: none; color: #ffffff;
+      font-size: 11.5px; font-weight: 700; padding: 7px 14px; border-radius: 16px;
+      cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+      box-shadow: 0 3px 10px rgba(184, 134, 40, 0.25);
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <a href="index.html" class="back-home">← Return to Sacred Sanctuary</a>
-        <header class="header">
-            <h1>Sacred Prayer Archive</h1>
-            <p>Biblical reflections, heartfelt prayers, and scripture wisdom for life's deepest trials.</p>
-        </header>
-        <div class="blogs-grid">
-            
-        <article class="blog-card">
-            <span class="blog-badge">Forgiveness & Freedom</span>
-            <h2 class="blog-title"><a href="prayers/how-to-forgive-someone-who-deeply-hurt-you.html">How to Forgive Someone Who Deeply Hurt You When It Feels Impossible</a></h2>
-            <p class="blog-excerpt">When betrayal cuts deep, forgiveness can seem unreachable. This guide offers biblical wisdom, practical steps, and prayers to help you experience true freedom.</p>
-            <div class="blog-meta">
-                <span>August 31, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Financial Peace</span>
-            <h2 class="blog-title"><a href="prayers/prayer-for-financial-breakthrough-and-release-from-debt-anxiety.html">A Powerful Prayer for Financial Breakthrough and Release from Debt Anxiety</a></h2>
-            <p class="blog-excerpt">Feel trapped by debt? This guide blends Scripture, a three‑step spiritual framework, and heartfelt prayers to help you experience God’s promised provision and lasting peace.</p>
-            <div class="blog-meta">
-                <span>August 30, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Purpose & Direction</span>
-            <h2 class="blog-title"><a href="prayers/finding-divine-purpose-when-feeling-lost-and-uncertain.html">Finding Divine Purpose When You Feel Lost and Uncertain</a></h2>
-            <p class="blog-excerpt">When life feels directionless, the heart longs for a deeper meaning. This guide offers biblical insight, practical steps, and prayerful comfort to help you discover God’s purpose.</p>
-            <div class="blog-meta">
-                <span>August 30, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Restoration</span>
-            <h2 class="blog-title"><a href="prayers/prayer-for-deep-rest-when-completely-exhausted-and-burned-out.html">What to Pray When You’re Completely Exhausted and Burned Out</a></h2>
-            <p class="blog-excerpt">When the weight of life feels unbearable, God invites us to lay it down. This guide offers scriptural comfort, a practical framework, and heartfelt prayers to restore your spirit.</p>
-            <div class="blog-meta">
-                <span>August 29, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Anxiety & Healing</span>
-            <h2 class="blog-title"><a href="prayers/how-to-overcome-overwhelming-anxiety-through-scripture.html">How to Overcome Overwhelming Anxiety Through Scripture</a></h2>
-            <p class="blog-excerpt">Anxiety can feel like a relentless storm, but God's Word offers a steady anchor. This guide blends theological insight with practical steps to bring lasting peace.</p>
-            <div class="blog-meta">
-                <span>August 29, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Inner Peace</span>
-            <h2 class="blog-title"><a href="prayers/prayer-for-peace-of-mind-and-clarity-in-chaos.html">Prayer for Peace of Mind and Clarity in Chaos</a></h2>
-            <p class="blog-excerpt">When the world feels like a storm, God's promise of peace can anchor the soul. This guide blends biblical truth with practical prayer steps to bring calm and clarity.</p>
-            <div class="blog-meta">
-                <span>August 28, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Crisis Solace & Divine Healing</span>
-            <h2 class="blog-title"><a href="prayers/finding-gods-peace-during-panic-attacks-biblical-hope.html">Finding God’s Peace During Panic Attacks: Biblical Hope</a></h2>
-            <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
-            <div class="blog-meta">
-                <span>Aug 28, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Executive Solace & Inner Peace</span>
-            <h2 class="blog-title"><a href="prayers/surrender-control-finding-peace-leadership-empty.html">Surrender Control: Finding Peace When Leadership Feels Empty</a></h2>
-            <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
-            <div class="blog-meta">
-                <span>Aug 28, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Crisis Solace & Divine Healing</span>
-            <h2 class="blog-title"><a href="prayers/finding-peace-heart-broken-hope-lost.html">Finding Peace When Your Heart Is Broken and Hope Feels Lost</a></h2>
-            <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
-            <div class="blog-meta">
-                <span>Aug 28, 2026</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
-        <article class="blog-card">
-            <span class="blog-badge">Executive Solace & Inner Peace</span>
-            <h2 class="blog-title"><a href="prayers/finding-true-rest-when-success-feels-empty.html">Finding True Rest When Success Feels Empty</a></h2>
-            <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
-            <div class="blog-meta">
-                <span>2026-08-28</span>
-                <span>•</span>
-                <span>6 min read</span>
-            </div>
-        </article>
-        
+
+  <div class="sacred-wallpaper"></div>
+
+  <main class="blogs-app-container">
+    <header class="blogs-header">
+      <div class="blogs-nav-row">
+        <a href="index.html" class="back-sanctuary-btn">🕊️ Sanctuary</a>
+        <button class="music-pill" id="blogMusicToggle" onclick="toggleBlogMusic()">🎵 Music: ON</button>
+      </div>
+      <div class="blogs-title-wrap">
+        <h1 class="blogs-main-title">SACRED DEVOTIONALS</h1>
+        <p class="blogs-sub-title">Scripture wisdom and peace for your walk</p>
+      </div>
+    </header>
+
+    <section class="blogs-feed" id="blogsFeed">
+      
+      <!-- ARTICLE 1 -->
+      <article class="blog-card" id="article1">
+        <span class="blog-tag">Overcoming Anxiety</span>
+        <h2 class="blog-heading">Stillness in the Midst of Life’s Storms</h2>
+        <div class="blog-body">
+          <p>When the weight of tomorrow presses heavily upon your heart, remember that peace is not the absence of trouble, but the presence of Christ. In the quiet moments before dawn, bring every racing thought before the altar of His grace.</p>
+          <p>You were never created to carry the burdens of the future alone. Lay down the need to understand every step, and trust the Hand that guides you through the valley.</p>
+          <p><em>“Peace I leave with you; my peace I give to you. Not as the world gives do I give to you. Let not your hearts be troubled, neither let them be afraid.” (John 14:27)</em></p>
         </div>
-    </div>
+        <div class="blog-actions-row">
+          <button class="listen-blog-btn" onclick="narrateBlogArticle(this, 'article1')">🔊 Listen</button>
+          <a href="index.html?prompt=Lord,%20grant%20me%20stillness%20in%20the%20midst%20of%20my%20storms." class="reflect-blog-btn">✝ Reflect in Sanctuary</a>
+        </div>
+      </article>
+
+      <!-- ARTICLE 2 -->
+      <article class="blog-card" id="article2">
+        <span class="blog-tag">Daily Strength</span>
+        <h2 class="blog-heading">When You Feel Weary and Depleted</h2>
+        <div class="blog-body">
+          <p>Human strength will always have its limits, but divine grace knows no exhaustion. When fatigue clouds your spirit and the walk feels long, pause and receive His quiet renewal.</p>
+          <p>Surrendering your exhaustion is not a sign of weakness; it is the doorway through which His supernatural strength enters your life.</p>
+          <p><em>“Come to me, all who labor and are heavy laden, and I will give you rest. Take my yoke upon you, and learn from me, for I am gentle and lowly in heart.” (Matthew 11:28-29)</em></p>
+        </div>
+        <div class="blog-actions-row">
+          <button class="listen-blog-btn" onclick="narrateBlogArticle(this, 'article2')">🔊 Listen</button>
+          <a href="index.html?prompt=Lord,%20renew%20my%20strength%20today,%20for%20I%20am%20weary." class="reflect-blog-btn">✝ Reflect in Sanctuary</a>
+        </div>
+      </article>
+
+      <!-- ARTICLE 3 -->
+      <article class="blog-card" id="article3">
+        <span class="blog-tag">Trust & Provision</span>
+        <h2 class="blog-heading">Releasing Financial Fear into God’s Hands</h2>
+        <div class="blog-body">
+          <p>Financial anxiety often whispers that you are forgotten. Yet the Scriptures remind us that the One who clothes the lilies of the field and feeds the birds of the air watches over every detail of your livelihood.</p>
+          <p>Shift your eyes from the scarcity of the moment to the abundance of His faithfulness. He will provide the bread for today and the mercy for tomorrow.</p>
+          <p><em>“And my God will supply every need of yours according to his riches in glory in Christ Jesus.” (Philippians 4:19)</em></p>
+        </div>
+        <div class="blog-actions-row">
+          <button class="listen-blog-btn" onclick="narrateBlogArticle(this, 'article3')">🔊 Listen</button>
+          <a href="index.html?prompt=Lord,%20I%20surrender%20my%20financial%20worries%20and%20trust%20Your%20provision." class="reflect-blog-btn">✝ Reflect in Sanctuary</a>
+        </div>
+      </article>
+
+    </section>
+  </main>
+
+  <script>
+    /* BLOG AMBIENT AUDIO ENGINE */
+    const blogMusicAudio = new Audio('blog-ambient.mp3');
+    blogMusicAudio.loop = true;
+    blogMusicAudio.volume = 0.22;
+    let isBlogMusicEnabled = localStorage.getItem("jesus_blog_music_enabled") !== "false";
+
+    function toggleBlogMusic() {
+      isBlogMusicEnabled = !isBlogMusicEnabled;
+      localStorage.setItem("jesus_blog_music_enabled", isBlogMusicEnabled);
+      updateBlogMusicUI();
+      if (!isBlogMusicEnabled) {
+        stopBlogMusic();
+      }
+    }
+
+    function updateBlogMusicUI() {
+      const btn = document.getElementById("blogMusicToggle");
+      if (btn) {
+        if (isBlogMusicEnabled) {
+          btn.innerHTML = "🎵 Music: ON";
+          btn.classList.remove("off");
+        } else {
+          btn.innerHTML = "🔇 Music: OFF";
+          btn.classList.add("off");
+        }
+      }
+    }
+
+    function startBlogMusic() {
+      if (!isBlogMusicEnabled) return;
+      try {
+        blogMusicAudio.currentTime = 0;
+        blogMusicAudio.volume = 0.22;
+        const playPromise = blogMusicAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => console.log("Blog audio autoplay note:", e));
+        }
+      } catch (e) {
+        console.log("Audio play error:", e);
+      }
+    }
+
+    function stopBlogMusic() {
+      try {
+        blogMusicAudio.pause();
+        blogMusicAudio.currentTime = 0;
+      } catch (e) {
+        console.log("Audio pause error:", e);
+      }
+    }
+
+    /* SCRIPTURE CADENCE PREPROCESSOR */
+    function preprocessBlogText(rawText) {
+      if (!rawText) return "";
+      let text = rawText;
+      text = text.replace(/<[^>]*>/g, ' ');
+      text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
+
+      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (match, book, chapter, verse) => {
+        return `... ${book.trim()}, chapter ${chapter}, verse ${verse}. ... `;
+      });
+
+      text = text.replace(/[—–]/g, ', ');
+      text = text.replace(/”|"/g, ' ... ');
+      text = text.replace(/“/g, ' ');
+      text = text.replace(/\.\s+/g, '. ... ');
+      text = text.replace(/;\s+/g, '; ... ');
+      text = text.replace(/:\s+/g, ': ... ');
+      text = text.replace(/\s+/g, ' ').trim();
+      return text;
+    }
+
+    /* BARITONE VOICE SELECTION */
+    let availableVoices = [];
+    function populateVoices() {
+      if ('speechSynthesis' in window) {
+        availableVoices = speechSynthesis.getVoices();
+      }
+    }
+    populateVoices();
+    if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = populateVoices;
+    }
+
+    function getSacredVoice() {
+      if (!availableVoices || availableVoices.length === 0) populateVoices();
+      const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
+      const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
+
+      const danielVoice = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us'));
+      });
+      if (danielVoice) return danielVoice;
+
+      const appleMale = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi')) && !id.includes('female');
+      });
+      if (appleMale) return appleMale;
+
+      const androidMale = englishVoices.find(v => {
+        const id = getIdentifier(v);
+        return id.includes('google uk english male') || id.includes('google us english male') || id.includes('male');
+      });
+      if (androidMale) return androidMale;
+
+      return englishVoices[0] || availableVoices[0] || null;
+    }
+
+    /* LONG-FORM SEQUENTIAL PARAGRAPH QUEUE ENGINE */
+    let activeUtterance = null;
+    let currentlyPlayingBtn = null;
+    let blogSyncInterval = null;
+
+    function stopAllBlogAudio() {
+      if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+      }
+      stopBlogMusic();
+      if (blogSyncInterval) clearInterval(blogSyncInterval);
+      if (currentlyPlayingBtn) {
+        currentlyPlayingBtn.innerHTML = "🔊 Listen";
+        currentlyPlayingBtn = null;
+      }
+    }
+
+    function narrateBlogArticle(btn, articleId) {
+      if (!('speechSynthesis' in window)) {
+        alert("Audio speech is not supported on this browser.");
+        return;
+      }
+
+      if (currentlyPlayingBtn === btn && speechSynthesis.speaking) {
+        stopAllBlogAudio();
+        return;
+      }
+
+      stopAllBlogAudio();
+
+      const articleEl = document.getElementById(articleId);
+      const paragraphs = Array.from(articleEl.querySelectorAll('.blog-heading, .blog-body p'));
+      const textChunks = paragraphs.map(p => preprocessBlogText(p.textContent || p.innerText)).filter(t => t.length > 0);
+
+      if (textChunks.length === 0) return;
+
+      currentlyPlayingBtn = btn;
+      btn.innerHTML = "⏸ Pause";
+      startBlogMusic();
+
+      let chunkIndex = 0;
+
+      function speakNextChunk() {
+        if (chunkIndex >= textChunks.length) {
+          stopAllBlogAudio();
+          return;
+        }
+
+        activeUtterance = new SpeechSynthesisUtterance(textChunks[chunkIndex]);
+        const voice = getSacredVoice();
+        if (voice) {
+          activeUtterance.voice = voice;
+          activeUtterance.lang = voice.lang || 'en-US';
+        }
+        activeUtterance.rate = 0.84;
+        activeUtterance.pitch = 0.78;
+
+        activeUtterance.onend = () => {
+          chunkIndex++;
+          speakNextChunk();
+        };
+
+        activeUtterance.onerror = () => {
+          stopAllBlogAudio();
+        };
+
+        speechSynthesis.speak(activeUtterance);
+      }
+
+      blogSyncInterval = setInterval(() => {
+        if (!speechSynthesis.speaking && chunkIndex >= textChunks.length) {
+          stopAllBlogAudio();
+        }
+      }, 300);
+
+      speakNextChunk();
+    }
+
+    document.addEventListener("visibilitychange", function() {
+      if (document.hidden) stopAllBlogAudio();
+    });
+
+    window.onload = function() {
+      updateBlogMusicUI();
+    };
+  </script>
 </body>
 </html>
