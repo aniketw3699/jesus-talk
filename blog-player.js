@@ -1,21 +1,20 @@
 /* DYNAMIC PODCAST & AUDIOBOOK PLAYER INJECTOR */
 (function() {
   window.addEventListener('DOMContentLoaded', () => {
-    // 1. Wrap article paragraphs in sensory blocks for sentence-by-sentence highlighting
-    const articleBody = document.querySelector('.blog-content') || document.querySelector('main') || document.querySelector('.container');
-    if (articleBody) {
-      const children = Array.from(articleBody.children);
-      children.forEach(el => {
-        if (['P', 'H2', 'H3', 'BLOCKQUOTE'].includes(el.tagName) && !el.classList.contains('sensory-block')) {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'sensory-block';
-          el.parentNode.insertBefore(wrapper, el);
-          wrapper.appendChild(el);
-        }
-      });
-    }
+    // 1. Wrap all readable article text elements in sensory blocks for highlighting
+    const selectors = 'h1, .sec-h2, .body-p, .verse-text, .step-h3, .step-p, .prayer-h3, .prayer-body, .faq-q, .faq-a';
+    const textElements = document.querySelectorAll(selectors);
+    
+    textElements.forEach(el => {
+      if (!el.closest('.sensory-block')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'sensory-block';
+        el.parentNode.insertBefore(wrapper, el);
+        wrapper.appendChild(el);
+      }
+    });
 
-    // 2. Inject CSS Styles for the Player and Highlighting
+    // 2. Inject CSS Styles for Player & Highlighting
     const style = document.createElement('style');
     style.innerHTML = `
       .sensory-block {
@@ -70,7 +69,7 @@
     document.body.appendChild(container);
   });
 
-  // 4. Audiobook Narration, Music, and Highlighting Engine
+  // 4. Audiobook Narration & Ambient Music Engine
   const blogMusicAudio = new Audio('../blog-ambient.mp3');
   blogMusicAudio.loop = true;
   blogMusicAudio.volume = 0.22;
@@ -106,7 +105,7 @@
 
     const btn = document.getElementById("podPlayBtn");
     const status = document.getElementById("podStatus");
-    blockElements = Array.from(document.querySelectorAll('.sensory-block'));
+    blockElements = Array.from(document.querySelectorAll('.sensory-block')).filter(el => (el.textContent || '').trim().length > 0);
 
     if (isPlaying) {
       speechSynthesis.cancel();
@@ -115,6 +114,11 @@
       if (btn) btn.innerHTML = "▶ Play Audio";
       if (status) status.textContent = "Paused";
       blockElements.forEach(el => el.classList.remove('active-speech'));
+      return;
+    }
+
+    if (blockElements.length === 0) {
+      alert("No readable text found for audio.");
       return;
     }
 
@@ -143,11 +147,18 @@
     currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     const textToRead = preprocessText(currentEl.textContent || currentEl.innerText);
+    if (!textToRead) {
+      currentBlockIndex++;
+      speakBlock(currentBlockIndex);
+      return;
+    }
+
     activeUtterance = new SpeechSynthesisUtterance(textToRead);
     
     const voice = getSacredVoice();
     if (voice) activeUtterance.voice = voice;
     activeUtterance.rate = 0.84;
+    activeWriterPitch = 0.78;
     activeUtterance.pitch = 0.78;
 
     activeUtterance.onend = () => {
