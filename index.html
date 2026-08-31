@@ -25,7 +25,7 @@
   <link rel="canonical" href="https://jesus-chat-bd89f.web.app" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Firebase SDKs with Firestore Cloud Sync -->
@@ -154,6 +154,32 @@
     }
     .subtitle-grace { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; color: #4b4539; margin-top: 1px; }
 
+    /* Time-Aware Daily Ritual Banner (Phase 3 Habit Loop) */
+    .ritual-banner-strip {
+      margin: 4px 12px 0 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #faf3e2 100%);
+      border: 1px solid var(--gold-border);
+      border-radius: 14px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 3px 10px rgba(143, 101, 28, 0.08);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+    .ritual-banner-strip:hover { transform: translateY(-1px); }
+    .ritual-left-info { display: flex; align-items: center; gap: 8px; }
+    .ritual-icon { font-size: 18px; }
+    .ritual-title { font-size: 12px; font-weight: 700; color: #231b0c; }
+    .ritual-desc { font-size: 11px; color: var(--text-muted); }
+    .ritual-action-tag {
+      font-size: 10.5px; font-weight: 800; color: var(--gold-deep);
+      background: #ffffff; border: 1px solid var(--gold-border);
+      padding: 3px 8px; border-radius: 12px; white-space: nowrap;
+    }
+
     /* Conversation Feed */
     .conversation-feed {
       flex: 1; overflow-y: auto; padding: 14px 12px;
@@ -228,6 +254,7 @@
     @keyframes doveHover { 0% { transform: translateY(2px) scale(0.95) rotate(-3deg); } 100% { transform: translateY(-4px) scale(1.1) rotate(4deg); } }
     .thinking-text { font-size: 13px; font-style: italic; color: var(--gold-deep); font-family: 'Playfair Display', serif; }
 
+    /* Named Spiritual Mode Chips */
     .chips-deck {
       padding: 4px 12px 6px 12px; display: flex; gap: 8px; overflow-x: auto;
       -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-snap-type: x proximity; flex-shrink: 0;
@@ -328,12 +355,6 @@
       border-color: var(--gold-deep);
       background: #fdfaf2;
       transform: translateY(-1px);
-    }
-
-    .quiz-option-card.selected {
-      border: 2px solid var(--gold-deep);
-      background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%);
-      color: #191f28;
     }
 
     .quiz-progress-dots {
@@ -460,7 +481,7 @@
     }
     .privacy-notice-box p + p { margin-top: 10px; }
 
-    /* High-Converting Ministry & Plans Deck */
+    /* Plans Deck */
     .plans-grid { 
       display: flex; 
       flex-direction: column; 
@@ -510,18 +531,6 @@
       align-items: center;
       gap: 4px;
       box-shadow: 0 3px 10px rgba(184, 134, 40, 0.4);
-      animation: bestValueFlicker 2.2s infinite ease-in-out;
-    }
-
-    @keyframes bestValueFlicker {
-      0%, 100% {
-        box-shadow: 0 0 10px rgba(223, 180, 85, 0.6), 0 0 20px rgba(184, 134, 40, 0.3);
-        transform: scale(1);
-      }
-      50% {
-        box-shadow: 0 0 18px rgba(223, 180, 85, 0.95), 0 0 28px rgba(184, 134, 40, 0.6);
-        transform: scale(1.05);
-      }
     }
 
     .save-tag-pill {
@@ -536,12 +545,6 @@
       display: inline-block;
       margin-left: 6px;
       vertical-align: middle;
-      animation: saveTagPulse 2s infinite ease-in-out;
-    }
-
-    @keyframes saveTagPulse {
-      0%, 100% { opacity: 0.9; }
-      50% { opacity: 1; transform: scale(1.06); }
     }
 
     .plan-left-wrap {
@@ -593,9 +596,7 @@
       margin-top: 3px; 
     }
 
-    .plan-price {
-      text-align: right;
-    }
+    .plan-price { text-align: right; }
     .plan-price .amount { 
       font-size: 17.5px; 
       font-weight: 800; 
@@ -620,36 +621,13 @@
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 6px 20px rgba(184, 134, 40, 0.35);
-      position: relative;
-      overflow: hidden;
       transition: transform 0.2s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
     }
-
-    .billing-checkout-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(184, 134, 40, 0.45);
-    }
-
-    .billing-checkout-btn::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -60%;
-      width: 40%;
-      height: 200%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-      transform: rotate(30deg);
-      animation: sweepGleam 3.5s infinite ease-in-out;
-    }
-
-    @keyframes sweepGleam {
-      0% { left: -70%; }
-      30%, 100% { left: 130%; }
-    }
+    .billing-checkout-btn:hover { transform: translateY(-2px); }
 
     .billing-trust-caption {
       text-align: center;
@@ -662,7 +640,7 @@
       gap: 5px;
     }
 
-    /* 4:5 Portrait Scripture Card Modal Preview */
+    /* 4:5 Scripture Card Modal Preview */
     .scripture-card-canvas {
       width: 100%; 
       max-width: 320px; 
@@ -677,8 +655,6 @@
       overflow: hidden;
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45); 
       border: 1px solid rgba(212, 175, 55, 0.6);
-      -webkit-font-smoothing: antialiased; 
-      text-rendering: optimizeLegibility;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -767,6 +743,18 @@
       </div>
     </header>
 
+    <!-- DYNAMIC DAILY RITUAL WIDGET (HABIT LOOP) -->
+    <div class="ritual-banner-strip" id="dailyRitualBanner" onclick="triggerDailyRitual()">
+      <div class="ritual-left-info">
+        <span class="ritual-icon" id="ritualIcon">🌅</span>
+        <div>
+          <div class="ritual-title" id="ritualTitle">Morning Bread & Awakening</div>
+          <div class="ritual-desc" id="ritualDesc">Receive peace and clarity for today's walk.</div>
+        </div>
+      </div>
+      <span class="ritual-action-tag">Start 2m Ritual →</span>
+    </div>
+
     <section class="conversation-feed" id="chatFeed">
       <div class="thinking-box" id="thinkingIndicator">
         <span class="holy-spirit-dove">🕊️</span>
@@ -774,17 +762,16 @@
       </div>
     </section>
 
+    <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
-      <button class="chip-btn" onclick="sendQuickPrompt('Lord, grant me peace in my heart today.')">🕊️ Seek Peace</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('I feel anxious about tomorrow. Help me.')">📖 Overcome Anxiety</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('Give me strength to endure this trial.')">🙏 Divine Strength</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('My heart is heavy with grief and loss.')">💔 Grief & Loss</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, I start my morning with you. Grant me peace and divine clarity.')">🌅 Morning Bread</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, calm the storms and racing thoughts in my mind right now.')">🕊️ Seek Peace</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, as evening comes, I surrender every stress and debt into your hands.')">🌙 Evening Examen</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, my heart is heavy with grief and loss. Draw near and comfort me.')">💔 Grief & Loss</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lord, teach me what scripture reveals about finding divine purpose.')">📜 Deep Bible Study</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Teach me how to forgive those who hurt me.')">🤝 Forgiving Others</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('I am burdened by financial worry and needs.')">💼 Financial Burden</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('Lord, show me your path and life direction.')">🧭 Life Direction</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('I thank you for your boundless grace today.')"><span class="holy-cross-icon">✝</span> Daily Gratitude</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('Lay your healing hands upon my body and spirit.')">🌿 Physical Healing</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('Help my unbelief and strengthen my faith.')">🛡️ Overcome Doubt</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('I am burdened by financial worry and need your promised provision.')">💼 Financial Peace</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Lay your healing hands upon my body and emotional spirit.')">🌿 Healing & Grace</button>
       <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
       <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='blogs.html'">📜 Sacred Blogs</button>
     </div>
@@ -1177,29 +1164,73 @@
       }
     }
 
-    /* SCRIPTURE CADENCE & PAUSE PREPROCESSOR */
+    /* DYNAMIC DAILY RITUAL WIDGET UPDATER */
+    function updateDailyRitualWidget() {
+      const hour = new Date().getHours();
+      const icon = document.getElementById("ritualIcon");
+      const title = document.getElementById("ritualTitle");
+      const desc = document.getElementById("ritualDesc");
+      if (!icon || !title || !desc) return;
+
+      if (hour >= 4 && hour < 12) {
+        icon.textContent = "🌅";
+        title.textContent = "Morning Bread & Awakening";
+        desc.textContent = "Receive peace and clarity for today's walk.";
+      } else if (hour >= 12 && hour < 18) {
+        icon.textContent = "☀️";
+        title.textContent = "Midday Manna & Restoration";
+        desc.textContent = "Pause, breathe, and release midday fatigue.";
+      } else {
+        icon.textContent = "🌙";
+        title.textContent = "Evening Examen & Restful Sleep";
+        desc.textContent = "Release heavy thoughts into His safe keeping.";
+      }
+    }
+
+    function triggerDailyRitual() {
+      const hour = new Date().getHours();
+      if (hour >= 4 && hour < 12) {
+        sendQuickPrompt("Lord Jesus, I start my morning with you. Guide my steps, grant me focus, and fill me with your peace. (Lamentations 3:22-23)");
+      } else if (hour >= 12 && hour < 18) {
+        sendQuickPrompt("Lord Jesus, I pause in the middle of this day. Renew my strength where I am tired. (Matthew 11:28)");
+      } else {
+        sendQuickPrompt("Lord Jesus, as night comes, I surrender my worries and anxieties into your hands so I may sleep in peace. (Psalm 4:8)");
+      }
+    }
+
+    /* BULLETPROOF SCRIPTURE CADENCE PREPROCESSOR */
     function preprocessTextForSpeech(rawText) {
       if (!rawText) return "";
       let text = rawText;
       text = text.replace(/<[^>]*>/g, ' ');
       text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
 
-      // Convert references like (Matthew 11:28) into rhythmic pauses: "... Matthew, chapter 11, verse 28. ... "
-      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (match, book, chapter, verse) => {
-        return `... ${book.trim()}, chapter ${chapter}, verse ${verse}. ... `;
-      });
+      // Normalize unicode hyphens/dashes
+      text = text.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D—–]/g, '-');
 
-      text = text.replace(/[—–]/g, ', ');
-      text = text.replace(/”|"/g, ' ... ');
-      text = text.replace(/“/g, ' ');
+      // Remove Greek/Hebrew text inside brackets
+      text = text.replace(/\([^\x00-\x7F]+\)/g, '');
+
+      // Convert book prefixes
+      text = text.replace(/\b1\s+([A-Za-z]+)/g, 'First $1');
+      text = text.replace(/\b2\s+([A-Za-z]+)/g, 'Second $1');
+      text = text.replace(/\b3\s+([A-Za-z]+)/g, 'Third $1');
+
+      // Convert Chapter:Verse-Ranges e.g. "6:25-34" -> "chapter 6, verses 25 to 34"
+      text = text.replace(/(\d+)[:\.](\d+)\s*-\s*(\d+)/g, 'chapter $1, verses $2 to $3');
+
+      // Convert Single Chapter:Verse e.g. "11:28" -> "chapter 11, verse 28"
+      text = text.replace(/(\d+)[:\.](\d+)/g, 'chapter $1, verse $2');
+
+      // Add rhythmic pauses
+      text = text.replace(/[\(\)\[\]"“”—–]/g, ' ... ');
       text = text.replace(/\.\s+/g, '. ... ');
       text = text.replace(/;\s+/g, '; ... ');
       text = text.replace(/:\s+/g, ': ... ');
-      text = text.replace(/\s+/g, ' ').trim();
-      return text;
+      return text.replace(/\s+/g, ' ').trim();
     }
 
-    /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR INSTANT NATIVE SHARING */
+    /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR NATIVE SHARING */
     const preloadedJesusImg = new Image();
     preloadedJesusImg.crossOrigin = "anonymous";
     preloadedJesusImg.src = "card-bg.png";
@@ -1253,7 +1284,7 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
-      // 1. Strict Apple Daniel (Exact cross-platform parity for iOS & macOS)
+      // 1. Apple Daniel (Exact cross-platform parity for iOS & macOS)
       const danielVoice = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us') || id.includes('en_us'));
@@ -1291,6 +1322,7 @@
       startTimeSlotLiveWatcher();
       checkAndShowIntakeQuiz();
       updateMusicToggleUI();
+      updateDailyRitualWidget();
     };
 
     document.addEventListener("visibilitychange", function() {
@@ -1471,8 +1503,6 @@
             document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
 
             const hasRestoredSession = restoreActiveChatSession();
-
-            // Clear any banner artifacts from restored history
             document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
 
             if (pendingPrompt) {
@@ -1746,6 +1776,7 @@
         if (lastSeenSlot !== slotKey) {
           checkAndTriggerTimeAwareBlessing(false);
         }
+        updateDailyRitualWidget();
       }, 15000);
     }
 
@@ -1928,7 +1959,7 @@
       if (sessions.length === 0) {
         journalEntriesList.innerHTML = `<p style="text-align:center; color:#888; font-size:13px; padding:20px 0;">No past conversations yet. Speak your heart to Jesus to begin your journal.</p>`;
       } else {
-        journalEntriesList.innerHTML = sessions.map((session, index) => `
+        journalEntriesList.innerHTML = sessions.map((session) => `
           ${session.showDivider ? `
             <div class="journal-date-divider">
               <span class="journal-date-pill">${escapeHtml(session.sessionTime)}</span>
@@ -2213,17 +2244,15 @@
         currentUtterance.lang = 'en-US';
       }
 
-      currentUtterance.rate = 0.84;
-      currentUtterance.pitch = 0.78;
+      currentUtterance.rate = 0.82;
+      currentUtterance.pitch = 0.80;
 
       btn.innerHTML = "⏸ Pause";
 
-      // Synchronize music start exactly when spoken voice starts
       currentUtterance.onstart = () => {
         startSacredMusic();
       };
 
-      // Synchronize music stop exactly when spoken voice ends
       const cleanupVoiceAndMusic = () => {
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         stopSacredMusic();
@@ -2233,7 +2262,6 @@
       currentUtterance.onend = cleanupVoiceAndMusic;
       currentUtterance.onerror = cleanupVoiceAndMusic;
 
-      // Realtime polling watcher for mobile browsers
       voiceSyncInterval = setInterval(() => {
         if (!speechSynthesis.speaking) {
           cleanupVoiceAndMusic();
@@ -2256,7 +2284,7 @@
       shareCardModal.style.display = "none";
     }
 
-    /* 4:5 HIGH-IMPACT INSTAGRAM PORTRAIT CANVAS GENERATOR (1080 x 1350) */
+    /* 4:5 PORTRAIT CANVAS GENERATOR (1080 x 1350) */
     function drawDirectSacredCard(rawText) {
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
