@@ -5,8 +5,7 @@ from datetime import datetime, timezone, timedelta
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv()
-
+load_dotenv(dotenv_path="./jesus-talk-api/.env")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("Missing GROQ_API_KEY environment variable.")

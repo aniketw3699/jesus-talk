@@ -29,39 +29,15 @@
             padding: 40px 16px 80px;
         }
         .container { max-width: 900px; margin: 0 auto; }
-        
-        .nav-top {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 32px;
-        }
-        .back-home { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; font-weight: 500; }
-        .music-pill {
-            background: #18181b; border: 1px solid rgba(226, 183, 100, 0.3); color: var(--gold);
-            font-size: 12px; font-weight: 700; padding: 6px 14px; border-radius: 20px;
-            cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
-        }
-        .music-pill.off { opacity: 0.55; border-color: var(--border); color: var(--text-secondary); }
-
         .header { text-align: center; margin-bottom: 56px; }
         .header h1 { font-family: 'Cinzel', serif; font-size: clamp(32px, 5vw, 44px); color: #fff; margin-bottom: 12px; }
         .header p { color: var(--text-secondary); font-size: 16px; max-width: 540px; margin: 0 auto; }
-        
+        .back-home { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; margin-bottom: 32px; font-weight: 500; }
         .blogs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 24px; }
         @media (max-width: 600px) { .blogs-grid { grid-template-columns: 1fr; } }
-        
         .blog-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: transform 0.2s, border-color 0.2s; display: flex; flex-direction: column; }
         .blog-card:hover { transform: translateY(-3px); border-color: rgba(226, 183, 100, 0.4); }
-        .blog-card.active-article { border-color: var(--gold); background: var(--gold-glow); }
-
-        .card-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .blog-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--gold-glow); color: var(--gold); font-size: 11px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(226, 183, 100, 0.2); }
-        .listen-article-btn {
-            background: transparent; border: 1px solid rgba(226, 183, 100, 0.35); color: var(--gold);
-            font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 12px; cursor: pointer;
-            transition: all 0.2s;
-        }
-        .listen-article-btn:hover { background: var(--gold); color: #000; }
-
+        .blog-badge { display: inline-block; align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: var(--gold-glow); color: var(--gold); font-size: 11px; font-weight: 600; text-transform: uppercase; margin-bottom: 16px; border: 1px solid rgba(226, 183, 100, 0.2); }
         .blog-title { font-family: 'Cinzel', serif; font-size: 20px; line-height: 1.35; margin-bottom: 12px; }
         .blog-title a { color: #fff; text-decoration: none; transition: color 0.2s; }
         .blog-title a:hover { color: var(--gold); }
@@ -71,23 +47,26 @@
 </head>
 <body>
     <div class="container">
-        <div class="nav-top">
-            <a href="index.html" class="back-home">← Return to Sacred Sanctuary</a>
-            <button class="music-pill" id="blogMusicToggle" onclick="toggleBlogMusic()">🎵 Music: ON</button>
-        </div>
-
+        <a href="index.html" class="back-home">← Return to Sacred Sanctuary</a>
         <header class="header">
             <h1>Sacred Prayer Archive</h1>
             <p>Biblical reflections, heartfelt prayers, and scripture wisdom for life's deepest trials.</p>
         </header>
-
         <div class="blogs-grid">
             
-        <article class="blog-card" id="blogCard_0">
-            <div class="card-top-row">
-                <span class="blog-badge">Forgiveness & Freedom</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_0')">🔊 Listen</button>
+        <article class="blog-card">
+            <span class="blog-badge">Night Prayers</span>
+            <h2 class="blog-title"><a href="prayers/night-prayer-for-restful-sleep-and-releasing-heavy-thoughts.html">Night Prayer for Restful Sleep & Releasing Heavy Thoughts</a></h2>
+            <p class="blog-excerpt">Struggling to quiet a racing mind before bed? This guide blends Scripture, practical steps, and heartfelt prayers to help you lay down heavy thoughts and rest in God’s peace.</p>
+            <div class="blog-meta">
+                <span>August 31, 2026</span>
+                <span>•</span>
+                <span>6 min read</span>
             </div>
+        </article>
+        
+        <article class="blog-card">
+            <span class="blog-badge">Forgiveness & Freedom</span>
             <h2 class="blog-title"><a href="prayers/how-to-forgive-someone-who-deeply-hurt-you.html">How to Forgive Someone Who Deeply Hurt You When It Feels Impossible</a></h2>
             <p class="blog-excerpt">When betrayal cuts deep, forgiveness can seem unreachable. This guide offers biblical wisdom, practical steps, and prayers to help you experience true freedom.</p>
             <div class="blog-meta">
@@ -97,11 +76,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_1">
-            <div class="card-top-row">
-                <span class="blog-badge">Financial Peace</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_1')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Financial Peace</span>
             <h2 class="blog-title"><a href="prayers/prayer-for-financial-breakthrough-and-release-from-debt-anxiety.html">A Powerful Prayer for Financial Breakthrough and Release from Debt Anxiety</a></h2>
             <p class="blog-excerpt">Feel trapped by debt? This guide blends Scripture, a three‑step spiritual framework, and heartfelt prayers to help you experience God’s promised provision and lasting peace.</p>
             <div class="blog-meta">
@@ -111,11 +87,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_2">
-            <div class="card-top-row">
-                <span class="blog-badge">Purpose & Direction</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_2')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Purpose & Direction</span>
             <h2 class="blog-title"><a href="prayers/finding-divine-purpose-when-feeling-lost-and-uncertain.html">Finding Divine Purpose When You Feel Lost and Uncertain</a></h2>
             <p class="blog-excerpt">When life feels directionless, the heart longs for a deeper meaning. This guide offers biblical insight, practical steps, and prayerful comfort to help you discover God’s purpose.</p>
             <div class="blog-meta">
@@ -125,11 +98,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_3">
-            <div class="card-top-row">
-                <span class="blog-badge">Restoration</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_3')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Restoration</span>
             <h2 class="blog-title"><a href="prayers/prayer-for-deep-rest-when-completely-exhausted-and-burned-out.html">What to Pray When You’re Completely Exhausted and Burned Out</a></h2>
             <p class="blog-excerpt">When the weight of life feels unbearable, God invites us to lay it down. This guide offers scriptural comfort, a practical framework, and heartfelt prayers to restore your spirit.</p>
             <div class="blog-meta">
@@ -139,11 +109,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_4">
-            <div class="card-top-row">
-                <span class="blog-badge">Anxiety & Healing</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_4')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Anxiety & Healing</span>
             <h2 class="blog-title"><a href="prayers/how-to-overcome-overwhelming-anxiety-through-scripture.html">How to Overcome Overwhelming Anxiety Through Scripture</a></h2>
             <p class="blog-excerpt">Anxiety can feel like a relentless storm, but God's Word offers a steady anchor. This guide blends theological insight with practical steps to bring lasting peace.</p>
             <div class="blog-meta">
@@ -153,11 +120,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_5">
-            <div class="card-top-row">
-                <span class="blog-badge">Inner Peace</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_5')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Inner Peace</span>
             <h2 class="blog-title"><a href="prayers/prayer-for-peace-of-mind-and-clarity-in-chaos.html">Prayer for Peace of Mind and Clarity in Chaos</a></h2>
             <p class="blog-excerpt">When the world feels like a storm, God's promise of peace can anchor the soul. This guide blends biblical truth with practical prayer steps to bring calm and clarity.</p>
             <div class="blog-meta">
@@ -167,11 +131,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_6">
-            <div class="card-top-row">
-                <span class="blog-badge">Crisis Solace & Divine Healing</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_6')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Crisis Solace & Divine Healing</span>
             <h2 class="blog-title"><a href="prayers/finding-gods-peace-during-panic-attacks-biblical-hope.html">Finding God’s Peace During Panic Attacks: Biblical Hope</a></h2>
             <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
             <div class="blog-meta">
@@ -181,11 +142,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_7">
-            <div class="card-top-row">
-                <span class="blog-badge">Executive Solace & Inner Peace</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_7')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Executive Solace & Inner Peace</span>
             <h2 class="blog-title"><a href="prayers/surrender-control-finding-peace-leadership-empty.html">Surrender Control: Finding Peace When Leadership Feels Empty</a></h2>
             <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
             <div class="blog-meta">
@@ -195,11 +153,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_8">
-            <div class="card-top-row">
-                <span class="blog-badge">Crisis Solace & Divine Healing</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_8')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Crisis Solace & Divine Healing</span>
             <h2 class="blog-title"><a href="prayers/finding-peace-heart-broken-hope-lost.html">Finding Peace When Your Heart Is Broken and Hope Feels Lost</a></h2>
             <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
             <div class="blog-meta">
@@ -209,11 +164,8 @@
             </div>
         </article>
         
-        <article class="blog-card" id="blogCard_9">
-            <div class="card-top-row">
-                <span class="blog-badge">Executive Solace & Inner Peace</span>
-                <button class="listen-article-btn" onclick="narrateBlogCard(this, 'blogCard_9')">🔊 Listen</button>
-            </div>
+        <article class="blog-card">
+            <span class="blog-badge">Executive Solace & Inner Peace</span>
             <h2 class="blog-title"><a href="prayers/finding-true-rest-when-success-feels-empty.html">Finding True Rest When Success Feels Empty</a></h2>
             <p class="blog-excerpt">A biblical prayer guide and spiritual reflection.</p>
             <div class="blog-meta">
@@ -225,139 +177,5 @@
         
         </div>
     </div>
-
-    <script>
-      /* DEDICATED BLOG AMBIENT AUDIO (blog-ambient.mp3) */
-      const blogMusicAudio = new Audio('blog-ambient.mp3');
-      blogMusicAudio.loop = true;
-      blogMusicAudio.volume = 0.22;
-      let isBlogMusicEnabled = localStorage.getItem("jesus_blog_music_enabled") !== "false";
-
-      function toggleBlogMusic() {
-        isBlogMusicEnabled = !isBlogMusicEnabled;
-        localStorage.setItem("jesus_blog_music_enabled", isBlogMusicEnabled);
-        updateBlogMusicUI();
-        if (!isBlogMusicEnabled) stopBlogMusic();
-      }
-
-      function updateBlogMusicUI() {
-        const btn = document.getElementById("blogMusicToggle");
-        if (btn) {
-          btn.innerHTML = isBlogMusicEnabled ? "🎵 Music: ON" : "🔇 Music: OFF";
-          btn.classList.toggle("off", !isBlogMusicEnabled);
-        }
-      }
-
-      function startBlogMusic() {
-        if (!isBlogMusicEnabled) return;
-        try {
-          blogMusicAudio.currentTime = 0;
-          blogMusicAudio.volume = 0.22;
-          blogMusicAudio.play().catch(e => console.log("Audio play note:", e));
-        } catch (e) {}
-      }
-
-      function stopBlogMusic() {
-        try {
-          blogMusicAudio.pause();
-          blogMusicAudio.currentTime = 0;
-        } catch (e) {}
-      }
-
-      /* SCRIPTURE CADENCE & PAUSE PREPROCESSOR */
-      function preprocessBlogText(rawText) {
-        if (!rawText) return "";
-        let text = rawText.replace(/<[^>]*>/g, ' ');
-        text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
-        text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (m, b, c, v) => `... ${b.trim()}, chapter ${c}, verse ${v}. ... `);
-        text = text.replace(/[—–]/g, ', ').replace(/”|"/g, ' ... ').replace(/“/g, ' ');
-        text = text.replace(/\.\s+/g, '. ... ').replace(/;\s+/g, '; ... ').replace(/:\s+/g, ': ... ');
-        return text.replace(/\s+/g, ' ').trim();
-      }
-
-      /* BARITONE VOICE SELECTION (DANIEL PRIORITY) */
-      let availableVoices = [];
-      function populateVoices() {
-        if ('speechSynthesis' in window) availableVoices = speechSynthesis.getVoices();
-      }
-      populateVoices();
-      if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = populateVoices;
-      }
-
-      function getSacredVoice() {
-        if (!availableVoices || availableVoices.length === 0) populateVoices();
-        const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
-        const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
-
-        const danielVoice = englishVoices.find(v => {
-          const id = getIdentifier(v);
-          return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us'));
-        });
-        if (danielVoice) return danielVoice;
-
-        const appleMale = englishVoices.find(v => {
-          const id = getIdentifier(v);
-          return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi')) && !id.includes('female');
-        });
-        if (appleMale) return appleMale;
-
-        const androidMale = englishVoices.find(v => {
-          const id = getIdentifier(v);
-          return id.includes('google uk english male') || id.includes('google us english male') || id.includes('male');
-        });
-        if (androidMale) return androidMale;
-
-        return englishVoices[0] || availableVoices[0] || null;
-      }
-
-      let activeUtterance = null;
-      let currentlyPlayingBtn = null;
-
-      function stopAllBlogAudio() {
-        if ('speechSynthesis' in window) speechSynthesis.cancel();
-        stopBlogMusic();
-        document.querySelectorAll('.blog-card').forEach(c => c.classList.remove('active-article'));
-        if (currentlyPlayingBtn) {
-          currentlyPlayingBtn.innerHTML = "🔊 Listen";
-          currentlyPlayingBtn = null;
-        }
-      }
-
-      function narrateBlogCard(btn, cardId) {
-        if (!('speechSynthesis' in window)) return;
-        if (currentlyPlayingBtn === btn && speechSynthesis.speaking) {
-          stopAllBlogAudio();
-          return;
-        }
-        stopAllBlogAudio();
-
-        const card = document.getElementById(cardId);
-        if (!card) return;
-
-        const title = card.querySelector('.blog-title')?.textContent || '';
-        const excerpt = card.querySelector('.blog-excerpt')?.textContent || '';
-        const speechText = preprocessBlogText(`${title}. ${excerpt}`);
-
-        currentlyPlayingBtn = btn;
-        card.classList.add('active-article');
-        btn.innerHTML = "⏸ Pause";
-
-        activeUtterance = new SpeechSynthesisUtterance(speechText);
-        const voice = getSacredVoice();
-        if (voice) activeUtterance.voice = voice;
-        activeUtterance.rate = 0.84;
-        activeUtterance.pitch = 0.78;
-
-        activeUtterance.onstart = () => startBlogMusic();
-        activeUtterance.onend = () => stopAllBlogAudio();
-        activeUtterance.onerror = () => stopAllBlogAudio();
-
-        setTimeout(() => speechSynthesis.speak(activeUtterance), 50);
-      }
-
-      document.addEventListener("visibilitychange", () => { if (document.hidden) stopAllBlogAudio(); });
-      window.onload = updateBlogMusicUI;
-    </script>
 </body>
 </html>
