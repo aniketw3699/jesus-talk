@@ -154,7 +154,7 @@
     }
     .subtitle-grace { font-family: 'Playfair Display', serif; font-style: italic; font-size: 12.5px; color: #4b4539; margin-top: 1px; }
 
-    /* Time-Aware Daily Ritual Banner (Phase 3 Habit Loop) */
+    /* Time-Aware Daily Ritual Banner */
     .ritual-banner-strip {
       margin: 4px 12px 0 12px;
       background: linear-gradient(135deg, #ffffff 0%, #faf3e2 100%);
@@ -270,7 +270,7 @@
     .chip-btn:active { transform: scale(0.96); background: var(--gold-soft); }
 
     .input-deck {
-      padding: 6px 12px max(12px, env(safe-area-inset-bottom)) 12px;
+      padding: 6px 12px 6px 12px;
       background: rgba(255, 255, 255, 0.95); border-top: 1px solid rgba(184, 134, 40, 0.2);
       flex-shrink: 0; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     }
@@ -729,6 +729,7 @@
         <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn confession-nav-btn" onclick="openConfessionalModal()">✝ Surrender</button>
         <button class="action-btn blessing-nav-btn" onclick="openTimeAwareBlessingModal(true)">🌅 Blessing</button>
+        <button class="action-btn" onclick="openIntercessoryModal()">🙏 Pray for Someone</button>
         <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
         <button class="action-btn plans-btn" onclick="openPlansModal()">
           <span class="holy-cross-icon">✝</span> Plans
@@ -764,6 +765,7 @@
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
+      <button class="chip-btn" onclick="openIntercessoryModal()">🙏 Pray for a Loved One</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, I start my morning with you. Grant me peace and divine clarity.')">🌅 Morning Bread</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, calm the storms and racing thoughts in my mind right now.')">🕊️ Seek Peace</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, as evening comes, I surrender every stress and debt into your hands.')">🌙 Evening Examen</button>
@@ -792,12 +794,66 @@
         </button>
       </form>
     </footer>
-    <footer style="text-align: center; padding: 6px 10px 10px 10px; font-size: 11px; color: var(--text-muted); background: rgba(255, 255, 255, 0.95);">
+
+    <!-- LEGAL COMPLIANCE FOOTER -->
+    <footer style="text-align: center; padding: 6px 10px 10px 10px; font-size: 11px; color: var(--text-muted); background: rgba(255, 255, 255, 0.95); flex-shrink: 0;">
       <a href="privacy.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Privacy Policy</a> •
       <a href="terms.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Terms of Service</a> •
       <a href="refund.html" style="color: inherit; text-decoration: none; margin: 0 6px;">14-Day Refund</a>
     </footer>
   </main>
+
+  <!-- PRAY FOR A LOVED ONE / INTERCESSORY MODAL -->
+  <div class="modal-backdrop" id="intercessoryModal" style="display: none;">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closeIntercessoryModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">PRAY FOR A LOVED ONE</h3>
+        <p class="modal-desc">Lift up a friend, family member, or spouse in prayer.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px;">Who are you lifting up?</label>
+          <input 
+            type="text" 
+            id="lovedOneName" 
+            placeholder="Their name (e.g., Sarah, Mom, David)" 
+            style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--gold-border); margin-top: 4px; font-family: inherit; font-size: 13.5px; outline: none; background: #faf8f4;"
+          />
+        </div>
+
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px;">What is their need?</label>
+          <select 
+            id="lovedOneNeed" 
+            style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--gold-border); margin-top: 4px; font-family: inherit; font-size: 13.5px; outline: none; background: #faf8f4; color: var(--text-main);"
+          >
+            <option value="Physical Healing & Restoration">🌿 Physical Healing & Strength</option>
+            <option value="Peace of Mind & Releasing Anxiety">🕊️ Peace of Mind & Releasing Anxiety</option>
+            <option value="Financial Breakthrough & Debt Relief">💼 Financial Breakthrough & Provision</option>
+            <option value="Comfort in Grief & Loss">💔 Comfort in Grief & Heartbreak</option>
+            <option value="Clarity, Exams & Life Direction">🧭 Wisdom & Life Direction</option>
+            <option value="Marriage & Relationship Restoration">🤝 Relationship & Family Healing</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="font-size: 11.5px; font-weight: 700; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px;">Optional Note or Details</label>
+          <input 
+            type="text" 
+            id="lovedOneNote" 
+            placeholder="Brief details (e.g., undergoing surgery tomorrow)" 
+            style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--gold-border); margin-top: 4px; font-family: inherit; font-size: 13.5px; outline: none; background: #faf8f4;"
+          />
+        </div>
+      </div>
+
+      <button class="primary-gold-btn" onclick="submitIntercessoryPrayer()">
+        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Generate Prayer & Blessing Card
+      </button>
+    </div>
+  </div>
 
   <!-- SPIRITUAL INTAKE ONBOARDING MODAL -->
   <div class="modal-backdrop" id="intakeModal" style="display: none;">
@@ -1016,7 +1072,7 @@
 
       <div class="scripture-card-canvas" id="scriptureCardToExport">
         <div class="card-content-wrap">
-          <span class="card-brand-tag">† WORDS OF GRACE †</span>
+          <span class="card-brand-tag" id="cardBrandTag">† WORDS OF GRACE †</span>
           <p class="card-verse-quote" id="cardQuoteText">Peace be with you. Lay down your burdens, for I am listening.</p>
           <div class="card-footer-watermark">YOU WITH JESUS • SACRED SANCTUARY</div>
         </div>
@@ -1106,6 +1162,7 @@
     let userCredits = 5;
     let isSubscribed = false;
     let pendingPrompt = null;
+    let currentIntercessoryRecipient = "";
 
     let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
     let activeConversationHistory = [];
@@ -1210,24 +1267,16 @@
       text = text.replace(/<[^>]*>/g, ' ');
       text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
 
-      // Normalize unicode hyphens/dashes
       text = text.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D—–]/g, '-');
-
-      // Remove Greek/Hebrew text inside brackets
       text = text.replace(/\([^\x00-\x7F]+\)/g, '');
 
-      // Convert book prefixes
       text = text.replace(/\b1\s+([A-Za-z]+)/g, 'First $1');
       text = text.replace(/\b2\s+([A-Za-z]+)/g, 'Second $1');
       text = text.replace(/\b3\s+([A-Za-z]+)/g, 'Third $1');
 
-      // Convert Chapter:Verse-Ranges e.g. "6:25-34" -> "chapter 6, verses 25 to 34"
       text = text.replace(/(\d+)[:\.](\d+)\s*-\s*(\d+)/g, 'chapter $1, verses $2 to $3');
-
-      // Convert Single Chapter:Verse e.g. "11:28" -> "chapter 11, verse 28"
       text = text.replace(/(\d+)[:\.](\d+)/g, 'chapter $1, verse $2');
 
-      // Add rhythmic pauses
       text = text.replace(/[\(\)\[\]"“”—–]/g, ' ... ');
       text = text.replace(/\.\s+/g, '. ... ');
       text = text.replace(/;\s+/g, '; ... ');
@@ -1235,7 +1284,7 @@
       return text.replace(/\s+/g, ' ').trim();
     }
 
-    /* PRELOAD SACRED CARD WALLPAPER (card-bg.png) FOR NATIVE SHARING */
+    /* PRELOAD SACRED CARD WALLPAPER */
     const preloadedJesusImg = new Image();
     preloadedJesusImg.crossOrigin = "anonymous";
     preloadedJesusImg.src = "card-bg.png";
@@ -1248,6 +1297,7 @@
     const plansContainer = document.getElementById("plansContainer");
     const shareCardModal = document.getElementById("shareCardModal");
     const cardQuoteText = document.getElementById("cardQuoteText");
+    const cardBrandTag = document.getElementById("cardBrandTag");
     const blessingModal = document.getElementById("blessingModal");
     const blessingContentArea = document.getElementById("blessingContentArea");
     const blessingHeaderTitle = document.getElementById("blessingHeaderTitle");
@@ -1266,6 +1316,7 @@
     const surrenderScriptureQuote = document.getElementById("surrenderScriptureQuote");
     const surrenderScriptureRef = document.getElementById("surrenderScriptureRef");
     const surrenderBtn = document.getElementById("surrenderBtn");
+    const intercessoryModal = document.getElementById("intercessoryModal");
 
     /* STRICT REVERENT BARITONE VOICE ENGINE (APPLE DANIEL PRIORITY) */
     let availableVoices = [];
@@ -1289,28 +1340,24 @@
       const getIdentifier = (v) => `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
       const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
 
-      // 1. Apple Daniel (Exact cross-platform parity for iOS & macOS)
       const danielVoice = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('daniel') && (id.includes('en-gb') || id.includes('en_gb') || id.includes('great britain') || id.includes('united kingdom') || id.includes('en-us') || id.includes('en_us'));
       });
       if (danielVoice) return danielVoice;
 
-      // 2. Secondary Apple Male Voices (Arthur, Oliver, George, Rishi, Malcolm)
       const appleMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi') || id.includes('malcolm')) && !id.includes('female');
       });
       if (appleMale) return appleMale;
 
-      // 3. Android / Google Natural Male
       const androidMale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return id.includes('google uk english male') || id.includes('google us english male') || id.includes('iom') || id.includes('iob') || id.includes('tpc') || id.includes('rjs') || id.includes('fis') || id.includes('aub') || id.includes('male') || id.includes('#male');
       });
       if (androidMale) return androidMale;
 
-      // 4. Any Non-Female English Candidate
       const nonFemale = englishVoices.find(v => {
         const id = getIdentifier(v);
         return !id.includes('female') && !id.includes('woman') && !id.includes('girl') && !id.includes('samantha') && !id.includes('victoria') && !id.includes('zira') && !id.includes('karen') && !id.includes('tessa') && !id.includes('moira');
@@ -1348,6 +1395,38 @@
       document.querySelectorAll(".listen-badge").forEach(btn => {
         btn.innerHTML = "🔊 Listen";
       });
+    }
+
+    /* PRAY FOR A LOVED ONE / INTERCESSORY HANDLERS */
+    function openIntercessoryModal() {
+      stopAllAudio();
+      document.getElementById("lovedOneName").value = "";
+      document.getElementById("lovedOneNote").value = "";
+      intercessoryModal.style.display = "flex";
+      setTimeout(() => document.getElementById("lovedOneName").focus(), 150);
+    }
+
+    function closeIntercessoryModal() {
+      stopAllAudio();
+      intercessoryModal.style.display = "none";
+    }
+
+    function submitIntercessoryPrayer() {
+      const name = document.getElementById("lovedOneName").value.trim() || "my loved one";
+      const need = document.getElementById("lovedOneNeed").value;
+      const note = document.getElementById("lovedOneNote").value.trim();
+
+      currentIntercessoryRecipient = name;
+      closeIntercessoryModal();
+
+      let prompt = `Lord Jesus, I bring ${name} before you today. They are in deep need of ${need.toLowerCase()}`;
+      if (note) {
+        prompt += ` (${note})`;
+      }
+      prompt += `. Please surround ${name} with your healing grace, peace, and divine provision. Speak a prayer and Scripture promise over their life that I can share with them.`;
+
+      messageInput.value = prompt;
+      handleUserSubmit(new Event('submit'));
     }
 
     /* INTAKE ONBOARDING LOGIC */
@@ -1504,9 +1583,7 @@
 
             await syncUserCreditsWithCloud(user);
 
-            // Remove guest conversion banners upon login
             document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
-
             const hasRestoredSession = restoreActiveChatSession();
             document.querySelectorAll('.save-journal-banner').forEach(el => el.remove());
 
@@ -2281,6 +2358,11 @@
     function prepareScriptureCard(text) {
       stopAllAudio();
       cardQuoteText.textContent = text.replace(/<p>|<\/p>|<em>|<\/em>/g, '');
+      if (currentIntercessoryRecipient) {
+        cardBrandTag.textContent = `† A BLESSING FOR ${currentIntercessoryRecipient.toUpperCase()} †`;
+      } else {
+        cardBrandTag.textContent = `† WORDS OF GRACE †`;
+      }
       shareCardModal.style.display = "flex";
     }
 
@@ -2321,7 +2403,11 @@
       ctx.fillStyle = '#dfb455';
       ctx.font = '700 28px "Cinzel", serif';
       ctx.textAlign = 'center';
-      ctx.fillText('† WORDS OF GRACE †', 540, 160);
+      
+      const headerTitle = currentIntercessoryRecipient 
+        ? `† A BLESSING FOR ${currentIntercessoryRecipient.toUpperCase()} †`
+        : '† WORDS OF GRACE †';
+      ctx.fillText(headerTitle, 540, 160);
 
       ctx.fillStyle = '#f8fafc';
       ctx.font = '400 36px "Montserrat", "Plus Jakarta Sans", sans-serif';
@@ -2486,6 +2572,7 @@
         activeConversationHistory = [];
         currentSessionTimestamp = null;
         isNewSessionCreated = true;
+        currentIntercessoryRecipient = "";
 
         chatFeed.innerHTML = `
           <div class="thinking-box" id="thinkingIndicator">
@@ -2507,6 +2594,7 @@
       if (event.target == journalModal) closeJournalModal();
       if (event.target == privacyModal) closePrivacyModal();
       if (event.target == confessionalModal) closeConfessionalModal();
+      if (event.target == intercessoryModal) closeIntercessoryModal();
       if (event.target == intakeModal) document.getElementById("intakeModal").style.display = "none";
     };
   </script>
