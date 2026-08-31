@@ -1,30 +1,59 @@
-/* DYNAMIC PODCAST & AUDIOBOOK PLAYER INJECTOR */
+/* ADVANCED WORD-BY-WORD AUDIOBOOK & PODCAST PLAYER INJECTOR */
 (function() {
   window.addEventListener('DOMContentLoaded', () => {
-    // 1. Wrap all readable article text elements in sensory blocks for highlighting
-    const selectors = 'h1, .sec-h2, .body-p, .verse-text, .step-h3, .step-p, .prayer-h3, .prayer-body, .faq-q, .faq-a';
-    const textElements = document.querySelectorAll(selectors);
-    
-    textElements.forEach(el => {
-      if (!el.closest('.sensory-block')) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'sensory-block';
-        el.parentNode.insertBefore(wrapper, el);
-        wrapper.appendChild(el);
+    // 1. Wrap every single word in the article content into interactive audio-word spans
+    const articleContainer = document.querySelector('article') || document.querySelector('.container') || document.querySelector('main');
+    if (articleContainer) {
+      const walker = document.createTreeWalker(articleContainer, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      const textNodes = [];
+      while (node = walker.nextNode()) {
+        textNodes.push(node);
       }
-    });
 
-    // 2. Inject CSS Styles for Player & Highlighting
+      let globalWordIndex = 0;
+      textNodes.forEach(textNode => {
+        // Skip script, style, and navigation links
+        if (!textNode.parentNode.closest('script, style, .nav-back, .meta-bar, .podcast-bar')) {
+          const content = textNode.nodeValue;
+          // Split by whitespace while preserving spacing structure
+          const words = content.split(/(\s+)/);
+          const frag = document.createDocumentFragment();
+
+          words.forEach(word => {
+            if (word.trim().length > 0) {
+              const span = document.createElement('span');
+              span.className = 'audio-word';
+              span.dataset.wordIndex = globalWordIndex++;
+              span.textContent = word;
+              span.title = "Click to play from here";
+              span.onclick = () => jumpToWord(parseInt(span.dataset.wordIndex));
+              frag.appendChild(span);
+            } else {
+              frag.appendChild(document.createTextNode(word));
+            }
+          });
+          textNode.parentNode.replaceChild(frag, textNode);
+        }
+      });
+    }
+
+    // 2. Inject CSS Styles for Word Highlighting & Floating Player
     const style = document.createElement('style');
     style.innerHTML = `
-      .sensory-block {
-        padding: 6px 10px;
-        border-radius: 8px;
-        transition: background 0.3s ease, transform 0.2s ease;
+      .audio-word {
+        transition: background 0.15s ease, color 0.15s ease;
+        cursor: pointer;
+        border-radius: 3px;
+        padding: 0 1px;
       }
-      .sensory-block.active-speech {
-        background: rgba(226, 183, 100, 0.18) !important;
-        border-left: 3px solid #e2b764 !important;
+      .audio-word:hover {
+        background: rgba(226, 183, 100, 0.25);
+      }
+      .audio-word.active-word {
+        background: #e2b764 !important;
+        color: #000 !important;
+        font-weight: 600;
       }
       .podcast-bar {
         position: fixed; bottom: 0; left: 0; right: 0;
@@ -69,23 +98,31 @@
     document.body.appendChild(container);
   });
 
-  // 4. Audiobook Narration & Ambient Music Engine
+  // 4. Audiobook Narration, Precise Word Highlighting & Resume Engine
   const blogMusicAudio = new Audio('../blog-ambient.mp3');
   blogMusicAudio.loop = true;
   blogMusicAudio.volume = 0.22;
+  
   let isPlaying = false;
+  let isPaused = false;
   let activeUtterance = null;
-  let blockElements = [];
-  let currentBlockIndex = 0;
+  let wordElements = [];
+  let currentWordIndex = 0;
+  let fullArticleText = "";
+  let wordCharMap = []; // Maps character start/end index in full text to word DOM elements
 
-  function preprocessText(rawText) {
-    if (!rawText) return "";
-    let text = rawText.replace(/<[^>]*>/g, ' ');
-    text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
-    text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (m, b, c, v) => `... ${b.trim()}, chapter ${c}, verse ${v}. ... `);
-    text = text.replace(/[—–]/g, ', ').replace(/”|"/g, ' ... ').replace(/“/g, ' ');
-    text = text.replace(/\.\s+/g, '. ... ').replace(/;\s+/g, '; ... ').replace(/:\s+/g, ': ... ');
-    return text.replace(/\s+/g, ' ').trim();
+  function buildTextAndMap() {
+    wordElements = Array.from(document.querySelectorAll('.audio-word'));
+    fullArticleText = "";
+    wordCharMap = [];
+
+    wordElements.forEach((el, idx) => {
+      const wordText = el.textContent;
+      const startIndex = fullArticleText.length;
+      fullArticleText += wordText + " ";
+      const endIndex = fullArticleText.length;
+      wordCharMap.push({ startIndex, endIndex, element: el, index: idx });
+    });
   }
 
   function getSacredVoice() {
@@ -105,65 +142,94 @@
 
     const btn = document.getElementById("podPlayBtn");
     const status = document.getElementById("podStatus");
-    blockElements = Array.from(document.querySelectorAll('.sensory-block')).filter(el => (el.textContent || '').trim().length > 0);
+
+    if (wordElements.length === 0) {
+      buildTextAndMap();
+    }
 
     if (isPlaying) {
-      speechSynthesis.cancel();
+      // Pause
+      speechSynthesis.pause();
       blogMusicAudio.pause();
       isPlaying = false;
-      if (btn) btn.innerHTML = "▶ Play Audio";
+      isPaused = true;
+      if (btn) btn.innerHTML = "▶ Resume";
       if (status) status.textContent = "Paused";
-      blockElements.forEach(el => el.classList.remove('active-speech'));
       return;
     }
 
-    if (blockElements.length === 0) {
-      alert("No readable text found for audio.");
+    if (isPaused) {
+      // Resume from exact paused word
+      speechSynthesis.resume();
+      try { blogMusicAudio.play().catch(e => {}); } catch(e) {}
+      isPlaying = true;
+      isPaused = false;
+      if (btn) btn.innerHTML = "⏸ Pause";
+      if (status) status.textContent = "Narrating devotional...";
       return;
     }
 
-    isPlaying = true;
-    if (btn) btn.innerHTML = "⏸ Pause";
-    if (status) status.textContent = "Narrating devotional...";
-
-    try {
-      blogMusicAudio.currentTime = 0;
-      blogMusicAudio.play().catch(e => {});
-    } catch(e) {}
-
-    currentBlockIndex = 0;
-    speakBlock(currentBlockIndex);
+    // Start fresh from beginning or selected word
+    startNarrationFrom(currentWordIndex);
   };
 
-  function speakBlock(index) {
-    if (!isPlaying || index >= blockElements.length) {
+  window.jumpToWord = function(wordIdx) {
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+    }
+    blogMusicAudio.pause();
+    currentWordIndex = wordIdx;
+    startNarrationFrom(currentWordIndex);
+  };
+
+  function startNarrationFrom(startIndex) {
+    if (wordElements.length === 0) buildTextAndMap();
+    if (startIndex >= wordElements.length) {
       stopAudiobook();
       return;
     }
 
-    blockElements.forEach(el => el.classList.remove('active-speech'));
-    const currentEl = blockElements[index];
-    currentEl.classList.add('active-speech');
-    currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    currentWordIndex = startIndex;
+    const targetMapObj = wordCharMap[currentWordIndex];
+    if (!targetMapObj) return;
 
-    const textToRead = preprocessText(currentEl.textContent || currentEl.innerText);
-    if (!textToRead) {
-      currentBlockIndex++;
-      speakBlock(currentBlockIndex);
-      return;
-    }
+    // Slice text from the exact character position of the clicked/current word
+    const textToSpeak = fullArticleText.substring(targetMapObj.startIndex);
 
-    activeUtterance = new SpeechSynthesisUtterance(textToRead);
-    
+    activeUtterance = new SpeechSynthesisUtterance(textToSpeak);
     const voice = getSacredVoice();
     if (voice) activeUtterance.voice = voice;
     activeUtterance.rate = 0.84;
-    activeWriterPitch = 0.78;
     activeUtterance.pitch = 0.78;
 
+    activeUtterance.onboundary = (event) => {
+      if (event.name === 'word') {
+        const absoluteCharIndex = targetMapObj.startIndex + event.charIndex;
+        // Find corresponding word element
+        const matched = wordCharMap.find(m => absoluteCharIndex >= m.startIndex && absoluteCharIndex < m.endIndex);
+        if (matched) {
+          currentWordIndex = matched.index;
+          highlightWord(currentWordIndex);
+        }
+      }
+    };
+
+    activeUtterance.onstart = () => {
+      isPlaying = true;
+      isPaused = false;
+      const btn = document.getElementById("podPlayBtn");
+      const status = document.getElementById("podStatus");
+      if (btn) btn.innerHTML = "⏸ Pause";
+      if (status) status.textContent = "Narrating devotional...";
+      
+      try {
+        blogMusicAudio.currentTime = 0;
+        blogMusicAudio.play().catch(e => {});
+      } catch(e) {}
+    };
+
     activeUtterance.onend = () => {
-      currentBlockIndex++;
-      speakBlock(currentBlockIndex);
+      stopAudiobook();
     };
 
     activeUtterance.onerror = () => {
@@ -173,18 +239,32 @@
     speechSynthesis.speak(activeUtterance);
   }
 
+  function highlightWord(idx) {
+    wordElements.forEach(el => el.classList.remove('active-word'));
+    const activeEl = wordElements[idx];
+    if (activeEl) {
+      activeEl.classList.add('active-word');
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
   function stopAudiobook() {
     if ('speechSynthesis' in window) speechSynthesis.cancel();
     blogMusicAudio.pause();
     isPlaying = false;
+    isPaused = false;
+    currentWordIndex = 0;
     const btn = document.getElementById("podPlayBtn");
     const status = document.getElementById("podStatus");
     if (btn) btn.innerHTML = "▶ Play Audio";
     if (status) status.textContent = "Finished";
-    blockElements.forEach(el => el.classList.remove('active-speech'));
+    wordElements.forEach(el => el.classList.remove('active-word'));
   }
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden && isPlaying) stopAudiobook();
+    if (document.hidden && isPlaying) {
+      speechSynthesis.pause();
+      blogMusicAudio.pause();
+    }
   });
 })();
