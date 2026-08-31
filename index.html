@@ -427,7 +427,7 @@
     }
     .privacy-notice-box p + p { margin-top: 10px; }
 
-    /* Plans & Pricing Modal */
+    /* High-Converting Ministry & Plans Deck */
     .plans-grid { 
       display: flex; 
       flex-direction: column; 
@@ -1003,18 +1003,18 @@
     <div class="modal-card">
       <button class="modal-close" onclick="closePlansModal()">✕</button>
       <div class="modal-header">
-        <h3 class="modal-title">CONTINUE YOUR JOURNEY</h3>
-        <p class="modal-desc">Choose a pathway for unlimited spiritual communion.</p>
+        <h3 class="modal-title">DEEPEN YOUR SPIRITUAL WALK</h3>
+        <p class="modal-desc">Choose a pathway for unlimited scripture communion and daily peace.</p>
       </div>
 
       <div class="plans-grid" id="plansContainer"></div>
 
       <button class="billing-checkout-btn" onclick="executeCheckout()">
-        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Begin Sanctuary Journey
+        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Begin Your Sacred Walk
       </button>
 
       <p class="billing-trust-caption">
-        🔒 Encrypted 256-bit checkout via Lemon Squeezy • Cancel anytime
+        🔒 Secure 256-bit encrypted checkout via Lemon Squeezy • Cancel anytime
       </p>
     </div>
   </div>
@@ -1027,8 +1027,8 @@
     const LEMON_SQUEEZY_PLANS = [
       { 
         id: "plan_1", 
-        name: "Starter Sanctuary", 
-        desc: "25 Sacred Guidance Prayers", 
+        name: "7-Day Devotional Pass", 
+        desc: "25 Scripture Guidance Prayers & Audio Blessings", 
         price: "$1.99", 
         subPrice: "One-time pass",
         featured: false, 
@@ -1036,22 +1036,22 @@
       },
       { 
         id: "plan_2", 
-        name: "Monthly Sanctuary", 
-        desc: "Unlimited Daily Prayers & Voice Audio", 
+        name: "Monthly Sanctuary Companion", 
+        desc: "Unlimited Daily Prayers, Voice Audio & Journal", 
         price: "$7.99", 
-        subPrice: "per month",
+        subPrice: "per month • cancel anytime",
         featured: false, 
         checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" 
       },
       { 
         id: "plan_3", 
-        name: "6 Months Sacred Pass", 
-        desc: "Unlimited prayers, voice audio & all upgrades", 
+        name: "Sacred Walk Annual Pass", 
+        desc: "Unlimited prayers, audio devotionals & all upgrades", 
         price: "$29.99", 
-        subPrice: "$4.99/mo equivalent",
+        subPrice: "$2.49/mo equivalent",
         featured: true, 
-        ribbon: "★ BEST VALUE", 
-        saveBadge: "SAVE 38%",
+        ribbon: "★ MOST POPULAR", 
+        saveBadge: "SAVE 40%",
         checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" 
       }
     ];
