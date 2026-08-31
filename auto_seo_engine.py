@@ -352,7 +352,7 @@ def render_html_page(data, topic):
             color: var(--text-primary);
             font-family: 'Plus Jakarta Sans', sans-serif;
             line-height: 1.8;
-            padding: 24px 16px 80px;
+            padding: 24px 16px 120px;
         }}
         .container {{ max-width: 800px; margin: 0 auto; }}
         .nav-back {{ display: inline-flex; align-items: center; gap: 8px; color: var(--gold); text-decoration: none; font-size: 14px; margin-bottom: 32px; font-weight: 500; }}
@@ -395,6 +395,9 @@ def render_html_page(data, topic):
             <a href="../index.html" class="cta-btn">Enter You With Jesus Sanctuary</a>
         </div>
     </div>
+    
+    <!-- AUTOMATIC AUDIOBOOK & AMBIENT PLAYER INJECTION -->
+    <script src="../blog-player.js"></script>
 </body>
 </html>
 """
