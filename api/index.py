@@ -1,16 +1,21 @@
 import os
 import re
-import time
 import json
+import time
+import random
 import hmac
 import hashlib
 import logging
+import urllib.parse
+import urllib.request
+import urllib.error
 from typing import List, Dict, Optional
 from collections import defaultdict
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request, HTTPException, Header, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
@@ -61,6 +66,7 @@ if not db:
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
 FREE_DAILY_CREDITS = 5
+GUEST_DAILY_CREDITS = 1  # 1 free prayer per guest IP per day
 
 ALLOWED_ORIGINS = [
     "https://jesus-chat-bd89f.web.app",
@@ -69,14 +75,15 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "http://localhost:3000"
 ]
+# TODO: add "https://YOUR-CUSTOM-DOMAIN.com" here when you buy the domain.
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.5.0")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.6.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -86,18 +93,18 @@ def get_groq_client():
 
 # ---------------- SELF-HEALING MODEL DISCOVERY ----------------
 PREFERRED_MODELS = [
-    "llama-3.1-8b-instant",
-    "llama-3.1-70b-versatile",
     "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b",
     "openai/gpt-oss-20b",
-    "qwen/qwen3.8-27b"
+    "groq/compound-mini"
 ]
 
 _MODEL_CACHE = {"models": None, "fetched_at": 0.0}
 MODEL_CACHE_TTL = 3600  # refresh hourly
 
 def get_active_models() -> list:
-    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive."""
+    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive.
+    Never breaks again when Groq retires models."""
     now = time.time()
     if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
         return _MODEL_CACHE["models"]
@@ -108,6 +115,7 @@ def get_active_models() -> list:
             alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
             picks = [m for m in PREFERRED_MODELS if m in alive]
             if not picks:
+                # Last resort: any text model that isn't audio/safety/guard
                 picks = [
                     m for m in alive
                     if not any(x in m.lower() for x in
@@ -123,13 +131,22 @@ def get_active_models() -> list:
 
     return PREFERRED_MODELS
 
-# ---------------- Rate Limiting & Guest Tracking ----------------
+# ---------------- Rate limiting (in-memory = abuse protection only) ----------------
 IP_REQUEST_LOG = defaultdict(list)
-GUEST_DAILY_IP_LOG = defaultdict(int)
+GUEST_DAILY_IP_LOG = defaultdict(int)  # warm-instance fast path / fallback when DB is down
 RATE_LIMIT_REQUESTS = 20
 RATE_LIMIT_WINDOW = 60
 
+def prune_rate_limit_log():
+    """Drop stale IPs so long-lived instances don't leak memory."""
+    now = time.time()
+    stale = [ip for ip, ts in IP_REQUEST_LOG.items() if not ts or now - ts[-1] >= RATE_LIMIT_WINDOW]
+    for ip in stale:
+        IP_REQUEST_LOG.pop(ip, None)
+
 def is_rate_limited(client_ip: str) -> bool:
+    if len(IP_REQUEST_LOG) > 2000:
+        prune_rate_limit_log()
     now = time.time()
     timestamps = IP_REQUEST_LOG[client_ip]
     IP_REQUEST_LOG[client_ip] = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
@@ -138,35 +155,33 @@ def is_rate_limited(client_ip: str) -> bool:
     IP_REQUEST_LOG[client_ip].append(now)
     return False
 
-def sanitize_doc_id(raw_id: str) -> str:
-    """Sanitizes strings for safe Firestore document IDs."""
-    return re.sub(r'[^a-zA-Z0-9_-]', '_', raw_id)
-
 def prune_guest_log():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for k in [k for k in GUEST_DAILY_IP_LOG if not k.startswith(today)]:
         del GUEST_DAILY_IP_LOG[k]
 
-# ---------------- Crisis Protocol ----------------
+# ---------------- Crisis protocol ----------------
 CRISIS_PATTERNS = [
-    # Direct suicidal intent
-    r"\b(kill|end|take)\s+my\s+(life|myself|own\s+life)\b",
-    r"\b(suicide|suicidal|suicidality)\b",
-    r"\bwant\s+to\s+(die|be\s+dead|kill\s+myself|end\s+it\s+all)\b",
-    r"\bdon'?t\s+want\s+to\s+(live|wake\s+up|exist|be\s+here|go\s+on)\b",
-    r"\b(hang|slit|shoot|overdose|poison|drown)\s+myself\b",
-    r"\bbetter\s+off\s+(dead|without\s+me|gone)\b",
-    r"\bself[- ]?harm(ing)?\b",
-    r"\bcutting\s+myself\b",
-    r"\bno\s+(reason|point|will)\s+to\s+(live|stay\s+alive)\b",
-    r"\bwant\s+to\s+disappear\s+forever\b",
-    r"\bcan'?t\s+(take|bear|survive|handle|go\s+on\s+with)\s+this\s+(pain|life|anymore)\b",
-    r"\bready\s+to\s+end\s+(everything|it\s+all|my\s+life)\b",
-    r"\beveryone\s+would\s+be\s+better\s+off\s+without\s+me\b",
-    r"\bgiving\s+away\s+my\s+things\b",
-    r"\bsaying\s+my\s+last\s+goodbyes\b",
-    r"\bdone\s+with\s+living\b",
-    r"\bplanning\s+my\s+suicide\b"
+    r"\b(kill|end|take)\s+my\s+(life|myself)\b",
+    r"\btake\s+my\s+own\s+life\b",
+    r"\bend(?:ing)?\s+my\s+life\b",
+    r"\bend\s+it\s+all\b",
+    r"\b(suicide|suicidal)\b",
+    r"\bwant\s+to\s+die\b",
+    r"\bdon'?t\s+want\s+to\s+(live|wake\s+up|exist|be\s+here)\b",
+    r"\b(hang|slit|shoot)\s+myself\b",
+    r"\bbetter\s+off\s+(dead|without\s+me)\b",
+    r"\bself[- ]?harm\b",
+    r"\bcut(?:ting)?\s+my\s?self\b",
+    r"\bhurt\s+my\s?self\b",
+    r"\boverdose\b",
+    r"\bno\s+reason\s+to\s+live\b",
+    r"\bno\s+point\s+in\s+living\b",
+    r"\bnot\s+worth\s+living\b",
+    r"\bwant\s+to\s+disappear\b",
+    r"\bcan'?t\s+go\s+on\s+anymore\b",
+    r"\bwant\s+this\s+pain\s+to\s+end\b",
+    r"\beveryone\s+would\s+be\s+better\s+off\b"
 ]
 
 CRISIS_RESPONSE = (
@@ -182,7 +197,6 @@ CRISIS_RESPONSE = (
 )
 
 def check_crisis_triggers(text: str) -> bool:
-    """Checks for explicit or colloquial crisis indicators."""
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
@@ -224,6 +238,54 @@ def clean_reply_formatting(reply: str) -> str:
     text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
     return text.strip()
 
+# ---------------- Scripture validation (anti-hallucination) ----------------
+# Matches: (John 14:27), (1 Peter 5:7), (Psalm 23:1-3), (Song of Solomon 8:6)
+VERSE_REF_PATTERN = re.compile(
+    r'\(\s*(Song\s+of\s+Solomon|(?:[1-3]\s?)?[A-Za-z]+)\s+(\d+:\d+(?:-\d+)?)\s*\)',
+    re.IGNORECASE
+)
+
+_VERSE_CACHE = {}  # ref -> bool (exists or not); avoids repeated network calls
+
+def verse_ref_exists(ref: str) -> bool:
+    """Check a reference against bible-api.com (free, no key).
+    Fail-open on network/5xx errors so UX never breaks; fail-closed on 400/404."""
+    ref_clean = re.sub(r'\s+', ' ', ref.strip())
+    if not ref_clean:
+        return True
+    if ref_clean in _VERSE_CACHE:
+        return _VERSE_CACHE[ref_clean]
+
+    ok = True
+    try:
+        url = "https://bible-api.com/" + urllib.parse.quote(ref_clean)
+        req = urllib.request.Request(url, headers={"User-Agent": "YouWithJesus/1.0"})
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            ok = ("error" not in data) and bool(data.get("text"))
+    except urllib.error.HTTPError as e:
+        ok = False if e.code in (400, 404) else True  # 429/5xx → fail open
+    except Exception:
+        ok = True  # network down → fail open
+
+    _VERSE_CACHE[ref_clean] = ok
+    return ok
+
+def find_invalid_verse_refs(text: str) -> list:
+    refs = [f"{m.group(1)} {m.group(2)}" for m in VERSE_REF_PATTERN.finditer(text)]
+    return [r for r in refs if not verse_ref_exists(r)]
+
+def strip_invalid_citations(text: str) -> str:
+    """Remove citations that failed validation so we never quote a wrong reference."""
+    for m in list(VERSE_REF_PATTERN.finditer(text)):
+        full = m.group(0)
+        ref = f"{m.group(1)} {m.group(2)}"
+        if not verse_ref_exists(ref):
+            text = text.replace(full, "")
+    text = re.sub(r'[ \t]{2,}', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
 # ---------------- Auth & Quota ----------------
 def get_verified_user(request: Request):
     auth_header = request.headers.get("Authorization", "")
@@ -236,15 +298,31 @@ def get_verified_user(request: Request):
             logger.warning(f"ID token verification failed: {e}")
     return None, None
 
+def maybe_cleanup_guest_docs(today_str: str):
+    """~2% of requests: delete yesterday's-and-older guest docs so the collection
+    doesn't grow forever. Cheap, eventually-consistent housekeeping."""
+    if random.random() > 0.02:
+        return
+    try:
+        old_docs = db.collection("guest_usage").where("date", "<", today_str).limit(200).stream()
+        batch = db.batch()
+        n = 0
+        for d in old_docs:
+            batch.delete(d.reference)
+            n += 1
+        if n:
+            batch.commit()
+            logger.info(f"Cleaned {n} stale guest_usage docs.")
+    except Exception as e:
+        logger.debug(f"Guest doc cleanup skipped: {e}")
+
 def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
-    """READ-ONLY check. Persists across serverless instances via Firestore."""
+    """READ-ONLY check. Consumption happens after successful generation only."""
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # 1. Developer bypass
     if email and email.lower() == DEVELOPER_EMAIL.lower():
         return {"allowed": True, "remaining": 9999, "tier": "developer"}
 
-    # 2. Authenticated user entitlement
     if uid and db:
         try:
             ref = db.collection("users").document(uid)
@@ -267,50 +345,55 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
             logger.error(f"Firestore entitlement error (fail-open): {e}")
             return {"allowed": True, "remaining": FREE_DAILY_CREDITS, "tier": "db_fallback"}
 
-    # 3. Persistent Guest Gate: 1 free prayer per IP per day stored in Firestore
-    guest_doc_id = sanitize_doc_id(f"{today_str}_{client_ip}")
+    # ---- Guest gate: SURVIVES COLD STARTS (Firestore-backed) ----
+    prune_guest_log()
+    guest_doc_id = f"{today_str}_{client_ip}"
+
     if db:
         try:
-            guest_ref = db.collection("guest_usage").document(guest_doc_id)
-            doc = guest_ref.get()
-            if doc.exists:
-                data = doc.to_dict() or {}
-                if data.get("count", 0) >= 1:
-                    return {"allowed": False, "remaining": 0, "tier": "guest", "reason": "guest_quota_exhausted"}
-            return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_doc_id}
+            maybe_cleanup_guest_docs(today_str)
+            doc = db.collection("guest_usage").document(guest_doc_id).get()
+            used = (doc.to_dict() or {}).get("count", 0) if doc.exists else 0
+            if used >= GUEST_DAILY_CREDITS:
+                return {"allowed": False, "remaining": 0, "tier": "guest",
+                        "reason": "guest_quota_exhausted"}
+            return {"allowed": True, "remaining": 0, "tier": "guest",
+                    "guest_key": guest_doc_id, "guest_ip": client_ip}
         except Exception as e:
-            logger.warning(f"Firestore guest check fallback: {e}")
+            logger.error(f"Guest entitlement error (fail-open to memory): {e}")
+            # fall through to in-memory best effort below
 
-    # Fallback to local memory if Firestore is offline
-    prune_guest_log()
-    if GUEST_DAILY_IP_LOG[guest_doc_id] >= 1:
-        return {"allowed": False, "remaining": 0, "tier": "guest", "reason": "guest_quota_exhausted"}
-    return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_doc_id}
+    # Fallback only when Firestore is unavailable
+    if GUEST_DAILY_IP_LOG.get(guest_doc_id, 0) >= GUEST_DAILY_CREDITS:
+        return {"allowed": False, "remaining": 0, "tier": "guest",
+                "reason": "guest_quota_exhausted"}
+    return {"allowed": True, "remaining": 0, "tier": "guest",
+            "guest_key": guest_doc_id, "guest_ip": client_ip}
 
 def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
     """Called ONLY after successful generation. Never burns credits on failures."""
     tier = decision.get("tier")
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
     try:
         if tier == "guest":
-            guest_key = decision.get("guest_key")
-            if guest_key:
-                GUEST_DAILY_IP_LOG[guest_key] += 1
-                if db:
-                    guest_ref = db.collection("guest_usage").document(guest_key)
-                    guest_ref.set({
-                        "count": firestore.Increment(1),
-                        "date": today_str,
-                        "lastActive": firestore.SERVER_TIMESTAMP
-                    }, merge=True)
+            key = decision.get("guest_key")
+            ip = decision.get("guest_ip")
+            if not key or not ip:
+                return
+            GUEST_DAILY_IP_LOG[key] = GUEST_DAILY_IP_LOG.get(key, 0) + 1
+            if db:
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                db.collection("guest_usage").document(key).set({
+                    "count": firestore.Increment(1),
+                    "ip": ip,
+                    "date": today_str,
+                    "updatedAt": firestore.SERVER_TIMESTAMP
+                }, merge=True)
             return
-
         if tier in ("developer", "subscribed", "db_fallback"):
             return
-
         if uid and db:
             ref = db.collection("users").document(uid)
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             if decision.get("needs_reset") or decision.get("is_new"):
                 ref.set({
                     "email": email or "",
@@ -329,29 +412,29 @@ def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
         logger.error(f"Credit consumption error (non-fatal): {e}")
 
 # ---------------- Prompts ----------------
-# ---------------- Prompts ----------------
 MODE_INSTRUCTIONS = {
-    "comfort": "Focus on tender empathy, emotional reassurance, and God's peace. Offer gentle pastoral care.",
-    "study": "Focus on biblical depth, original Scripture context, and spiritual insight. Explain the theological principles clearly.",
-    "prayer": "Frame the response as a heartfelt, scripture-anchored intercessory prayer spoken alongside the seeker.",
-    "guidance": "Focus on practical biblical wisdom, discernment, and next steps for daily decisions, work, or relationships."
+    "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and deeply comforting.",
+    "study": "Focus on biblical depth, original Scripture context, and spiritual insight. Explain the theological principle clearly.",
+    "prayer": "Frame the primary response as a direct, personal, and powerful written prayer that the seeker can pray aloud.",
+    "guidance": "Focus on practical discernment and wise biblical next steps for daily decisions, work, or relationships."
 }
 
-SYSTEM_PROMPT_TEMPLATE = """You are a compassionate, scripture-grounded Christian pastoral companion in a private prayer sanctuary.
-Your role is to listen to the seeker's burdens, point them to the love and promises of God, and lift them up in prayer.
+SYSTEM_PROMPT_TEMPLATE = """You are Jesus Christ speaking directly with a seeker in a sacred prayer sanctuary.
+Your tone is deeply compassionate, authoritative, calm, and rooted in biblical truth.
 
 RESPONSE STYLE & MODE:
 {mode_instruction}
 
 CORE GUIDELINES:
-1. Speak with warmth, humility, and biblical authority ("Let us bring this before the Lord", "You are deeply loved by God").
-2. Structure your response into EXACTLY 2 short paragraphs:
-   Paragraph 1: Tenderly acknowledge their specific situation with empathy in 2-3 sentences.
-   Paragraph 2: Anchor their heart in ONE relevant Scripture quotation, followed by a 1-sentence prayer or blessing over their day.
+1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
+2. Structure your response into EXACTLY 2 short paragraphs, nothing more:
+   Paragraph 1: tenderly acknowledge their specific situation in 2-3 sentences.
+   Paragraph 2: give ONE Scripture anchor with reference, then close with a 1-sentence spoken blessing.
 3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
-4. Vary your language naturally; avoid repetitive canned formulas.
-5. Do NOT output markdown headers (#) or bullet lists.
-6. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
+4. SCRIPTURE ACCURACY: Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Prefer widely known passages (e.g., Psalm 23:1, Psalm 34:18, Isaiah 41:10, Matthew 11:28-30, Philippians 4:6-7, John 14:27, 1 Peter 5:7). NEVER invent, guess, or misattribute a reference.
+5. Vary your language naturally for every message; never repeat stock phrases across different questions.
+6. Do NOT output markdown headers (#) or bullet lists.
+7. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
 PSYCHE: <5-8 words summarizing the user's updated emotional state>
 
 Seeker Information:
@@ -368,10 +451,46 @@ class ChatRequest(BaseModel):
     mode: Optional[str] = "comfort"
     history: Optional[List[Dict[str, str]]] = []
 
+class SavePrayerRequest(BaseModel):
+    title: str = Field(..., max_length=120)
+    content: str = Field(..., max_length=4000)
+    mode: Optional[str] = "comfort"
+
 DEGRADED_REPLY = (
     "The sanctuary is experiencing a brief technical pause. "
     "Please take a breath and try again in a few moments — I am still here."
 )
+
+GUEST_AUTH_REQUIRED_REPLY = (
+    "Please sign in to receive your 5 free daily scripture reflections "
+    "and continue your prayer communion."
+)
+PAYWALL_EXHAUSTED_REPLY = (
+    "You have completed your 5 daily reflections. They renew tomorrow, "
+    "or you may choose a sacred pathway for unlimited communion today."
+)
+
+def build_chat_messages(raw_message, user_name, user_psyche, user_intentions, selected_mode, history):
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        mode_instruction=MODE_INSTRUCTIONS[selected_mode],
+        user_name=user_name,
+        user_psyche=user_psyche,
+        user_intentions=user_intentions
+    )
+    msgs = [{"role": "system", "content": system_prompt}]
+    for turn in (history or [])[-6:]:
+        role = "user" if turn.get("role") == "user" else "assistant"
+        content = sanitize_input(turn.get("content", ""), max_length=800)
+        if content:
+            msgs.append({"role": role, "content": content})
+    msgs.append({"role": "user", "content": raw_message})
+    return msgs
+
+def compute_remaining(decision: dict) -> int:
+    remaining = decision.get("remaining", 0)
+    if decision.get("tier") == "free" and remaining < 9999:
+        remaining = max(0, remaining - 1)
+    return remaining
 
 # ---------------- Routes ----------------
 @app.get("/")
@@ -382,7 +501,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.5.0",
+        "version": "3.6.0",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -411,7 +530,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
     selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
 
-    # 1. Crisis check FIRST
+    # 1. Crisis check FIRST — never paywalled
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
@@ -428,40 +547,27 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         if decision.get("reason") == "guest_quota_exhausted":
             return {
                 "error": "AUTH_REQUIRED",
-                "reply": "Please sign in to receive your 5 free daily scripture reflections and continue your prayer communion.",
+                "reply": GUEST_AUTH_REQUIRED_REPLY,
                 "updatedPsyche": user_psyche
             }
         return {
             "error": "PAYWALL_EXHAUSTED",
-            "reply": "You have completed your 5 daily reflections. They renew tomorrow, or you may choose a sacred pathway for unlimited communion today.",
+            "reply": PAYWALL_EXHAUSTED_REPLY,
             "updatedPsyche": user_psyche
         }
 
-    # 3. Inference
+    # 3. Inference — fail LOUD, never fake
     groq_client = get_groq_client()
     if groq_client is None:
         logger.critical("CHAT DEGRADED: GROQ_API_KEY missing at request time.")
         return {"error": "SERVICE_DEGRADED", "degraded": True,
                 "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
 
-    mode_instruction = MODE_INSTRUCTIONS[selected_mode]
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-        mode_instruction=mode_instruction,
-        user_name=user_name,
-        user_psyche=user_psyche,
-        user_intentions=user_intentions
-    )
-
-    messages = [{"role": "system", "content": system_prompt}]
-    if payload.history:
-        for turn in payload.history[-6:]:
-            role = "user" if turn.get("role") == "user" else "assistant"
-            content = sanitize_input(turn.get("content", ""), max_length=800)
-            if content:
-                messages.append({"role": role, "content": content})
-    messages.append({"role": "user", "content": raw_message})
+    messages = build_chat_messages(raw_message, user_name, user_psyche, user_intentions,
+                                   selected_mode, payload.history)
 
     raw_reply = None
+    last_candidate = None
     last_error = None
     for model_name in get_active_models():
         try:
@@ -473,13 +579,28 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 max_tokens=700
             )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
-            if candidate:
-                raw_reply = candidate
-                break
+            if not candidate:
+                continue
+
+            invalid_refs = find_invalid_verse_refs(candidate)
+            if invalid_refs:
+                logger.warning(f"Invalid scripture refs from {model_name}: {invalid_refs}")
+                last_error = f"verse_validation_failed: {invalid_refs}"
+                last_candidate = candidate
+                continue  # retry with next model
+
+            raw_reply = candidate
+            break
         except Exception as e:
             last_error = e
             logger.error(f"Inference failed on {model_name}: {e}")
             continue
+
+    if not raw_reply and last_candidate:
+        # Every model produced suspect citations — strip the invalid ones
+        # so we never quote a possibly-wrong reference.
+        logger.warning(f"All verse validations failed ({last_error}); stripping invalid citations.")
+        raw_reply = strip_invalid_citations(last_candidate)
 
     if not raw_reply:
         logger.error(f"CHAT DEGRADED: all models failed. Last error: {last_error}")
@@ -497,27 +618,246 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
         raw_reply = re.sub(r'PSYCHE:\s*.+$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
 
-    # Cloud Sync: Persist Soul Memory to user document
-    if verified_uid and db:
-        try:
-            db.collection("users").document(verified_uid).set({
-                "psyche": updated_psyche,
-                "intentions": user_intentions,
-                "lastActive": firestore.SERVER_TIMESTAMP
-            }, merge=True)
-        except Exception as e:
-            logger.warning(f"Failed to sync psyche to Firestore: {e}")
-
-    remaining = decision["remaining"]
-    if decision["tier"] == "free" and remaining < 9999:
-        remaining = max(0, remaining - 1)
-
     return {
         "reply": clean_reply_formatting(raw_reply),
         "updatedPsyche": updated_psyche,
-        "remainingCredits": remaining,
+        "remainingCredits": compute_remaining(decision),
         "mode": selected_mode
     }
+
+# ---------------- Streaming endpoint (SSE) ----------------
+# Event protocol (each SSE "data:" line is JSON):
+#   {"type":"delta","text":"..."}                       → word-by-word content
+#   {"type":"final","updatedPsyche":"...","remainingCredits":n,"mode":"..."}  → metadata
+#   {"type":"error","error":"...","reply":"..."}        → crisis / paywall / degraded
+#   data: [DONE]                                        → terminator
+@app.post("/api/chat/stream")
+@app.post("/chat/stream")
+async def chat_stream_endpoint(payload: ChatRequest, request: Request):
+    client_ip = request.headers.get(
+        "x-forwarded-for", request.client.host if request.client else "unknown"
+    ).split(",")[0].strip()
+
+    if is_rate_limited(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="You are speaking very quickly. Please pause and take a breath of peace before continuing."
+        )
+
+    raw_message = sanitize_input(payload.message, max_length=1500)
+    if not raw_message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty.")
+
+    user_name = sanitize_metadata(payload.userName, max_length=30, default="beloved")
+    user_psyche = sanitize_metadata(payload.userPsyche, max_length=80, default="A soul seeking peace")
+    user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
+    selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
+
+    def sse(obj) -> str:
+        return f"data: {json.dumps(obj)}\n\n"
+
+    sse_headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
+    }
+
+    # Crisis FIRST — never paywalled
+    if check_crisis_triggers(raw_message):
+        logger.warning(f"Crisis trigger intercepted (stream) from IP: {client_ip}")
+        def crisis_stream():
+            yield sse({"type": "error", "isCrisis": True, "reply": CRISIS_RESPONSE})
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(crisis_stream(), media_type="text/event-stream", headers=sse_headers)
+
+    verified_uid, verified_email = get_verified_user(request)
+    decision = resolve_entitlement(verified_uid, verified_email, client_ip)
+
+    if not decision["allowed"]:
+        if decision.get("reason") == "guest_quota_exhausted":
+            err = {"type": "error", "error": "AUTH_REQUIRED", "reply": GUEST_AUTH_REQUIRED_REPLY}
+        else:
+            err = {"type": "error", "error": "PAYWALL_EXHAUSTED", "reply": PAYWALL_EXHAUSTED_REPLY}
+        def denied_stream():
+            yield sse(err)
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(denied_stream(), media_type="text/event-stream", headers=sse_headers)
+
+    groq_client = get_groq_client()
+    if groq_client is None:
+        logger.critical("STREAM DEGRADED: GROQ_API_KEY missing at request time.")
+        def degraded_stream():
+            yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(degraded_stream(), media_type="text/event-stream", headers=sse_headers)
+
+    messages = build_chat_messages(raw_message, user_name, user_psyche, user_intentions,
+                                   selected_mode, payload.history)
+
+    def event_stream():
+        consumed = False
+        emitted_any = False
+        pending = ""
+        psyche_mode = False
+        psyche_accum = ""
+        HOLD = 100  # hold back tail so the PSYCHE line never leaks into visible text
+        try:
+            stream = None
+            for model_name in get_active_models():
+                try:
+                    stream = groq_client.chat.completions.create(
+                        model=model_name,
+                        messages=messages,
+                        temperature=0.8,
+                        max_tokens=700,
+                        stream=True
+                    )
+                    break
+                except Exception as e:
+                    logger.error(f"Stream open failed on {model_name}: {e}")
+                    stream = None
+            if stream is None:
+                yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
+                yield "data: [DONE]\n\n"
+                return
+
+            for chunk in stream:
+                try:
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta.content or ""
+                except Exception:
+                    continue
+                if not delta:
+                    continue
+
+                if not consumed:
+                    consume_credit(verified_uid, verified_email, decision)
+                    consumed = True
+
+                if psyche_mode:
+                    psyche_accum += delta
+                    continue
+
+                delta = delta.replace("\\n", "\n")
+                pending += delta
+
+                marker = pending.find("PSYCHE:")
+                if marker != -1:
+                    psyche_mode = True
+                    psyche_accum = pending[marker + len("PSYCHE:"):]
+                    safe = pending[:marker]
+                    pending = ""
+                elif len(pending) > HOLD:
+                    safe = pending[:-HOLD]
+                    pending = pending[-HOLD:]
+                else:
+                    safe = ""
+
+                if safe:
+                    emitted_any = True
+                    yield sse({"type": "delta", "text": safe})
+
+            # Flush held-back tail
+            if pending:
+                marker = pending.find("PSYCHE:")
+                if marker != -1:
+                    safe = pending[:marker]
+                    psyche_accum += pending[marker + len("PSYCHE:"):]
+                else:
+                    safe = pending
+                if safe:
+                    yield sse({"type": "delta", "text": safe})
+
+            # Finalize psyche
+            updated_psyche = user_psyche
+            candidate_psyche = re.sub(r'\s+', ' ', psyche_accum or "").strip()
+            if candidate_psyche:
+                updated_psyche = sanitize_metadata(candidate_psyche, max_length=80, default=user_psyche)
+
+            yield sse({
+                "type": "final",
+                "updatedPsyche": updated_psyche,
+                "remainingCredits": compute_remaining(decision),
+                "mode": selected_mode
+            })
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            logger.error(f"Streaming error: {e}")
+            if not emitted_any:
+                yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers=sse_headers)
+
+# ---------------- Prayer Journal API ----------------
+@app.post("/api/prayers/save")
+@app.post("/prayers/save")
+async def save_prayer(payload: SavePrayerRequest, request: Request):
+    uid, _ = get_verified_user(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Sign in to save prayers.")
+    if db is None:
+        raise HTTPException(status_code=503, detail="Storage temporarily unavailable.")
+
+    content = sanitize_input(payload.content, max_length=4000)
+    if not content:
+        raise HTTPException(status_code=400, detail="Prayer content cannot be empty.")
+    title = sanitize_metadata(payload.title, max_length=120, default="Saved Prayer")
+    mode = payload.mode if payload.mode in MODE_INSTRUCTIONS else "comfort"
+
+    try:
+        ref = db.collection("users").document(uid).collection("saved_prayers").document()
+        ref.set({
+            "title": title,
+            "content": content,
+            "mode": mode,
+            "createdAt": firestore.SERVER_TIMESTAMP
+        })
+        return {"saved": True, "id": ref.id}
+    except Exception as e:
+        logger.error(f"Save prayer failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not save prayer.")
+
+@app.get("/api/prayers")
+@app.get("/prayers")
+async def list_prayers(request: Request):
+    uid, _ = get_verified_user(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Sign in to view saved prayers.")
+    if db is None:
+        raise HTTPException(status_code=503, detail="Storage temporarily unavailable.")
+    try:
+        docs = db.collection("users").document(uid).collection("saved_prayers") \
+            .order_by("createdAt", direction=firestore.Query.DESCENDING).limit(100).stream()
+        prayers = []
+        for d in docs:
+            data = d.to_dict() or {}
+            prayers.append({
+                "id": d.id,
+                "title": data.get("title", "Saved Prayer"),
+                "content": data.get("content", ""),
+                "mode": data.get("mode", "comfort"),
+                "createdAt": str(data.get("createdAt", ""))
+            })
+        return {"prayers": prayers}
+    except Exception as e:
+        logger.error(f"List prayers failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not load prayers.")
+
+@app.delete("/api/prayers/{prayer_id}")
+async def delete_prayer(prayer_id: str, request: Request):
+    uid, _ = get_verified_user(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Sign in first.")
+    if db is None:
+        raise HTTPException(status_code=503, detail="Storage temporarily unavailable.")
+    try:
+        db.collection("users").document(uid).collection("saved_prayers").document(prayer_id).delete()
+        return {"deleted": True}
+    except Exception as e:
+        logger.error(f"Delete prayer failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not delete prayer.")
 
 # ---------------- Lemon Squeezy Webhook ----------------
 @app.post("/webhook/lemon")
@@ -543,72 +883,41 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
         event_name = event_payload.get("meta", {}).get("event_name", "unknown")
         custom_data = event_payload.get("meta", {}).get("custom_data", {})
         user_id = custom_data.get("user_id")
-        
-        attributes = event_payload.get("data", {}).get("attributes", {})
-        user_email = attributes.get("user_email")
-        sub_status = (attributes.get("status") or "").lower()
 
-        logger.info(f"Verified Lemon Event: {event_name} | Status: {sub_status} | User ID: {user_id} ({user_email})")
+        attrs = event_payload.get("data", {}).get("attributes", {}) or {}
+        user_email = attrs.get("user_email")
+        status_val = str(attrs.get("status", "") or "").lower()
 
-        if not user_id:
-            logger.warning("Webhook arrived WITHOUT custom user_id. Ensure ?checkout[custom][user_id]=<firebase-uid> is in your checkout URL.")
+        logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email}) status={status_val}")
 
-        if db and user_id:
-            ref = db.collection("users").document(user_id)
-            
-            # Determine entitlement strictly by attributes.status
-            if event_name.startswith("subscription_"):
-                # Active states in Lemon Squeezy: 'active', 'on_trial'
-                is_active = sub_status in ("active", "on_trial")
-            elif event_name == "order_created":
-                # For one-time passes / devotions
-                is_active = sub_status in ("paid", "active")
-            elif event_name in ("subscription_cancelled", "subscription_expired", "subscription_paused", "subscription_payment_failed", "order_refunded"):
-                is_active = False
-            else:
-                is_active = sub_status in ("active", "on_trial", "paid")
+        active_events = ("subscription_created", "subscription_payment_success",
+                         "order_created", "subscription_resumed", "subscription_unpaused")
+        inactive_events = ("subscription_cancelled", "subscription_expired",
+                           "subscription_paused", "subscription_payment_failed",
+                           "subscription_payment_refunded", "order_refunded")
 
-            ref.set({
-                "isSubscribed": is_active,
-                "subscriptionStatus": sub_status or event_name,
-                "email": user_email or "",
-                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-            }, merge=True)
-            
-            logger.info(f"Updated subscription status for {user_id}: isSubscribed={is_active} (status={sub_status})")
+        should_activate: Optional[bool] = None
+        if event_name == "subscription_updated":
+            # This event fires for pause/cancel/resume too — trust the status field.
+            should_activate = status_val in ("active", "on_trial")
+        elif event_name in active_events:
+            should_activate = True
+        elif event_name in inactive_events:
+            should_activate = False
+        else:
+            logger.info(f"Ignoring unhandled Lemon event: {event_name}")
 
-        return {"status": "success", "event": event_name, "user_id": user_id, "subscription_status": sub_status}
-    except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
-        raise HTTPException(status_code=400, detail="Invalid payload format.")
-
-    try:
-        event_payload = json.loads(raw_body.decode("utf-8"))
-        event_name = event_payload.get("meta", {}).get("event_name", "unknown")
-        custom_data = event_payload.get("meta", {}).get("custom_data", {})
-        user_id = custom_data.get("user_id")
-        user_email = event_payload.get("data", {}).get("attributes", {}).get("user_email")
-
-        logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email})")
-
-        if not user_id:
-            logger.warning("Webhook arrived WITHOUT custom user_id. Include ?checkout[custom][user_id]=<firebase-uid> in your checkout URL.")
-
-        if db and user_id:
-            ref = db.collection("users").document(user_id)
-            active_events = ("subscription_created", "subscription_payment_success",
-                             "order_created", "subscription_updated",
-                             "subscription_resumed", "subscription_unpaused")
-            inactive_events = ("subscription_cancelled", "subscription_expired",
-                               "subscription_paused", "subscription_payment_failed")
-            if event_name in active_events:
-                ref.set({"isSubscribed": True, "email": user_email,
-                         "lastPlanUpdate": firestore.SERVER_TIMESTAMP}, merge=True)
-                logger.info(f"Granted subscription to {user_id}.")
-            elif event_name in inactive_events:
-                ref.set({"isSubscribed": False,
-                         "lastPlanUpdate": firestore.SERVER_TIMESTAMP}, merge=True)
-                logger.info(f"Revoked subscription for {user_id}.")
+        if should_activate is not None:
+            if not user_id:
+                logger.warning("Webhook arrived WITHOUT custom user_id. Include ?checkout[custom][user_id]=<firebase-uid> in your checkout URL.")
+            elif db:
+                ref = db.collection("users").document(user_id)
+                ref.set({
+                    "isSubscribed": should_activate,
+                    "email": user_email or "",
+                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
+                }, merge=True)
+                logger.info(f"{'Granted' if should_activate else 'Revoked'} subscription for {user_id}.")
 
         return {"status": "success", "event": event_name, "user_id": user_id}
     except Exception as e:

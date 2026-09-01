@@ -1598,6 +1598,124 @@
       }
     }
 
+    /* ---------------------------------------------------------
+       GETHSEMANE DISSOLVE AUDIO SYNTHESIZER (WEB AUDIO API)
+       --------------------------------------------------------- */
+    function playSacredDissolveSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+
+        // 1. Soft ethereal wind / breath buffer
+        const bufferSize = ctx.sampleRate * 2.5;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.8));
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, ctx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 2.2);
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.35, ctx.currentTime);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.5);
+
+        noise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noise.start();
+
+        // 2. Sacred celestial chime / harmonic frequencies
+        const freqs = [528, 660, 792];
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + (idx * 0.1));
+
+          gain.gain.setValueAtTime(0.08, ctx.currentTime + (idx * 0.1));
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 2.4);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + (idx * 0.1));
+          osc.stop(ctx.currentTime + 2.5);
+        });
+      } catch (e) {
+        console.log("Audio synthesis note:", e);
+      }
+    }
+
+    /* ---------------------------------------------------------
+       ASH & EMBER CANVAS PARTICLE PHYSICS ENGINE
+       --------------------------------------------------------- */
+    function runAshDissolveAnimation() {
+      const canvas = document.getElementById("dissolveCanvas");
+      const wrapper = document.getElementById("confessionBoxWrapper");
+      if (!canvas || !wrapper) return;
+
+      canvas.width = wrapper.offsetWidth || 340;
+      canvas.height = wrapper.offsetHeight || 130;
+      const ctx = canvas.getContext("2d");
+
+      const particles = [];
+      const particleCount = 110;
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height * 0.85 + (canvas.height * 0.15),
+          vx: (Math.random() - 0.5) * 1.8,
+          vy: -(Math.random() * 2.2 + 0.8),
+          size: Math.random() * 3.2 + 1.2,
+          alpha: 1.0,
+          decay: Math.random() * 0.012 + 0.006,
+          color: Math.random() > 0.4 ? "#dfb455" : "#c99839"
+        });
+      }
+
+      let animId;
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let activeParticles = 0;
+
+        particles.forEach(p => {
+          if (p.alpha > 0) {
+            activeParticles++;
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            p.x += p.vx;
+            p.y += p.vy;
+            p.alpha -= p.decay;
+            p.size = Math.max(0.2, p.size - 0.01);
+          }
+        });
+
+        if (activeParticles > 0) {
+          animId = requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          cancelAnimationFrame(animId);
+        }
+      }
+      animate();
+    }
+
     /* GETHSEMANE CONFESSIONAL */
     function openConfessionalModal() {
       if (!currentUser) { openPrivacyModal(); return; }
@@ -1629,7 +1747,10 @@
 
       surrenderBtn.disabled = true;
       surrenderBtn.innerHTML = "✨ Dissolving into Ashes...";
+      
       confessionInput.classList.add("confession-dissolving");
+      runAshDissolveAnimation();
+      playSacredDissolveSound();
 
       setTimeout(() => {
         confessionInput.value = "";
