@@ -15,20 +15,6 @@ from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
 
-# Optional Sentry Monitoring
-try:
-    import sentry_sdk
-    from sentry_sdk.integrations.fastapi import FastApiIntegration
-    SENTRY_DSN = os.getenv("SENTRY_DSN", "")
-    if SENTRY_DSN:
-        sentry_sdk.init(
-            dsn=SENTRY_DSN,
-            integrations=[FastApiIntegration()],
-            traces_sample_rate=1.0,
-        )
-except ImportError:
-    pass
-
 load_dotenv(dotenv_path="./jesus-talk-api/.env")
 load_dotenv()
 
@@ -82,14 +68,9 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
 
-if not GROQ_API_KEY:
-    logger.warning("GROQ_API_KEY is not set.")
-
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-# ---------------------------------------------------------
-# 1. PER-IP RATE LIMITING & GUEST USAGE TRACKING
-# ---------------------------------------------------------
+# Rate Limiting & Guest Log
 IP_REQUEST_LOG = defaultdict(list)
 GUEST_DAILY_IP_LOG = defaultdict(int)
 RATE_LIMIT_REQUESTS = 20
@@ -104,9 +85,7 @@ def is_rate_limited(client_ip: str) -> bool:
     IP_REQUEST_LOG[client_ip].append(now)
     return False
 
-# ---------------------------------------------------------
-# 2. CRISIS PROTOCOL
-# ---------------------------------------------------------
+# Crisis Protocol
 CRISIS_PATTERNS = [
     r"\b(kill|end|take)\s+my\s+(life|myself)\b",
     r"\b(suicide|suicidal)\b",
@@ -138,9 +117,6 @@ def check_crisis_triggers(text: str) -> bool:
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
-# ---------------------------------------------------------
-# 3. PROMPT SANITIZATION & METADATA VALIDATOR
-# ---------------------------------------------------------
 INJECTION_KEYWORDS = [
     "ignore all previous instructions", "disregard prior instructions",
     "disregard previous instructions", "system prompt", "developer mode",
@@ -170,11 +146,7 @@ def clean_scripture_citations(reply: str) -> str:
     text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
     return text.strip()
 
-# ---------------------------------------------------------
-# 4. CRYPTOGRAPHIC AUTH & DAILY QUOTA RESOLUTION
-# ---------------------------------------------------------
 def get_verified_user(request: Request) -> tuple[Optional[str], Optional[str]]:
-    """Extracts and verifies the Firebase ID token from the Authorization header."""
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header.split(" ", 1)[1].strip()
@@ -187,20 +159,11 @@ def get_verified_user(request: Request) -> tuple[Optional[str], Optional[str]]:
     return None, None
 
 def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip: str) -> tuple[bool, int, str]:
-    """
-    Validates entitlement:
-    - Cryptographically verified developer email -> unlimited.
-    - Subscribed users -> unlimited.
-    - Free signed-in users -> 5 daily messages with automatic UTC rollover.
-    - Guests -> 1 free prayer per IP per day before requiring sign-in.
-    """
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # 1. Developer Check (Only on verified email token)
     if email and email.lower() == DEVELOPER_EMAIL.lower():
         return True, 1000, "developer"
 
-    # 2. Verified Signed-in User
     if uid and db:
         try:
             user_ref = db.collection("users").document(uid)
@@ -214,7 +177,6 @@ def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip
                 last_reset = data.get("lastResetDate")
                 credits = data.get("credits", 5)
 
-                # Daily Reset Rollover
                 if last_reset != today_str:
                     user_ref.set({
                         "credits": 4,
@@ -226,14 +188,12 @@ def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip
                 if credits <= 0:
                     return False, 0, "quota_exhausted"
 
-                # Decrement credit
                 user_ref.update({
                     "credits": firestore.Increment(-1),
                     "lastActive": firestore.SERVER_TIMESTAMP
                 })
                 return True, credits - 1, "consumed"
             else:
-                # First-time User Initialization
                 user_ref.set({
                     "email": email or "",
                     "credits": 4,
@@ -247,7 +207,6 @@ def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip
             logger.error(f"Firestore entitlement lookup error: {e}")
             return True, 5, "db_fallback"
 
-    # 3. Unauthenticated Guest Gate (1 free prayer per day per IP)
     guest_key = f"{today_str}_{client_ip}"
     used_count = GUEST_DAILY_IP_LOG[guest_key]
     if used_count >= 1:
@@ -256,9 +215,6 @@ def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip
     GUEST_DAILY_IP_LOG[guest_key] += 1
     return True, 0, "guest_consumed"
 
-# ---------------------------------------------------------
-# 5. DYNAMIC PASTORAL PROMPTS
-# ---------------------------------------------------------
 MODE_INSTRUCTIONS = {
     "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and comforting.",
     "study": "Focus on biblical depth, original Scripture context, and spiritual insight. Explain the theological principle clearly.",
@@ -299,23 +255,24 @@ ACTIVE_GROQ_MODELS = [
     "llama-3.1-8b-instant"
 ]
 
-# ---------------------------------------------------------
-# 6. ROUTE HANDLERS
-# ---------------------------------------------------------
 @app.get("/")
 @app.get("/health")
 @app.get("/api")
 @app.get("/api/health")
-def health_check():
+@app.get("/api/index.py")
+@app.get("/api/index.py/health")
+def health_check(request: Request):
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
         "version": "3.4.0",
-        "db_connected": db is not None
+        "db_connected": db is not None,
+        "path": request.url.path
     }
 
 @app.post("/chat")
 @app.post("/api/chat")
+@app.post("/api/index.py/chat")
 async def chat_endpoint(payload: ChatRequest, request: Request):
     client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
 
@@ -334,7 +291,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
     selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
 
-    # 1. Crisis Check
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
@@ -343,7 +299,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "isCrisis": True
         }
 
-    # 2. Cryptographic Token Authentication & Quota Enforcement
     verified_uid, verified_email = get_verified_user(request)
     is_allowed, remaining_credits, reason = verify_and_consume_quota(verified_uid, verified_email, client_ip)
 
@@ -398,7 +353,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     if not raw_reply:
         raw_reply = "Peace be with you. Lay down what burdens your spirit, for I am listening. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nPSYCHE: A soul resting in divine presence"
 
-    # Extract & Sanitize Evolving Psyche
     updated_psyche = user_psyche
     psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
@@ -415,13 +369,12 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         "mode": selected_mode
     }
 
-# ---------------------------------------------------------
-# 7. LEMON SQUEEZY WEBHOOK & LIFECYCLE SYNC
-# ---------------------------------------------------------
 @app.post("/webhook/lemon")
 @app.post("/webhook/lemonsqueezy")
 @app.post("/api/webhook/lemon")
 @app.post("/api/webhook/lemonsqueezy")
+@app.post("/api/index.py/webhook/lemon")
+@app.post("/api/index.py/webhook/lemonsqueezy")
 async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = Header(None)):
     raw_body = await request.body()
 
