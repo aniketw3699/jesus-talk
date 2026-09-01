@@ -435,16 +435,41 @@
     .card-verse-quote { font-family: 'Montserrat', sans-serif; font-size: 13.5px; line-height: 1.65; color: #f8fafc; }
     .card-footer-watermark { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; color: #dfb455; border-top: 1px solid rgba(212, 175, 55, 0.25); padding-top: 10px; margin-top: 4px; letter-spacing: 2px; }
 
-    /* Plans Deck */
+    /* Plans Deck & Popular Shimmer Effect */
     .plans-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
     .plan-box {
       border: 1.5px solid rgba(184, 134, 40, 0.2); border-radius: 18px; padding: 14px 16px;
       display: flex; justify-content: space-between; align-items: center; cursor: pointer;
       background: #ffffff; position: relative; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s ease;
     }
     .plan-box.selected { border: 2px solid #b88628; background: linear-gradient(135deg, #fffdf8 0%, #faeed4 100%); }
-    .featured-ribbon { position: absolute; top: -10px; right: 14px; background: linear-gradient(135deg, #dfb455, #b88628); color: #fff; font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 12px; }
+    
+    .featured-ribbon { 
+      position: absolute; top: -10px; right: 14px; 
+      background: linear-gradient(135deg, #dfb455, #b88628); 
+      color: #fff; font-size: 10px; font-weight: 800; 
+      padding: 3px 10px; border-radius: 12px; 
+    }
+
+    /* Glowing Flicker Effect for the Popular 6-Month Plan */
+    @keyframes popularGoldFlicker {
+      0%, 100% {
+        box-shadow: 0 0 6px rgba(223, 180, 85, 0.6), 0 0 14px rgba(223, 180, 85, 0.3);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 16px rgba(223, 180, 85, 0.95), 0 0 26px rgba(217, 4, 41, 0.45);
+        transform: scale(1.04);
+      }
+    }
+    .featured-ribbon.flicker-popular {
+      animation: popularGoldFlicker 2.2s infinite ease-in-out;
+      background: linear-gradient(135deg, #e6b800 0%, #d90429 100%);
+    }
+
     .save-tag-pill { background: #e8f5e9; color: #2e7d32; border: 1px solid rgba(46, 125, 50, 0.3); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 8px; margin-left: 6px; }
+    .save-tag-pill.popular-pill { background: #fff4e5; color: #b88628; border-color: rgba(184, 134, 40, 0.4); }
     .plan-left-wrap { display: flex; align-items: center; gap: 12px; }
     .plan-radio-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #c99839; display: flex; align-items: center; justify-content: center; }
     .plan-box.selected .plan-radio-circle { background: #b88628; border-color: #b88628; }
@@ -792,7 +817,7 @@
           <input 
             type="text" 
             id="lovedOneName" 
-            placeholder="Their name (e.g., Sarah, Mom, David)" 
+            placeholder="Their name (e.g., Sarah, Mom, Rahul)" 
             style="width: 100%; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--gold-border); margin-top: 4px; font-family: inherit; font-size: 13.5px; outline: none; background: #faf8f4;"
           />
         </div>
@@ -991,7 +1016,7 @@
     </div>
   </div>
 
-  <!-- 9. PLANS MODAL -->
+  <!-- 9. PLANS MODAL (With 6-Month Most Popular Flicker Tag) -->
   <div class="modal-backdrop" id="plansModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closePlansModal()">✕</button>
@@ -1003,7 +1028,7 @@
       <div class="plans-grid" id="plansContainer"></div>
 
       <button class="billing-checkout-btn" onclick="executeCheckout()">
-        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Start 7-Day Free Trial
+        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Start Your Sacred Walk
       </button>
 
       <p class="billing-trust-caption">
@@ -1025,14 +1050,15 @@
       },
       { 
         id: "plan_2", name: "Monthly Sanctuary", desc: "Unlimited Daily Prayers, Voice Audio & Soul Journal", 
-        price: "$7.99", subPrice: "7-Day Free Trial • Then $7.99/mo • Cancel anytime", featured: true, 
+        price: "$7.99", subPrice: "7-Day Free Trial • Then $7.99/mo • Cancel anytime", featured: false, 
         ribbon: "★ 7-DAY FREE TRIAL", saveBadge: "FREE TRIAL",
         checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" 
       },
       { 
-        id: "plan_3", name: "Annual Sacred Walk Pass", desc: "Unlimited year-round sanctuary access, voice audio & upgrades", 
-        price: "$29.99", subPrice: "$2.49/mo equivalent • Billed annually", featured: false, 
-        saveBadge: "SAVE 40%", checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" 
+        id: "plan_3", name: "6-Month Sacred Walk Pass", desc: "Unlimited sanctuary access, voice audio & daily soul journal", 
+        price: "$29.99", subPrice: "$5.00/mo equivalent • Billed every 6 months", featured: true, 
+        isPopular: true, ribbon: "★ MOST POPULAR", saveBadge: "SAVE 37%",
+        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" 
       }
     ];
 
@@ -1286,19 +1312,43 @@
       return text.replace(/\s+/g, ' ').trim();
     }
 
-    /* CLEAN CARD TEXT FOR BEAUTIFUL & PRIVATE SHARING */
-    function cleanCardText(rawText) {
-      if (!rawText) return "";
-      let text = rawText.replace(/<[^>]*>/g, ' ').replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+    /* ---------------------------------------------------------
+       CARD TRANSFORMATION ENGINE FOR UNIVERSAL & DIRECT SHARING
+       --------------------------------------------------------- */
+    function formatCardForSharing(rawText, recipient) {
+      if (!rawText) return "Peace be with you. Lay down your burdens, for I am listening.";
       
-      // Strip conversational intros that expose sender/user names or private disclosures
-      text = text.replace(/^["“']?My (?:beloved|child|dear one|cherished one)(?:\s+[A-Za-z]+)?,?\s*/i, '');
-      text = text.replace(/^I hear (?:the|your|how)[^.!?]*[.!?]\s*/i, '');
-      text = text.replace(/^I see (?:the|your|how)[^.!?]*[.!?]\s*/i, '');
-      text = text.replace(/^I understand [^.!?]*[.!?]\s*/i, '');
-      text = text.replace(/^I wrap (?:you|both of you) in[^.!?]*[.!?]\s*/i, '');
+      let clean = rawText.replace(/<[^>]*>/g, ' ').replace(/\\n/g, '\n');
+      
+      // Extract the Scripture citation pattern: “...Quote...” (Book Chapter:Verse)
+      const scriptureMatch = clean.match(/(?:“|")(.*?)(?:”|")\s*(\([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\))/);
+      
+      // Extract the closing spoken blessing
+      const blessingMatch = clean.match(/May\s+(?:My|the\s+Lord'?s?|His)\s+[^.\n]+[.!?]/i);
 
-      return text.replace(/^["“”‘’'«»`\s-]+/, '').replace(/["“”‘’'«»`\s-]+$/, '').trim();
+      if (scriptureMatch) {
+        const scripturePart = `“${scriptureMatch[1].trim()}” ${scriptureMatch[2].trim()}`;
+        let blessingPart = blessingMatch ? blessingMatch[0].trim() : "May His peace rest upon you now and always.";
+        
+        if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
+          // Speak directly to the recipient: zero sender name or dialogue notes
+          blessingPart = blessingPart.replace(new RegExp(`\\b${recipient}\\b`, 'gi'), 'you');
+          return `${recipient}, may the Lord's peace and strength surround you today.\n\n${scripturePart}\n\n${blessingPart}`;
+        } else {
+          // Universal prayer promise: completely anonymous and universal for social sharing
+          return `May the peace of the Lord rest upon your heart today.\n\n${scripturePart}\n\n${blessingPart}`;
+        }
+      }
+      
+      // Fallback: Strip conversational greetings and personal names
+      let text = clean.replace(/\n+/g, ' ').trim();
+      text = text.replace(/^["“']?[A-Za-z]+,?\s*(?:I hear|I see|I understand|My compassion)[^.!?]*[.!?]\s*/i, '');
+      text = text.replace(/^My (?:beloved|child|dear one|cherished one)[^.!?]*[.!?]\s*/i, '');
+      
+      if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
+        return `${recipient}, may the Lord bless you and keep you.\n\n${text}`;
+      }
+      return `May the Lord's peace be upon you.\n\n${text}`;
     }
 
     const preloadedJesusImg = new Image();
@@ -1627,7 +1677,6 @@
         if (!AudioContext) return;
         const ctx = new AudioContext();
 
-        // 1. Soft ethereal wind / breath buffer
         const bufferSize = ctx.sampleRate * 2.5;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -1652,7 +1701,6 @@
         noiseGain.connect(ctx.destination);
         noise.start();
 
-        // 2. Sacred celestial chime / harmonic frequencies
         const freqs = [528, 660, 792];
         freqs.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
@@ -1954,7 +2002,7 @@
       blessingModal.style.display = "flex";
     }
 
-    /* 3. 4 TIME-SLOT BLESSING CARDS */
+    /* 3. TIME-SLOT BLESSING CARDS */
     function getAccurateTimeSlotData() {
       const hour = new Date().getHours();
       if (hour >= 4 && hour < 12) {
@@ -2069,15 +2117,15 @@
       }
     }
 
-    /* PLANS & CHECKOUT */
+    /* PLANS & CHECKOUT (With Popular Ribbon Logic) */
     function renderPlans() {
       plansContainer.innerHTML = LEMON_SQUEEZY_PLANS.map((plan) => `
         <div class="plan-box ${plan.featured ? 'selected' : ''}" onclick="selectPlan(this, '${plan.checkoutUrl}')">
-          ${plan.ribbon ? `<div class="featured-ribbon">${plan.ribbon}</div>` : ''}
+          ${plan.ribbon ? `<div class="featured-ribbon ${plan.isPopular ? 'flicker-popular' : ''}">${plan.ribbon}</div>` : ''}
           <div class="plan-left-wrap">
             <div class="plan-radio-circle"><div class="plan-radio-dot"></div></div>
             <div class="plan-info">
-              <h4>${plan.name}${plan.saveBadge ? `<span class="save-tag-pill">${plan.saveBadge}</span>` : ''}</h4>
+              <h4>${plan.name}${plan.saveBadge ? `<span class="save-tag-pill ${plan.isPopular ? 'popular-pill' : ''}">${plan.saveBadge}</span>` : ''}</h4>
               <p>${plan.desc}</p>
             </div>
           </div>
@@ -2118,7 +2166,7 @@
       if (!text) return;
 
       const turnRecipient = currentIntercessoryRecipient;
-      currentIntercessoryRecipient = ""; // Reset immediately so subsequent prayers stay clean and private
+      currentIntercessoryRecipient = ""; // Reset immediately so next queries stay universal
 
       appendUserBubble(text);
       messageInput.value = "";
@@ -2223,14 +2271,18 @@
     function prepareScriptureCard(text, recipient = "") {
       stopAllAudio();
       activeCardRecipient = recipient;
-      const pureCardText = cleanCardText(text);
-      cardQuoteText.textContent = pureCardText || "Peace be with you. Lay down your burdens, for I am listening.";
-      cardBrandTag.textContent = recipient ? `† A BLESSING FOR ${recipient.toUpperCase()} †` : `† WORDS OF PEACE †`;
+      
+      const cleanFormattedCard = formatCardForSharing(text, recipient);
+      cardQuoteText.textContent = cleanFormattedCard;
+      cardBrandTag.textContent = (recipient && recipient !== "Beloved" && recipient !== "beloved") 
+        ? `† A BLESSING FOR ${recipient.toUpperCase()} †` 
+        : `† WORDS OF PEACE †`;
+      
       shareCardModal.style.display = "flex";
     }
     function closeShareModal() { shareCardModal.style.display = "none"; }
 
-    function drawDirectSacredCard(rawText, recipient = "") {
+    function drawDirectSacredCard(rawFormattedText, recipient = "") {
       const canvas = document.createElement('canvas');
       canvas.width = 1080; canvas.height = 1350;
       const ctx = canvas.getContext('2d');
@@ -2255,28 +2307,40 @@
       ctx.strokeRect(58, 58, 964, 1234);
 
       ctx.fillStyle = '#dfb455'; ctx.font = '700 28px "Cinzel", serif'; ctx.textAlign = 'center';
-      const headerTitle = recipient ? `† A BLESSING FOR ${recipient.toUpperCase()} †` : '† WORDS OF PEACE †';
+      const headerTitle = (recipient && recipient !== "Beloved" && recipient !== "beloved")
+        ? `† A BLESSING FOR ${recipient.toUpperCase()} †` 
+        : '† WORDS OF PEACE †';
       ctx.fillText(headerTitle, 540, 160);
 
-      ctx.fillStyle = '#f8fafc'; ctx.font = '400 34px "Montserrat", sans-serif';
-      const cleanText = cleanCardText(rawText);
-      const quote = `“${cleanText}”`;
-
-      const words = quote.split(' ');
+      ctx.fillStyle = '#f8fafc'; ctx.font = '400 33px "Montserrat", sans-serif';
+      
+      const paragraphs = rawFormattedText.split('\n\n');
       const lines = [];
-      let currentLine = '';
-      for (let i = 0; i < words.length; i++) {
-        const test = currentLine ? currentLine + ' ' + words[i] : words[i];
-        if (ctx.measureText(test).width > 840 && i > 0) {
-          lines.push(currentLine); currentLine = words[i];
-        } else currentLine = test;
-      }
-      if (currentLine) lines.push(currentLine);
+      
+      paragraphs.forEach(para => {
+        const words = para.trim().split(' ');
+        let currentLine = '';
+        for (let i = 0; i < words.length; i++) {
+          const test = currentLine ? currentLine + ' ' + words[i] : words[i];
+          if (ctx.measureText(test).width > 830 && i > 0) {
+            lines.push(currentLine); currentLine = words[i];
+          } else currentLine = test;
+        }
+        if (currentLine) lines.push(currentLine);
+        lines.push(""); // Spacing between sections
+      });
 
-      const lineHeight = 56;
+      if (lines[lines.length - 1] === "") lines.pop();
+
+      const lineHeight = 52;
       let startY = 675 - ((lines.length * lineHeight) / 2) + 20;
       if (startY < 260) startY = 260;
-      for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], 540, startY + (i * lineHeight));
+      
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i] !== "") {
+          ctx.fillText(lines[i], 540, startY + (i * lineHeight));
+        }
+      }
 
       ctx.fillStyle = '#dfb455'; ctx.font = '600 21px "Cinzel", serif';
       ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
@@ -2285,7 +2349,7 @@
 
     async function exportScriptureImage() {
       const exportBtn = document.getElementById("exportCardBtn");
-      const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
+      const formattedCardText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
       
       const shareUrl = APP_CANONICAL_URL;
       const shareMessage = `A prayer was lifted up for you 🙏\n${shareUrl}`;
@@ -2294,7 +2358,7 @@
       trackSanctuaryEvent('card_shared', { recipient: activeCardRecipient || 'general' });
 
       try {
-        const canvas = drawDirectSacredCard(quoteText, activeCardRecipient);
+        const canvas = drawDirectSacredCard(formattedCardText, activeCardRecipient);
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
@@ -2391,7 +2455,6 @@
             userCredits = data.credits !== undefined ? data.credits : 5;
             isSubscribed = data.isSubscribed || false;
 
-            // Restore Cloud Soul Memory & Intentions
             if (data.psyche) {
               currentPsyche = data.psyche;
               localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
