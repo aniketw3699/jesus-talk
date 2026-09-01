@@ -711,14 +711,14 @@
     </footer>
 
     <!-- LEGAL COMPLIANCE FOOTER -->
-<footer style="text-align: center; padding: 6px 10px 10px 10px; font-size: 11px; color: var(--text-muted); background: rgba(255, 255, 255, 0.95); flex-shrink: 0;">
-  <p style="margin-bottom: 4px; font-size: 10.5px; opacity: 0.85;">
-    You With Jesus is an AI-assisted Scripture companion designed for spiritual encouragement, prayer, and reflection.
-  </p>
-  <a href="privacy.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Privacy Policy</a> •
-  <a href="terms.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Terms of Service</a> •
-  <a href="refund.html" style="color: inherit; text-decoration: none; margin: 0 6px;">14-Day Refund</a>
-</footer>
+    <footer style="text-align: center; padding: 6px 10px 10px 10px; font-size: 11px; color: var(--text-muted); background: rgba(255, 255, 255, 0.95); flex-shrink: 0;">
+      <p style="margin-bottom: 4px; font-size: 10.5px; opacity: 0.85;">
+        You With Jesus is an AI-assisted Scripture companion designed for spiritual encouragement, prayer, and reflection.
+      </p>
+      <a href="privacy.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Privacy Policy</a> •
+      <a href="terms.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Terms of Service</a> •
+      <a href="refund.html" style="color: inherit; text-decoration: none; margin: 0 6px;">14-Day Refund</a>
+    </footer>
   </main>
   
 
@@ -2265,9 +2265,8 @@
       const exportBtn = document.getElementById("exportCardBtn");
       const quoteText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
       
-      const recipientParam = encodeURIComponent(currentIntercessoryRecipient || 'Beloved');
-      const textParam = encodeURIComponent(quoteText);
-      const shareUrl = `${APP_CANONICAL_URL}/blessing.html?recipient=${recipientParam}&text=${textParam}`;
+      const shareUrl = APP_CANONICAL_URL;
+      const shareMessage = `A prayer was lifted up for you 🙏\n${shareUrl}`;
 
       exportBtn.innerHTML = "⏳ Opening Share Menu..."; exportBtn.disabled = true;
       trackSanctuaryEvent('card_shared', { recipient: currentIntercessoryRecipient || 'general' });
@@ -2279,12 +2278,20 @@
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
           if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
-              await navigator.share({ title: 'A Blessing For You', text: `A prayer was lifted up for you: ${shareUrl}`, files: [shareFile] });
+              await navigator.share({ 
+                title: 'A Blessing For You', 
+                text: shareMessage, 
+                files: [shareFile] 
+              });
               closeShareModal();
             } catch (err) {}
           } else if (navigator.share) {
             try {
-              await navigator.share({ title: 'A Blessing For You', text: `A prayer was lifted up for you: ${shareUrl}`, url: shareUrl });
+              await navigator.share({ 
+                title: 'A Blessing For You', 
+                text: 'A prayer was lifted up for you 🙏', 
+                url: shareUrl 
+              });
               closeShareModal();
             } catch(e) {}
           } else {
@@ -2296,7 +2303,7 @@
             link.click();
             document.body.removeChild(link);
             if (navigator.clipboard) {
-              navigator.clipboard.writeText(shareUrl);
+              navigator.clipboard.writeText(shareMessage);
               alert("Blessing image downloaded and prayer link copied to clipboard!");
             }
           }
