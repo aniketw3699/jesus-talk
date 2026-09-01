@@ -500,6 +500,13 @@ def main():
         existing_slugs = [t.get("slug", "") for t in all_topics if t.get("slug")]
         new_topic = generate_dynamic_topic(existing_slugs)
         if new_topic and new_topic.get("slug"):
+            new_topic = normalize_topic(new_topic)
+            slug = new_topic["slug"]
+            
+            # Prevent duplicate slug collisions
+            if slug in existing_slugs or os.path.exists(os.path.join(BLOGS_DIR, f"{slug}.html")):
+                continue
+                
             all_topics.append(new_topic)
             pending_topics.append(new_topic)
             with open(TOPICS_FILE, "w", encoding="utf-8") as f:
