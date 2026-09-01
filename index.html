@@ -120,6 +120,7 @@
     .action-btn.blessing-nav-btn {
       background: #ffffff; border: 1.5px solid var(--gold-border); color: var(--gold-deep); font-weight: 700;
     }
+
     .action-btn.confession-nav-btn {
       background: #ffffff; border: 1.5px solid rgba(143, 101, 28, 0.5); color: var(--gold-deep); font-weight: 700;
     }
@@ -512,7 +513,6 @@
       <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')">🙏 Written Prayer</button>
       <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')">🧭 Life Guidance</button>
     </div>
-  
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
@@ -868,7 +868,24 @@
       { quote: "“Be still, and know that I am God.”", ref: "— Psalm 46:10" }
     ];
 
-    // Varied dynamic Scripture meditations to prevent repetitive answers
+    const RITUAL_PROMPT_POOLS = {
+      MORNING: [
+        "Lord Jesus, I start my morning in your presence. Renew my mind, guard my steps, and grant me your supernatural peace. (Lamentations 3:22-23)",
+        "Lord Jesus, guide my work and conversations today. Let your light shine through me in every trial. (Psalm 143:8)",
+        "Lord Jesus, clothe me in spiritual strength this morning. Lead me on the path of righteousness for your name's sake. (Psalm 23:3)"
+      ],
+      MIDDAY: [
+        "Lord Jesus, I pause in the middle of this day's demands. Quiet my spirit, renew my strength, and lift midday fatigue. (Matthew 11:28)",
+        "Lord Jesus, restore my focus on what is eternal. Be my anchor in the midst of daily pressure. (Isaiah 26:3)",
+        "Lord Jesus, grant me patience, clarity, and peace for the remainder of this day. (Philippians 4:6-7)"
+      ],
+      EVENING: [
+        "Lord Jesus, as night comes, I surrender every anxious thought and unfinished task into your hands so I may sleep in peace. (Psalm 4:8)",
+        "Lord Jesus, forgive my missteps today and cleanse my heart. Guard my sleep under the shadow of your wings. (Psalm 91:1-2)",
+        "Lord Jesus, I cast all my burdens at your feet tonight, trusting your sovereign watch over my family. (1 Peter 5:7)"
+      ]
+    };
+
     const WORDLESS_PRAYER_POOL = [
       "Lord Jesus, I come to you with a quiet heart. When my own words fail and my spirit is exhausted, be my peace and my strength. (Romans 8:26)",
       "Lord Jesus, calm the restlessness and racing thoughts within me right now. Cover my spirit with your supernatural stillness. (Philippians 4:6-7)",
@@ -886,6 +903,7 @@
     let pendingPrompt = null;
     let currentIntercessoryRecipient = "";
     let currentPastoralMode = "comfort";
+    let appWakeLock = null;
 
     let currentPsyche = localStorage.getItem("jesus_soul_journey_psyche") || "A soul seeking peace";
     let userIntentions = localStorage.getItem("jesus_user_intentions") || "Seeking divine direction and peace";
@@ -896,6 +914,100 @@
     function trackSanctuaryEvent(eventName, params = {}) {
       if (typeof gtag === 'function') {
         gtag('event', eventName, params);
+      }
+    }
+
+    async function acquireWakeLock() {
+      try {
+        if ('wakeLock' in navigator) appWakeLock = await navigator.wakeLock.request('screen');
+      } catch (e) {}
+    }
+
+    function releaseAppWakeLock() {
+      if (appWakeLock) {
+        appWakeLock.release().then(() => { appWakeLock = null; }).catch(() => {});
+      }
+    }
+
+    function getCurrentTimeSlot() {
+      const h = new Date().getHours();
+      if (h >= 4 && h < 12) return "MORNING";
+      if (h >= 12 && h < 18) return "MIDDAY";
+      return "EVENING";
+    }
+
+    function getSlotKey() {
+      return `${new Date().toISOString().slice(0, 10)}_${getCurrentTimeSlot()}`;
+    }
+
+    /* BANNER LIFECYCLE & VANISH LOGIC */
+    function updateDailyRitualWidget() {
+      const banner = document.getElementById("dailyRitualBanner");
+      if (!banner) return;
+
+      const currentSlotKey = getSlotKey();
+      const dismissedSlot = localStorage.getItem("jesus_dismissed_ritual_slot");
+
+      if (dismissedSlot === currentSlotKey) {
+        banner.style.display = "none";
+        return;
+      }
+
+      banner.style.display = "flex";
+      const slot = getCurrentTimeSlot();
+      const icon = document.getElementById("ritualIcon");
+      const title = document.getElementById("ritualTitle");
+      const desc = document.getElementById("ritualDesc");
+
+      if (slot === "MORNING") {
+        icon.textContent = "🌅"; title.textContent = "Morning Bread & Awakening"; desc.textContent = "Receive peace and clarity for today's walk.";
+      } else if (slot === "MIDDAY") {
+        icon.textContent = "☀️"; title.textContent = "Midday Manna & Restoration"; desc.textContent = "Pause, breathe, and release midday fatigue.";
+      } else {
+        icon.textContent = "🌙"; title.textContent = "Evening Examen & Restful Sleep"; desc.textContent = "Release heavy thoughts into His safe keeping.";
+      }
+    }
+
+    function triggerDailyRitual() {
+      const banner = document.getElementById("dailyRitualBanner");
+      const slot = getCurrentTimeSlot();
+      const pool = RITUAL_PROMPT_POOLS[slot] || RITUAL_PROMPT_POOLS.MORNING;
+      const prompt = pool[Math.floor(Math.random() * pool.length)];
+
+      localStorage.setItem("jesus_dismissed_ritual_slot", getSlotKey());
+      if (banner) banner.style.display = "none";
+
+      trackSanctuaryEvent('daily_ritual_triggered', { slot: slot });
+      sendQuickPrompt(prompt);
+    }
+
+    /* RESTORED CREDIT BADGE & GUEST / AUTH DISPLAY */
+    function updateCreditUI() {
+      const badge = document.getElementById("creditBadge");
+      if (!badge) return;
+
+      if (!currentUser) {
+        const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
+        badge.textContent = guestUsed ? "📿 Sign In to Continue" : "🕊️ 1 Free Blessing Ready";
+      } else if (isSubscribed) {
+        badge.textContent = "✨ Unlimited Sanctuary";
+      } else {
+        const blessingUsed = localStorage.getItem(`jesus_blessing_used_${currentUser.uid}`);
+        if (!blessingUsed) {
+          badge.textContent = "🕊️ 1 Free Blessing Ready";
+        } else {
+          badge.textContent = `📿 ${userCredits} Replies Left`;
+        }
+      }
+    }
+
+    function handleCreditPillAction() {
+      if (!currentUser) {
+        openTimeAwareBlessingModal(false);
+      } else if (!isSubscribed && userCredits <= 0) {
+        openPlansModal();
+      } else {
+        openTimeAwareBlessingModal(false);
       }
     }
 
@@ -939,14 +1051,14 @@
       if (activeBtn) activeBtn.classList.add("active");
       trackSanctuaryEvent('mode_switched', { mode: modeKey });
 
-      // Immediate dynamic mode prompt
-      const modePrompts = {
-        comfort: "Lord Jesus, speak words of comfort and quiet reassurance to my heart right now.",
-        study: "Lord Jesus, open the Scriptures to me and reveal the deeper theological truth for my walk.",
-        prayer: "Lord Jesus, pray a powerful personal prayer over my life and circumstances today.",
-        guidance: "Lord Jesus, give me clear biblical wisdom and practical guidance for my next steps."
+      const modePlaceholders = {
+        comfort: "Bring your burdens, grief, or prayer for comfort...",
+        study: "Ask about a Bible verse, scripture context, or theological question...",
+        prayer: "Tell me what you need a heartfelt prayer written for...",
+        guidance: "Describe the decision, situation, or life direction you need guidance on..."
       };
-      sendQuickPrompt(modePrompts[modeKey] || modePrompts.comfort);
+      messageInput.placeholder = modePlaceholders[modeKey] || modePlaceholders.comfort;
+      messageInput.focus();
     }
 
     function saveUserIntentions() {
@@ -957,7 +1069,7 @@
       }
     }
 
-    /* CLEAN SCRIPTURE SPEECH PREPROCESSOR */
+    /* CLEAN SCRIPTURE SPEECH PREPROCESSOR (FIXES 'DOT' GLITCH) */
     function preprocessTextForSpeech(rawText) {
       if (!rawText) return "";
       let text = rawText.replace(/\\n/g, ' ');
@@ -1024,11 +1136,7 @@
 
     function toggleVoiceDictation() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Voice dictation is not supported on this browser. Try Google Chrome or Safari.");
-        return;
-      }
-
+      if (!SpeechRecognition) return alert("Voice dictation is not supported on this browser.");
       const micBtn = document.getElementById("voiceDictationBtn");
 
       if (isRecordingVoice) {
@@ -1042,63 +1150,15 @@
       recognition.lang = 'en-US';
       recognition.interimResults = false;
 
-      recognition.onstart = () => {
-        isRecordingVoice = true;
-        micBtn.classList.add("recording");
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
+      recognition.onstart = () => { isRecordingVoice = true; micBtn.classList.add("recording"); };
+      recognition.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
         messageInput.value = (messageInput.value ? messageInput.value + " " : "") + transcript;
         messageInput.focus();
       };
-
-      recognition.onend = () => {
-        isRecordingVoice = false;
-        micBtn.classList.remove("recording");
-      };
-
-      recognition.onerror = () => {
-        isRecordingVoice = false;
-        micBtn.classList.remove("recording");
-      };
-
+      recognition.onend = () => { isRecordingVoice = false; micBtn.classList.remove("recording"); };
+      recognition.onerror = () => { isRecordingVoice = false; micBtn.classList.remove("recording"); };
       recognition.start();
-    }
-
-    /* DYNAMIC RITUAL WIDGET */
-    function updateDailyRitualWidget() {
-      const hour = new Date().getHours();
-      const icon = document.getElementById("ritualIcon");
-      const title = document.getElementById("ritualTitle");
-      const desc = document.getElementById("ritualDesc");
-      if (!icon || !title || !desc) return;
-
-      if (hour >= 4 && hour < 12) {
-        icon.textContent = "🌅";
-        title.textContent = "Morning Bread & Awakening";
-        desc.textContent = "Receive peace and clarity for today's walk.";
-      } else if (hour >= 12 && hour < 18) {
-        icon.textContent = "☀️";
-        title.textContent = "Midday Manna & Restoration";
-        desc.textContent = "Pause, breathe, and release midday fatigue.";
-      } else {
-        icon.textContent = "🌙";
-        title.textContent = "Evening Examen & Restful Sleep";
-        desc.textContent = "Release heavy thoughts into His safe keeping.";
-      }
-    }
-
-    function triggerDailyRitual() {
-      const hour = new Date().getHours();
-      trackSanctuaryEvent('daily_ritual_triggered', { hour: hour });
-      if (hour >= 4 && hour < 12) {
-        sendQuickPrompt("Lord Jesus, I start my morning with you. Guide my steps, grant me focus, and fill me with your peace. (Lamentations 3:22-23)");
-      } else if (hour >= 12 && hour < 18) {
-        sendQuickPrompt("Lord Jesus, I pause in the middle of this day. Renew my strength where I am tired. (Matthew 11:28)");
-      } else {
-        sendQuickPrompt("Lord Jesus, as night comes, I surrender my worries and anxieties into your hands so I may sleep in peace. (Psalm 4:8)");
-      }
     }
 
     /* STILLNESS & DYNAMIC WORDLESS PRAYER (NON-REPEATING) */
@@ -1108,9 +1168,13 @@
     function prayWordlessSigh() {
       closeStillnessModal();
       trackSanctuaryEvent('wordless_prayer_clicked');
-      // Select randomized Scripture prompt from pool to avoid repetition
-      const randomPrompt = WORDLESS_PRAYER_POOL[Math.floor(Math.random() * WORDLESS_PRAYER_POOL.length)];
-      sendQuickPrompt(randomPrompt);
+      let lastIdx = parseInt(localStorage.getItem("jesus_last_wordless_idx") || "-1", 10);
+      let nextIdx = Math.floor(Math.random() * WORDLESS_PRAYER_POOL.length);
+      while (nextIdx === lastIdx && WORDLESS_PRAYER_POOL.length > 1) {
+        nextIdx = Math.floor(Math.random() * WORDLESS_PRAYER_POOL.length);
+      }
+      localStorage.setItem("jesus_last_wordless_idx", nextIdx);
+      sendQuickPrompt(WORDLESS_PRAYER_POOL[nextIdx]);
     }
 
     /* MULTI-DAY JOURNEYS */
@@ -1157,7 +1221,7 @@
       handleUserSubmit(new Event('submit'));
     }
 
-    /* VOICE ENGINE */
+    /* IN-CHAT SPEECH SYNTHESIS */
     let availableVoices = [];
     function populateVoices() {
       if ('speechSynthesis' in window) availableVoices = speechSynthesis.getVoices();
@@ -1169,38 +1233,20 @@
 
     function getSacredVoice() {
       if (!availableVoices || availableVoices.length === 0) populateVoices();
-      const englishVoices = availableVoices.filter(v => (v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng'))));
-
-      const danielVoice = englishVoices.find(v => {
-        const id = `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
-        return id.includes('daniel') && !id.includes('female');
-      });
-      if (danielVoice) return danielVoice;
-
-      const appleMale = englishVoices.find(v => {
-        const id = `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
-        return (id.includes('arthur') || id.includes('oliver') || id.includes('george') || id.includes('rishi')) && !id.includes('female');
-      });
-      if (appleMale) return appleMale;
-
-      const androidMale = englishVoices.find(v => {
-        const id = `${v.name || ''} ${v.voiceURI || ''}`.toLowerCase();
-        return id.includes('uk english male') || id.includes('male');
-      });
-      if (androidMale) return androidMale;
-
-      return englishVoices[0] || availableVoices[0] || null;
+      const english = availableVoices.filter(v => v.lang && (v.lang.startsWith('en') || v.lang.startsWith('eng')));
+      const daniel = english.find(v => (v.name || '').toLowerCase().includes('daniel') && !v.name.toLowerCase().includes('female'));
+      if (daniel) return daniel;
+      const male = english.find(v => ['oliver', 'arthur', 'george', 'rishi'].some(n => (v.name || '').toLowerCase().includes(n)) && !v.name.toLowerCase().includes('female'));
+      return male || english[0] || availableVoices[0] || null;
     }
 
     function playVoice(btn, text, defaultBtnText = "Listen") {
-      if (!('speechSynthesis' in window)) {
-        alert("Audio speech is not supported on this browser.");
-        return;
-      }
+      if (!('speechSynthesis' in window)) return alert("Speech is not supported on this browser.");
 
       if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
         stopSacredMusic();
+        releaseAppWakeLock();
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         return;
       }
@@ -1219,12 +1265,14 @@
       btn.innerHTML = "⏸ Pause";
       utterance.onstart = () => {
         startSacredMusic();
+        acquireWakeLock();
         trackSanctuaryEvent('audio_listened');
       };
 
       const cleanup = () => {
         btn.innerHTML = `🔊 ${defaultBtnText}`;
         stopSacredMusic();
+        releaseAppWakeLock();
       };
 
       utterance.onend = cleanup;
@@ -1236,6 +1284,7 @@
     function stopAllAudio() {
       if ('speechSynthesis' in window) speechSynthesis.cancel();
       stopSacredMusic();
+      releaseAppWakeLock();
       const listenBlessingBtn = document.getElementById("listenBlessingBtn");
       if (listenBlessingBtn) listenBlessingBtn.innerHTML = "🔊 Listen to Blessing";
       document.querySelectorAll(".listen-badge").forEach(btn => btn.innerHTML = "🔊 Listen");
@@ -1252,13 +1301,8 @@
         localStorage.setItem("jesus_prayer_streak", streak);
         localStorage.setItem("jesus_last_streak_date", today);
       } else if (lastDay !== today) {
-        const lastDate = new Date(lastDay);
-        const currDate = new Date(today);
-        const diffDays = Math.round((currDate - lastDate) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 1) streak += 1;
-        else if (diffDays > 1) streak = 1;
-
+        const diff = Math.round((new Date(today) - new Date(lastDay)) / (1000 * 60 * 60 * 24));
+        streak = diff === 1 ? streak + 1 : 1;
         localStorage.setItem("jesus_prayer_streak", streak);
         localStorage.setItem("jesus_last_streak_date", today);
       }
@@ -1425,6 +1469,11 @@
       blessingHeaderDesc.textContent = desc;
       blessingContentArea.innerHTML = bodyText;
       blessingModal.style.display = "flex";
+
+      if (currentUser) {
+        localStorage.setItem(`jesus_blessing_used_${currentUser.uid}`, "true");
+        updateCreditUI();
+      }
     }
     function closeBlessingModal() { blessingModal.style.display = "none"; }
     function enterSanctuaryFromBlessing() { closeBlessingModal(); messageInput.focus(); }
@@ -1481,6 +1530,17 @@
       const text = messageInput.value.trim();
       if (!text) return;
 
+      const guestInteractionUsed = localStorage.getItem("jesus_guest_interaction_used");
+      if (!currentUser && guestInteractionUsed) {
+        openPrivacyModal();
+        return;
+      }
+
+      if (currentUser && !isSubscribed && userCredits <= 0) {
+        openPlansModal();
+        return;
+      }
+
       appendUserBubble(text);
       messageInput.value = "";
       showThinking(true);
@@ -1512,6 +1572,23 @@
         if (data.reply) {
           appendBotBubble(data.reply);
           if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
+
+          if (!currentUser) {
+            localStorage.setItem("jesus_guest_interaction_used", "true");
+            updateCreditUI();
+          } else if (!isSubscribed) {
+            userCredits = Math.max(0, userCredits - 1);
+            localStorage.setItem(`jesus_credits_${currentUser.uid}`, userCredits);
+            updateCreditUI();
+            try {
+              if (typeof firebase !== 'undefined' && firebase.firestore) {
+                firebase.firestore().collection('users').doc(currentUser.uid).update({
+                  credits: firebase.firestore.FieldValue.increment(-1),
+                  lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(() => {});
+              }
+            } catch (err) {}
+          }
 
           activeConversationHistory.push({ role: "user", content: text });
           activeConversationHistory.push({ role: "assistant", content: data.reply });
@@ -1693,26 +1770,66 @@
         await firebase.auth().signInWithPopup(provider);
       } catch (err) {}
     }
-    function handleCreditPillAction() { if (!currentUser) openTimeAwareBlessingModal(false); else if (!isSubscribed && userCredits <= 0) openPlansModal(); }
     function handleAuthAction() { if (currentUser) firebase.auth().signOut().then(() => window.location.reload()); else openPrivacyModal(); }
+
+    async function syncUserCreditsWithCloud(user) {
+      if (user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase()) {
+        userCredits = 1000;
+        updateCreditUI();
+        return;
+      }
+      const localKey = `jesus_credits_${user.uid}`;
+      try {
+        if (typeof firebase !== 'undefined' && firebase.firestore) {
+          const db = firebase.firestore();
+          const doc = await db.collection('users').doc(user.uid).get();
+          if (doc.exists) {
+            const data = doc.data();
+            userCredits = data.credits !== undefined ? data.credits : 5;
+            isSubscribed = data.isSubscribed || false;
+          } else {
+            userCredits = 5;
+            isSubscribed = false;
+            await db.collection('users').doc(user.uid).set({
+              email: user.email,
+              displayName: user.displayName || '',
+              credits: 5,
+              isSubscribed: false,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+          localStorage.setItem(localKey, userCredits);
+          updateCreditUI();
+          return;
+        }
+      } catch (err) {}
+      const stored = localStorage.getItem(localKey);
+      userCredits = stored !== null ? parseInt(stored, 10) : 5;
+      updateCreditUI();
+    }
 
     window.onload = function() {
       renderPlans();
       updateDailyRitualWidget();
       trackDailyStreak();
+      updateCreditUI();
       if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().onAuthStateChanged((user) => {
+        firebase.auth().onAuthStateChanged(async (user) => {
           currentUser = user;
           if (user) {
             currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
             userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
             authBtn.textContent = "Sign Out";
+            await syncUserCreditsWithCloud(user);
           } else {
+            currentUserName = "beloved";
             userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
+            updateCreditUI();
           }
         });
       }
+      setInterval(updateDailyRitualWidget, 30000);
     };
 
     window.onclick = function(event) {
