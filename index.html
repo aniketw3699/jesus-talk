@@ -1525,38 +1525,34 @@
       handleUserSubmit(new Event('submit'));
     }
 
-    async function handleUserSubmit(e) {
+   async function handleUserSubmit(e) {
       if (e) e.preventDefault();
       const text = messageInput.value.trim();
       if (!text) return;
-
-      const guestInteractionUsed = localStorage.getItem("jesus_guest_interaction_used");
-      if (!currentUser && guestInteractionUsed) {
-        openPrivacyModal();
-        return;
-      }
-
-      if (currentUser && !isSubscribed && userCredits <= 0) {
-        openPlansModal();
-        return;
-      }
 
       appendUserBubble(text);
       messageInput.value = "";
       showThinking(true);
 
-      const resolvedUserId = currentUser ? currentUser.uid : "guest_" + (localStorage.getItem("jesus_guest_id") || Date.now());
-      const resolvedUserEmail = currentUser ? currentUser.email : "guest@sanctuary.app";
-
       trackSanctuaryEvent('prayer_submitted', { mode: currentPastoralMode });
+
+      let idToken = "";
+      if (currentUser && currentUser.getIdToken) {
+        try {
+          idToken = await currentUser.getIdToken();
+        } catch (err) {
+          console.error("Token retrieval failed:", err);
+        }
+      }
 
       try {
         const res = await fetch(`${BACKEND_API_URL}/chat`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(idToken ? { "Authorization": `Bearer ${idToken}` } : {})
+          },
           body: JSON.stringify({
-            userId: resolvedUserId,
-            userEmail: resolvedUserEmail,
             message: text,
             userName: currentUserName,
             userPsyche: currentPsyche,
@@ -1569,25 +1565,25 @@
         const data = await res.json();
         showThinking(false);
 
+        if (data.error === "AUTH_REQUIRED") {
+          appendBotBubble(data.reply);
+          setTimeout(() => openPrivacyModal(), 800);
+          return;
+        }
+
+        if (data.error === "PAYWALL_EXHAUSTED") {
+          appendBotBubble(data.reply);
+          setTimeout(() => openPlansModal(), 800);
+          return;
+        }
+
         if (data.reply) {
           appendBotBubble(data.reply);
           if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
-
-          if (!currentUser) {
-            localStorage.setItem("jesus_guest_interaction_used", "true");
-            updateCreditUI();
-          } else if (!isSubscribed) {
-            userCredits = Math.max(0, userCredits - 1);
+          if (data.remainingCredits !== undefined && currentUser && !isSubscribed) {
+            userCredits = data.remainingCredits;
             localStorage.setItem(`jesus_credits_${currentUser.uid}`, userCredits);
             updateCreditUI();
-            try {
-              if (typeof firebase !== 'undefined' && firebase.firestore) {
-                firebase.firestore().collection('users').doc(currentUser.uid).update({
-                  credits: firebase.firestore.FieldValue.increment(-1),
-                  lastActive: firebase.firestore.FieldValue.serverTimestamp()
-                }).catch(() => {});
-              }
-            } catch (err) {}
           }
 
           activeConversationHistory.push({ role: "user", content: text });
@@ -1602,7 +1598,7 @@
         appendBotBubble("Peace be with you. Lay down your burdens, for I am near. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)");
       }
     }
-
+    
     function appendUserBubble(msg) {
       const group = document.createElement("div");
       group.className = "msg-group user";
