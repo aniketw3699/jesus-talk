@@ -100,7 +100,12 @@ def strip_thinking_tags(text: str) -> str:
     return text.strip()
 
 def generate_article_content(topic):
-    user_prompt = f"Topic: {topic['title']}\nTheme: {topic['theme']}\nPrimary Anchor Verse: {topic['primary_verse']}"
+    title = topic.get("title", "Sacred Devotional")
+    theme = topic.get("theme", "Spiritual Peace")
+    primary_verse = topic.get("primary_verse", "Psalm 23:1-3")
+    
+    user_prompt = f"Topic: {title}\nTheme: {theme}\nPrimary Anchor Verse: {primary_verse}"
+    
     for model_name in CONTENT_MODELS:
         try:
             response = client.chat.completions.create(
@@ -124,7 +129,7 @@ def generate_article_content(topic):
 
 def generate_dynamic_topic(existing_slugs):
     prompt = f"""You are a Christian SEO content strategist. Generate ONE new unique devotional topic that is NOT in this list: {existing_slugs[-15:]}.
-Return strictly JSON format:
+Return strictly valid JSON with all 5 fields populated:
 {{
   "slug": "kebab-case-slug-here",
   "title": "Inspiring Title with Scripture Focus",
@@ -141,13 +146,26 @@ Return strictly JSON format:
                 temperature=0.7,
                 response_format={"type": "json_object"}
             )
-            return json.loads(strip_thinking_tags(res.choices[0].message.content or ""))
+            data = json.loads(strip_thinking_tags(res.choices[0].message.content or ""))
+            if data and data.get("slug"):
+                if not data.get("theme"):
+                    data["theme"] = "Christian Living & Peace"
+                if not data.get("primary_verse"):
+                    data["primary_verse"] = "Psalm 23:1"
+                if not data.get("meta_desc"):
+                    data["meta_desc"] = data.get("title", "Daily Scripture Devotional")
+                return data
         except Exception:
             continue
     return None
 
 def build_article_html(topic, data):
-    canonical_url = f"{DOMAINS_URL}/blogs/{topic['slug']}.html"
+    slug = topic.get("slug", "daily-prayer")
+    title = data.get("h1") or topic.get("title", "Sacred Devotional")
+    meta_desc = data.get("meta_description") or topic.get("meta_desc", "A scripture-guided prayer and biblical reflection.")
+    primary_verse = topic.get("primary_verse", "Scripture")
+    
+    canonical_url = f"{DOMAINS_URL}/blogs/{slug}.html"
     date_published = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     schema_graph = {
@@ -157,8 +175,8 @@ def build_article_html(topic, data):
                 "@type": "Article",
                 "@id": f"{canonical_url}#article",
                 "isPartOf": {"@type": "WebSite", "@id": f"{DOMAINS_URL}/#website", "name": "You With Jesus", "url": DOMAINS_URL},
-                "headline": data.get("h1", topic["title"]),
-                "description": data.get("meta_description", topic["meta_desc"]),
+                "headline": title,
+                "description": meta_desc,
                 "mainEntityOfPage": canonical_url,
                 "datePublished": date_published,
                 "dateModified": date_published,
@@ -196,12 +214,12 @@ def build_article_html(topic, data):
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{data.get("h1", topic["title"])} | You With Jesus</title>
-  <meta name="description" content="{data.get("meta_description", topic["meta_desc"])}" />
+  <title>{title} | You With Jesus</title>
+  <meta name="description" content="{meta_desc}" />
   <link rel="canonical" href="{canonical_url}" />
   <meta property="og:site_name" content="You With Jesus" />
-  <meta property="og:title" content="{data.get("h1", topic["title"])}" />
-  <meta property="og:description" content="{data.get("meta_description", topic["meta_desc"])}" />
+  <meta property="og:title" content="{title}" />
+  <meta property="og:description" content="{meta_desc}" />
   <meta property="og:url" content="{canonical_url}" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -237,10 +255,10 @@ def build_article_html(topic, data):
   </nav>
   <main class="content-wrap">
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
-    <h1>{data.get("h1", topic["title"])}</h1>
+    <h1>{title}</h1>
     <div class="verse-card">
       <p class="verse-text">“{anchor_verse_text}”</p>
-      <span class="verse-ref">— {topic["primary_verse"]}</span>
+      <span class="verse-ref">— {primary_verse}</span>
     </div>
     <p class="body-p">{data.get("introduction", "")}</p>
     <h2 class="sec-h2">{data.get("exegesis_title", "Biblical Wisdom")}</h2>
@@ -276,15 +294,19 @@ def generate_unified_sitemap(created_slugs):
 def generate_blogs_index(all_topics):
     cards_html = ""
     for t in all_topics:
-        out_path = os.path.join(BLOGS_DIR, f"{t['slug']}.html")
+        slug = t.get("slug", "")
+        out_path = os.path.join(BLOGS_DIR, f"{slug}.html")
         if not os.path.exists(out_path):
             continue
+        theme = t.get("theme", "Devotional")
+        title = t.get("title", "Sacred Reflection")
+        meta_desc = t.get("meta_desc", "")
         cards_html += f'''
-        <a href="blogs/{t['slug']}.html" style="text-decoration:none; color:inherit;">
+        <a href="blogs/{slug}.html" style="text-decoration:none; color:inherit;">
           <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px;">
-            <span style="font-size:10.5px; font-weight:800; color:#e2b764; text-transform:uppercase;">{t.get('theme', 'Devotional')}</span>
-            <h3 style="font-family:'Cinzel',serif; font-size:17px; color:#fff; margin:6px 0;">{t['title']}</h3>
-            <p style="font-size:13px; color:#a1a1aa;">{t.get('meta_desc', '')}</p>
+            <span style="font-size:10.5px; font-weight:800; color:#e2b764; text-transform:uppercase;">{theme}</span>
+            <h3 style="font-family:'Cinzel',serif; font-size:17px; color:#fff; margin:6px 0;">{title}</h3>
+            <p style="font-size:13px; color:#a1a1aa;">{meta_desc}</p>
           </div>
         </a>'''
 
@@ -340,10 +362,13 @@ def main():
     else:
         all_topics = list(INITIAL_SEO_TOPICS)
 
-    pending_topics = [t for t in all_topics if not os.path.exists(os.path.join(BLOGS_DIR, f"{t['slug']}.html"))]
+    pending_topics = [
+        t for t in all_topics 
+        if t.get("slug") and not os.path.exists(os.path.join(BLOGS_DIR, f"{t['slug']}.html"))
+    ]
 
     while len(pending_topics) < batch_size:
-        existing_slugs = [t["slug"] for t in all_topics]
+        existing_slugs = [t.get("slug", "") for t in all_topics if t.get("slug")]
         new_topic = generate_dynamic_topic(existing_slugs)
         if new_topic and new_topic.get("slug"):
             all_topics.append(new_topic)
@@ -355,8 +380,11 @@ def main():
 
     generated_this_run = 0
     for topic in pending_topics[:batch_size]:
-        out_path = os.path.join(BLOGS_DIR, f"{topic['slug']}.html")
-        print(f"Generating ({generated_this_run + 1}/{batch_size}): {topic['title']}...")
+        slug = topic.get("slug")
+        if not slug:
+            continue
+        out_path = os.path.join(BLOGS_DIR, f"{slug}.html")
+        print(f"Generating ({generated_this_run + 1}/{batch_size}): {topic.get('title', slug)}...")
         data = generate_article_content(topic)
         if data:
             with open(out_path, "w", encoding="utf-8") as f:
