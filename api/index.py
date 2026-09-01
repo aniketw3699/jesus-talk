@@ -160,7 +160,7 @@ def prune_guest_log():
     for k in [k for k in GUEST_DAILY_IP_LOG if not k.startswith(today)]:
         del GUEST_DAILY_IP_LOG[k]
 
-# ---------------- Crisis Protocol ----------------
+#  ---------------- Crisis Protocol ----------------
 CRISIS_PATTERNS = [
     # Direct suicidal & self-harm actions
     r"\bkill(?:ing)?\s+(?:my\s?self|me)\b",
@@ -172,16 +172,17 @@ CRISIS_PATTERNS = [
     r"\bunalive\s+(?:my\s?self|me)\b",
     r"\b(suicide|suicidal|suicidality)\b",
 
-    # Despair & death intent
+    # Despair, death intent & fatigue
     r"\b(?:want|wanna|wish)\s+to\s+(?:die|be\s+dead|disappear|not\s+wake\s+up)\b",
     r"\bwanna\s+(?:die|end\s+it)\b",
     r"\bdon'?t\s+want\s+to\s+(?:live|wake\s+up|exist|be\s+alive|be\s+here|go\s+on)\b",
+    r"\bcan'?t\s+go\s+on(?:\s+anymore)?\b",
+    r"\bcan'?t\s+(?:take|bear|survive|handle|stand)\s+(?:this|it|life|anymore)\b",
     r"\bbetter\s+off\s+(?:dead|without\s+me|gone)\b",
-    r"\bno\s+(?:reason|point|will)\s+to\s+(?:live|stay\s+alive|keep\s+going)\b",
+    r"\bno\s+(?:reason|point|will|purpose)\s+(?:to\s+live|in\s+living|to\s+go\s+on|to\s+stay\s+alive|to\s+keep\s+going)\b",
     r"\bnot\s+worth\s+living\b",
-    r"\bcan'?t\s+(?:take|bear|survive|handle|go\s+on\s+with)\s+this\s+(?:pain|life|anymore)\b",
     r"\bwant\s+this\s+pain\s+to\s+end\b",
-    r"\beveryone\s+would\s+be\s+better\s+off\b",
+    r"\beveryone\s+(?:would\s+be\s+)?better\s+off\b",
     r"\bready\s+to\s+(?:die|give\s+up\s+on\s+everything|end\s+it\s+all)\b"
 ]
 
@@ -200,6 +201,31 @@ CRISIS_RESPONSE = (
 def check_crisis_triggers(text: str) -> bool:
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
+
+# Self-test validation on startup — fails server start if any regression occurs
+CRISIS_TEST_PHRASES = [
+    "kill myself",
+    "killing myself",
+    "end my life",
+    "end it all",
+    "I can't go on anymore",
+    "I can't go on",
+    "no point in living",
+    "no reason to live",
+    "want to die",
+    "wanna die",
+    "better off without me",
+    "hurt myself",
+    "cutting myself",
+    "unalive myself",
+    "can't take this anymore",
+    "everyone would be better off"
+]
+
+for _phrase in CRISIS_TEST_PHRASES:
+    if not check_crisis_triggers(_phrase):
+        logger.critical(f"FATAL REGRESSION: Crisis trigger missed for phrase: '{_phrase}'")
+        raise RuntimeError(f"Crisis trigger missed phrase: '{_phrase}'")
 
 # ---------------- Sanitization ----------------
 INJECTION_KEYWORDS = [
