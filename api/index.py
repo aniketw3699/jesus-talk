@@ -48,6 +48,17 @@ if not db:
 
 app = FastAPI(title="You With Jesus Sanctuary API", version="3.4.0")
 
+# Vercel Path-Resolution Middleware
+@app.middleware("http")
+async def resolve_vercel_paths(request: Request, call_next):
+    matched_path = request.headers.get("x-matched-path")
+    if matched_path:
+        # Strip out internal file target if present
+        clean_path = matched_path.replace("/api/index.py", "").rstrip("/")
+        request.scope["path"] = clean_path if clean_path else "/"
+    response = await call_next(request)
+    return response
+
 ALLOWED_ORIGINS = [
     "https://jesus-chat-bd89f.web.app",
     "https://jesus-chat-bd89f.firebaseapp.com",
@@ -259,20 +270,16 @@ ACTIVE_GROQ_MODELS = [
 @app.get("/health")
 @app.get("/api")
 @app.get("/api/health")
-@app.get("/api/index.py")
-@app.get("/api/index.py/health")
-def health_check(request: Request):
+def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
         "version": "3.4.0",
-        "db_connected": db is not None,
-        "path": request.url.path
+        "db_connected": db is not None
     }
 
 @app.post("/chat")
 @app.post("/api/chat")
-@app.post("/api/index.py/chat")
 async def chat_endpoint(payload: ChatRequest, request: Request):
     client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
 
@@ -373,8 +380,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 @app.post("/webhook/lemonsqueezy")
 @app.post("/api/webhook/lemon")
 @app.post("/api/webhook/lemonsqueezy")
-@app.post("/api/index.py/webhook/lemon")
-@app.post("/api/index.py/webhook/lemonsqueezy")
 async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = Header(None)):
     raw_body = await request.body()
 
