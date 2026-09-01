@@ -294,18 +294,28 @@ class ChatRequest(BaseModel):
     history: Optional[List[Dict[str, str]]] = []
 
 ACTIVE_GROQ_MODELS = [
-    "openai/gpt-oss-120b",
     "llama-3.3-70b-versatile",
     "llama-3.1-70b-versatile",
     "llama-3.1-8b-instant"
 ]
 
+# ---------------------------------------------------------
+# 6. ROUTE HANDLERS
+# ---------------------------------------------------------
 @app.get("/")
 @app.get("/health")
+@app.get("/api")
+@app.get("/api/health")
 def health_check():
-    return {"status": "active", "service": "You With Jesus Sanctuary API", "version": "3.4.0", "db_connected": db is not None}
+    return {
+        "status": "active",
+        "service": "You With Jesus Sanctuary API",
+        "version": "3.4.0",
+        "db_connected": db is not None
+    }
 
 @app.post("/chat")
+@app.post("/api/chat")
 async def chat_endpoint(payload: ChatRequest, request: Request):
     client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
 
@@ -406,10 +416,12 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     }
 
 # ---------------------------------------------------------
-# 6. LEMON SQUEEZY WEBHOOK & LIFECYCLE SYNC
+# 7. LEMON SQUEEZY WEBHOOK & LIFECYCLE SYNC
 # ---------------------------------------------------------
 @app.post("/webhook/lemon")
 @app.post("/webhook/lemonsqueezy")
+@app.post("/api/webhook/lemon")
+@app.post("/api/webhook/lemonsqueezy")
 async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = Header(None)):
     raw_body = await request.body()
 
