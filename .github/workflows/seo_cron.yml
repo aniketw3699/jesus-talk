@@ -2,9 +2,9 @@ name: Automated Daily SEO Devotionals
 
 on:
   schedule:
-    # Runs at 23:30 UTC (5:00 AM IST) and 11:30 UTC (5:00 PM IST) every day
+    # 5:00 AM IST (23:30 UTC) & 5:00 PM IST (11:30 UTC)
     - cron: '30 23,11 * * *'
-  workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,9 +24,15 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install Python Dependencies
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
         run: |
           pip install groq python-dotenv
+          npm install -g firebase-tools
 
       - name: Run SEO Engine (Generate 2 Articles)
         env:
@@ -41,16 +47,16 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add blogs/ blogs.html sitemap.xml published_slugs.json topics.json 2>/dev/null || true
           if git diff --staged --quiet; then
-            echo "No new articles generated in this run."
+            echo "No new articles to commit."
           else
             git commit -m "Auto-generate 2 daily devotionals [skip ci]"
             git push origin main
           fi
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JESUS_CHAT_BD89F || secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: jesus-chat-bd89f
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/sa.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+          firebase deploy --only hosting --project jesus-chat-bd89f
