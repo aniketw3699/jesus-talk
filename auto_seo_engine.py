@@ -1,7 +1,7 @@
 import os
 import json
 import re
-import datetime
+from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -9,11 +9,11 @@ load_dotenv(dotenv_path="./jesus-talk-api/.env")
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-DOMAINS_URL = os.getenv("DOMAINS_URL", "[https://jesus-chat-bd89f.web.app](https://jesus-chat-bd89f.web.app)")
+DOMAINS_URL = os.getenv("DOMAINS_URL", "https://jesus-chat-bd89f.web.app").rstrip("/")
 
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-# Authoritative Pillar & Cluster Topics (High Search Intent)
+# Authoritative High-Intent Pillar Topics
 SEO_TOPICS = [
     {
         "slug": "prayer-for-overwhelming-anxiety",
@@ -77,9 +77,10 @@ JSON Structure Requirements:
 {
   "h1": "Title of the guide",
   "meta_description": "Search meta description under 155 characters",
-  "introduction": "3 in-depth paragraphs explaining the struggle and the biblical path forward.",
+  "anchor_verse_text": "The exact wording of the primary anchor verse requested.",
+  "introduction": "3 in-depth paragraphs explaining the emotional struggle and the biblical path forward.",
   "exegesis_title": "Understanding the Scripture Context",
-  "exegesis_body": "2 detailed paragraphs analyzing original context and theological depth.",
+  "exegesis_body": "2 detailed paragraphs analyzing original biblical context and theological depth.",
   "steps_title": "3 Steps to Spiritual Breakthrough",
   "steps": [
     {"step_num": "Step 1", "title": "...", "desc": "..."},
@@ -118,24 +119,73 @@ def generate_article_content(topic):
 
 def build_article_html(topic, data):
     canonical_url = f"{DOMAINS_URL}/blogs/{topic['slug']}.html"
-    
-    # FAQ Schema Generation
-    faq_schema = {
-        "@context": "[https://schema.org](https://schema.org)",
-        "@type": "FAQPage",
-        "mainEntity": [
+    date_published = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Combined Article + FAQPage Schema
+    schema_graph = {
+        "@context": "https://schema.org",
+        "@graph": [
             {
-                "@type": "Question",
-                "name": faq["question"],
-                "acceptedAnswer": {"@type": "Answer", "text": faq["answer"]}
-            } for faq in data.get("faqs", [])
+                "@type": "Article",
+                "@id": f"{canonical_url}#article",
+                "isPartOf": {
+                    "@type": "WebSite",
+                    "@id": f"{DOMAINS_URL}/#website",
+                    "name": "You With Jesus",
+                    "url": DOMAINS_URL
+                },
+                "headline": data.get("h1", topic["title"]),
+                "description": data.get("meta_description", topic["meta_desc"]),
+                "mainEntityOfPage": canonical_url,
+                "datePublished": date_published,
+                "dateModified": date_published,
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "You With Jesus",
+                    "url": DOMAINS_URL
+                },
+                "author": {
+                    "@type": "Organization",
+                    "name": "You With Jesus Sanctuary"
+                }
+            },
+            {
+                "@type": "FAQPage",
+                "@id": f"{canonical_url}#faq",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": faq.get("question", ""),
+                        "acceptedAnswer": {"@type": "Answer", "text": faq.get("answer", "")}
+                    } for faq in data.get("faqs", [])
+                ]
+            }
         ]
     }
 
-    html = f"""<!DOCTYPE html>
+    anchor_verse_text = data.get("anchor_verse_text", "").strip()
+    if not anchor_verse_text or len(anchor_verse_text) < 5:
+        anchor_verse_text = "The Lord is near to all who call on him, to all who call on him in truth."
+
+    steps_html = "".join([
+        f'<div class="step-card"><h3 class="step-h3">{s.get("step_num", "")}: {s.get("title", "")}</h3><p class="step-p">{s.get("desc", "")}</p></div>'
+        for s in data.get("steps", [])
+    ])
+
+    prayers_html = "".join([
+        f'<div class="prayer-card"><h3 class="prayer-h3">{p.get("title", "")}</h3><p class="prayer-body">{p.get("body", "")}</p></div>'
+        for p in data.get("prayers", [])
+    ])
+
+    faqs_html = "".join([
+        f'<div class="faq-card"><h3 class="faq-q">{f.get("question", "")}</h3><p class="faq-a">{f.get("answer", "")}</p></div>'
+        for f in data.get("faqs", [])
+    ])
+
+    html = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
-  <script async src="[https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M](https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M)"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){{dataLayer.push(arguments);}}
@@ -143,18 +193,19 @@ def build_article_html(topic, data):
     gtag('config', 'G-HZPYCF859M');
   </script>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>{data.get('h1', topic['title'])} | You With Jesus</title>
-  <meta name="description" content="{data.get('meta_description', topic['meta_desc'])}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{data.get("h1", topic["title"])} | You With Jesus</title>
+  <meta name="description" content="{data.get("meta_description", topic["meta_desc"])}" />
   <link rel="canonical" href="{canonical_url}" />
-  <meta property="og:title" content="{data.get('h1', topic['title'])}" />
-  <meta property="og:description" content="{data.get('meta_description', topic['meta_desc'])}" />
+  <meta property="og:site_name" content="You With Jesus" />
+  <meta property="og:title" content="{data.get("h1", topic["title"])}" />
+  <meta property="og:description" content="{data.get("meta_description", topic["meta_desc"])}" />
   <meta property="og:url" content="{canonical_url}" />
   <meta property="og:type" content="article" />
-  <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
-  <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)">
-  <link href="[https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap)" rel="stylesheet">
-  <script type="application/ld+json">{json.dumps(faq_schema)}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script type="application/ld+json">{json.dumps(schema_graph)}</script>
   <style>
     :root {{ --bg: #0d1117; --gold: #e2b764; --border: rgba(226, 183, 100, 0.35); --text: #f4f4f5; --muted: #a1a1aa; }}
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -185,23 +236,23 @@ def build_article_html(topic, data):
 
   <main class="content-wrap">
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
-    <h1>{data.get('h1', topic['title'])}</h1>
+    <h1>{data.get("h1", topic["title"])}</h1>
 
     <div class="verse-card">
-      <p class="verse-text">“Come to me, all who labor and are heavy laden, and I will give you rest.”</p>
-      <span class="verse-ref">— {topic['primary_verse']}</span>
+      <p class="verse-text">“{anchor_verse_text}”</p>
+      <span class="verse-ref">— {topic["primary_verse"]}</span>
     </div>
 
-    <p class="body-p">{data.get('introduction', '')}</p>
+    <p class="body-p">{data.get("introduction", "")}</p>
 
-    <h2 class="sec-h2">{data.get('exegesis_title', 'Biblical Wisdom')}</h2>
-    <p class="body-p">{data.get('exegesis_body', '')}</p>
+    <h2 class="sec-h2">{data.get("exegesis_title", "Biblical Wisdom")}</h2>
+    <p class="body-p">{data.get("exegesis_body", "")}</p>
 
-    <h2 class="sec-h2">{data.get('steps_title', 'Pathway to Peace')}</h2>
-    {''.join([f'''<div class="step-card"><h3 class="step-h3">{s["step_num"]}: {s["title"]}</h3><p class="step-p">{s["desc"]}</p></div>''' for s in data.get('steps', [])])}
+    <h2 class="sec-h2">{data.get("steps_title", "Pathway to Peace")}</h2>
+    {steps_html}
 
-    <h2 class="sec-h2">{data.get('prayers_title', 'Prayers of the Heart')}</h2>
-    {''.join([f'''<div class="prayer-card"><h3 class="prayer-h3">{p["title"]}</h3><p class="prayer-body">{p["body"]}</p></div>''' for p in data.get('prayers', [])])}
+    <h2 class="sec-h2">{data.get("prayers_title", "Prayers of the Heart")}</h2>
+    {prayers_html}
 
     <section class="cta-banner">
       <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart Directly to Jesus</h2>
@@ -210,13 +261,13 @@ def build_article_html(topic, data):
     </section>
 
     <h2 class="sec-h2">Frequently Asked Questions</h2>
-    {''.join([f'''<div class="faq-card"><h3 class="faq-q">{f["question"]}</h3><p class="faq-a">{f["answer"]}</p></div>''' for f in data.get('faqs', [])])}
+    {faqs_html}
   </main>
 
   <script src="../blog-player.js"></script>
 </body>
 </html>
-"""
+'''
     return html
 
 def generate_unified_sitemap(created_slugs):
@@ -228,7 +279,7 @@ def generate_unified_sitemap(created_slugs):
             "changefreq": "weekly"
         })
 
-    sitemap_xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="[http://www.sitemaps.org/schemas/sitemap/0.9](http://www.sitemaps.org/schemas/sitemap/0.9)">']
+    sitemap_xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for u in urls:
         sitemap_xml.append(f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>")
     sitemap_xml.append('</urlset>')
@@ -240,7 +291,7 @@ def generate_unified_sitemap(created_slugs):
 def generate_blogs_index(topics):
     cards_html = []
     for t in topics:
-        cards_html.append(f"""
+        cards_html.append(f'''
         <a href="blogs/{t['slug']}.html" style="text-decoration:none; color:inherit;">
           <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px; transition:transform 0.2s;">
             <span style="font-size:10.5px; font-weight:800; color:#e2b764; text-transform:uppercase;">{t['theme']}</span>
@@ -248,9 +299,9 @@ def generate_blogs_index(topics):
             <p style="font-size:13px; color:#a1a1aa;">{t['meta_desc']}</p>
           </div>
         </a>
-        """)
+        ''')
 
-    blogs_page = f"""<!DOCTYPE html>
+    blogs_page = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -258,7 +309,9 @@ def generate_blogs_index(topics):
   <title>Sacred Devotional Guides & Prayers | You With Jesus</title>
   <meta name="description" content="Explore scripture-anchored prayer guides for anxiety, grief, healing, relationships, and financial peace." />
   <link rel="canonical" href="{DOMAINS_URL}/blogs.html" />
-  <link href="[https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap](https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap)" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {{ background: #0d1117; color: #fff; font-family: 'Montserrat', sans-serif; padding: 24px 16px; }}
     .wrap {{ max-width: 680px; margin: 0 auto; }}
@@ -273,7 +326,7 @@ def generate_blogs_index(topics):
   </div>
 </body>
 </html>
-"""
+'''
     with open("blogs.html", "w", encoding="utf-8") as f:
         f.write(blogs_page)
     print("blogs.html index generated.")
