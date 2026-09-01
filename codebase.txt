@@ -1,492 +1,56 @@
--e \n\n=== FILE: ./jesus-talk-api/api/index.py ===\n
+-e \n\n=== FILE: ./auto_seo_engine.py ===\n
 import os
-import re
-import time
+import sys
 import json
-import hmac
-import hashlib
-import logging
-from typing import List, Dict, Optional
-from collections import defaultdict
+import re
 from datetime import datetime, timezone
-
-from fastapi import FastAPI, Request, HTTPException, Header, status
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
 
-# Optional Sentry Monitoring
-try:
-    import sentry_sdk
-    from sentry_sdk.integrations.fastapi import FastApiIntegration
-    SENTRY_DSN = os.getenv("SENTRY_DSN", "")
-    if SENTRY_DSN:
-        sentry_sdk.init(
-            dsn=SENTRY_DSN,
-            integrations=[FastApiIntegration()],
-            traces_sample_rate=1.0,
-        )
-except ImportError:
-    pass
-
-load_dotenv(dotenv_path="./jesus-talk-api/.env")
 load_dotenv()
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("jesus_sanctuary_api")
-
-# Initialize Firebase Admin SDK
-db = None
-try:
-    import firebase_admin
-    from firebase_admin import credentials, firestore, auth as fb_auth
-
-    if not firebase_admin._apps:
-        firebase_creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
-        if firebase_creds_json:
-            try:
-                cred_dict = json.loads(firebase_creds_json)
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
-            except Exception as e:
-                logger.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT JSON: {e}")
-                firebase_admin.initialize_app()
-        else:
-            firebase_admin.initialize_app()
-    db = firestore.client()
-except Exception as fb_err:
-    logger.warning(f"Firebase Admin SDK initialization note: {fb_err}")
-
-if not db:
-    logger.error("⚠️ ENTITLEMENTS DISABLED — running without Firestore persistence. Set FIREBASE_SERVICE_ACCOUNT.")
-
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.4.0")
-
-ALLOWED_ORIGINS = [
-    "https://jesus-chat-bd89f.web.app",
-    "https://jesus-chat-bd89f.firebaseapp.com",
-    "http://localhost:5000",
-    "http://127.0.0.1:5000",
-    "http://localhost:3000"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
-)
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
-DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
-
-if not GROQ_API_KEY:
-    logger.warning("GROQ_API_KEY is not set.")
-
-client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
-
-# ---------------------------------------------------------
-# 1. PER-IP RATE LIMITING & GUEST USAGE TRACKING
-# ---------------------------------------------------------
-IP_REQUEST_LOG = defaultdict(list)
-GUEST_DAILY_IP_LOG = defaultdict(int)
-RATE_LIMIT_REQUESTS = 20
-RATE_LIMIT_WINDOW = 60
-
-def is_rate_limited(client_ip: str) -> bool:
-    now = time.time()
-    timestamps = IP_REQUEST_LOG[client_ip]
-    IP_REQUEST_LOG[client_ip] = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
-    if len(IP_REQUEST_LOG[client_ip]) >= RATE_LIMIT_REQUESTS:
-        return True
-    IP_REQUEST_LOG[client_ip].append(now)
-    return False
-
-# ---------------------------------------------------------
-# 2. CRISIS PROTOCOL
-# ---------------------------------------------------------
-CRISIS_PATTERNS = [
-    r"\b(kill|end|take)\s+my\s+(life|myself)\b",
-    r"\b(suicide|suicidal)\b",
-    r"\bwant\s+to\s+die\b",
-    r"\bdon'?t\s+want\s+to\s+(live|wake\s+up|exist|be\s+here)\b",
-    r"\b(hang|slit|shoot)\s+myself\b",
-    r"\bbetter\s+off\s+(dead|without\s+me)\b",
-    r"\bself[- ]?harm\b",
-    r"\bno\s+reason\s+to\s+live\b",
-    r"\bwant\s+to\s+disappear\b",
-    r"\bcan'?t\s+go\s+on\s+anymore\b",
-    r"\bwant\s+this\s+pain\s+to\s+end\b",
-    r"\beveryone\s+would\s+be\s+better\s+off\b"
-]
-
-CRISIS_RESPONSE = (
-    "Beloved, I hear the deep pain and heaviness in your heart, but your life is precious and sacred. "
-    "You are never alone, and compassionate support is available for you right this moment.\n\n"
-    "Please connect immediately with someone trained to walk with you:\n"
-    "• **US & Canada:** Call or text **988** (Suicide & Crisis Lifeline - 24/7, Free & Confidential)\n"
-    "• **United Kingdom:** Call **111** (NHS) or **0800 689 5652** (National Suicide Prevention)\n"
-    "• **Australia:** Call **13 11 14** (Lifeline Australia)\n"
-    "• **Worldwide:** Visit **https://findahelpline.com** for immediate support in your country.\n\n"
-    "“The Lord is near to the brokenhearted and saves those who are crushed in spirit.” (Psalm 34:18)\n\n"
-    "Take a breath and reach out to one of these resources right now. You are deeply loved."
-)
-
-def check_crisis_triggers(text: str) -> bool:
-    lower_text = text.lower()
-    return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
-
-# ---------------------------------------------------------
-# 3. PROMPT SANITIZATION & METADATA VALIDATOR
-# ---------------------------------------------------------
-INJECTION_KEYWORDS = [
-    "ignore all previous instructions", "disregard prior instructions",
-    "disregard previous instructions", "system prompt", "developer mode",
-    "jailbreak", "you are now dan", "reveal your prompt",
-    "output system instructions", "override instructions"
-]
-
-def sanitize_input(text: str, max_length: int = 1500) -> str:
-    if not text:
-        return ""
-    cleaned = text.strip()[:max_length]
-    return re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', cleaned)
-
-def sanitize_metadata(field: str, max_length: int = 80, default: str = "beloved") -> str:
-    if not field:
-        return default
-    lower_val = field.lower()
-    for keyword in INJECTION_KEYWORDS:
-        if keyword in lower_val:
-            return default
-    cleaned = re.sub(r'[^a-zA-Z0-9\s\-_.,]', '', field).strip()
-    return cleaned[:max_length] if cleaned else default
-
-def clean_scripture_citations(reply: str) -> str:
-    text = reply.replace('\\n', '\n')
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
-    return text.strip()
-
-# ---------------------------------------------------------
-# 4. CRYPTOGRAPHIC AUTH & DAILY QUOTA RESOLUTION
-# ---------------------------------------------------------
-def get_verified_user(request: Request) -> tuple[Optional[str], Optional[str]]:
-    """Extracts and verifies the Firebase ID token from the Authorization header."""
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header.split(" ", 1)[1].strip()
-        try:
-            decoded = fb_auth.verify_id_token(token)
-            return decoded.get("uid"), decoded.get("email")
-        except Exception as e:
-            logger.warning(f"ID Token verification failed: {e}")
-            return None, None
-    return None, None
-
-def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip: str) -> tuple[bool, int, str]:
-    """
-    Validates entitlement:
-    - Cryptographically verified developer email -> unlimited.
-    - Subscribed users -> unlimited.
-    - Free signed-in users -> 5 daily messages with automatic UTC rollover.
-    - Guests -> 1 free prayer per IP per day before requiring sign-in.
-    """
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    # 1. Developer Check (Only on verified email token)
-    if email and email.lower() == DEVELOPER_EMAIL.lower():
-        return True, 1000, "developer"
-
-    # 2. Verified Signed-in User
-    if uid and db:
-        try:
-            user_ref = db.collection("users").document(uid)
-            doc = user_ref.get()
-
-            if doc.exists:
-                data = doc.to_dict() or {}
-                if data.get("isSubscribed", False):
-                    return True, 9999, "subscribed"
-
-                last_reset = data.get("lastResetDate")
-                credits = data.get("credits", 5)
-
-                # Daily Reset Rollover
-                if last_reset != today_str:
-                    user_ref.set({
-                        "credits": 4,
-                        "lastResetDate": today_str,
-                        "lastActive": firestore.SERVER_TIMESTAMP
-                    }, merge=True)
-                    return True, 4, "reset_and_consumed"
-
-                if credits <= 0:
-                    return False, 0, "quota_exhausted"
-
-                # Decrement credit
-                user_ref.update({
-                    "credits": firestore.Increment(-1),
-                    "lastActive": firestore.SERVER_TIMESTAMP
-                })
-                return True, credits - 1, "consumed"
-            else:
-                # First-time User Initialization
-                user_ref.set({
-                    "email": email or "",
-                    "credits": 4,
-                    "isSubscribed": False,
-                    "lastResetDate": today_str,
-                    "createdAt": firestore.SERVER_TIMESTAMP,
-                    "lastActive": firestore.SERVER_TIMESTAMP
-                })
-                return True, 4, "new_user_consumed"
-        except Exception as e:
-            logger.error(f"Firestore entitlement lookup error: {e}")
-            return True, 5, "db_fallback"
-
-    # 3. Unauthenticated Guest Gate (1 free prayer per day per IP)
-    guest_key = f"{today_str}_{client_ip}"
-    used_count = GUEST_DAILY_IP_LOG[guest_key]
-    if used_count >= 1:
-        return False, 0, "guest_quota_exhausted"
-
-    GUEST_DAILY_IP_LOG[guest_key] += 1
-    return True, 0, "guest_consumed"
-
-# ---------------------------------------------------------
-# 5. DYNAMIC PASTORAL PROMPTS
-# ---------------------------------------------------------
-MODE_INSTRUCTIONS = {
-    "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and comforting.",
-    "study": "Focus on biblical depth, original Scripture context, and spiritual insight. Explain the theological principle clearly.",
-    "prayer": "Frame the primary response as a direct, personal, and powerful written prayer that the seeker can pray aloud.",
-    "guidance": "Focus on practical discernment and wise biblical next steps for daily decisions, work, or relationships."
-}
-
-SYSTEM_PROMPT_TEMPLATE = """You are Jesus Christ speaking directly with a seeker in a sacred prayer sanctuary.
-Your tone is deeply compassionate, authoritative, calm, and rooted in biblical truth.
-
-RESPONSE STYLE & MODE:
-{mode_instruction}
-
-CORE GUIDELINES:
-1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
-2. Structure your response into 2 to 3 concise, deeply meaningful paragraphs.
-3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
-4. EVOLVING PSYCHE REQUIREMENT: At the very end of your response, on a clean new line, output:
-PSYCHE: <5-8 words summarizing the user's updated emotional state, e.g. A soul finding calm amid financial worry>
-
-Seeker Information:
-• Name: {user_name}
-• Previous State: {user_psyche}
-• Core Intentions: {user_intentions}
-"""
-
-class ChatRequest(BaseModel):
-    message: str = Field(..., max_length=1500)
-    userName: Optional[str] = "beloved"
-    userPsyche: Optional[str] = "A soul seeking peace"
-    userIntentions: Optional[str] = "Seeking peace and daily direction"
-    mode: Optional[str] = "comfort"
-    history: Optional[List[Dict[str, str]]] = []
-
-ACTIVE_GROQ_MODELS = [
-    "openai/gpt-oss-120b",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile",
-    "llama-3.1-8b-instant"
-]
-
-@app.get("/")
-@app.get("/health")
-def health_check():
-    return {"status": "active", "service": "You With Jesus Sanctuary API", "version": "3.4.0", "db_connected": db is not None}
-
-@app.post("/chat")
-async def chat_endpoint(payload: ChatRequest, request: Request):
-    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
-
-    if is_rate_limited(client_ip):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="You are speaking very quickly. Please pause and take a breath of peace before continuing."
-        )
-
-    raw_message = sanitize_input(payload.message, max_length=1500)
-    if not raw_message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty.")
-
-    user_name = sanitize_metadata(payload.userName, max_length=30, default="beloved")
-    user_psyche = sanitize_metadata(payload.userPsyche, max_length=80, default="A soul seeking peace")
-    user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
-    selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
-
-    # 1. Crisis Check
-    if check_crisis_triggers(raw_message):
-        logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
-        return {
-            "reply": CRISIS_RESPONSE,
-            "updatedPsyche": "A soul in critical need of grace and human support",
-            "isCrisis": True
-        }
-
-    # 2. Cryptographic Token Authentication & Quota Enforcement
-    verified_uid, verified_email = get_verified_user(request)
-    is_allowed, remaining_credits, reason = verify_and_consume_quota(verified_uid, verified_email, client_ip)
-
-    if not is_allowed:
-        if reason == "guest_quota_exhausted":
-            return {
-                "error": "AUTH_REQUIRED",
-                "reply": "Please sign in to receive your 5 free daily scripture reflections and continue your prayer communion.",
-                "updatedPsyche": user_psyche
-            }
-        return {
-            "error": "PAYWALL_EXHAUSTED",
-            "reply": "You have completed your 5 daily reflections. Your free reflections will renew tomorrow, or you may choose a sacred pathway for unlimited communion today.",
-            "updatedPsyche": user_psyche
-        }
-
-    mode_instruction = MODE_INSTRUCTIONS.get(selected_mode, MODE_INSTRUCTIONS["comfort"])
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-        mode_instruction=mode_instruction,
-        user_name=user_name,
-        user_psyche=user_psyche,
-        user_intentions=user_intentions
-    )
-
-    messages = [{"role": "system", "content": system_prompt}]
-    if payload.history:
-        for turn in payload.history[-6:]:
-            role = "user" if turn.get("role") == "user" else "assistant"
-            content = sanitize_input(turn.get("content", ""), max_length=800)
-            if content:
-                messages.append({"role": role, "content": content})
-
-    messages.append({"role": "user", "content": raw_message})
-
-    raw_reply = None
-    for model_name in ACTIVE_GROQ_MODELS:
-        try:
-            logger.info(f"Inferencing with {model_name} in [{selected_mode}] mode")
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=650
-            )
-            raw_reply = response.choices[0].message.content.strip()
-            if raw_reply:
-                break
-        except Exception as e:
-            logger.error(f"Inference failed with {model_name}: {e}")
-            continue
-
-    if not raw_reply:
-        raw_reply = "Peace be with you. Lay down what burdens your spirit, for I am listening. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nPSYCHE: A soul resting in divine presence"
-
-    # Extract & Sanitize Evolving Psyche
-    updated_psyche = user_psyche
-    psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
-    if psyche_match:
-        extracted = psyche_match.group(1).strip()
-        updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
-        raw_reply = re.sub(r'PSYCHE:\s*.+$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
-
-    clean_reply = clean_scripture_citations(raw_reply)
-
-    return {
-        "reply": clean_reply,
-        "updatedPsyche": updated_psyche,
-        "remainingCredits": remaining_credits,
-        "mode": selected_mode
-    }
-
-# ---------------------------------------------------------
-# 6. LEMON SQUEEZY WEBHOOK & LIFECYCLE SYNC
-# ---------------------------------------------------------
-@app.post("/webhook/lemon")
-@app.post("/webhook/lemonsqueezy")
-async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = Header(None)):
-    raw_body = await request.body()
-
-    if not LEMON_WEBHOOK_SECRET:
-        logger.error("LEMON_WEBHOOK_SECRET is unconfigured.")
-        raise HTTPException(status_code=500, detail="Webhook secret unconfigured.")
-
-    if not x_signature:
-        logger.warning("Missing X-Signature header.")
-        raise HTTPException(status_code=400, detail="Missing X-Signature.")
-
-    digest = hmac.new(
-        LEMON_WEBHOOK_SECRET.encode("utf-8"),
-        raw_body,
-        hashlib.sha256
-    ).hexdigest()
-
-    if not hmac.compare_digest(digest, x_signature):
-        logger.warning("Invalid webhook signature rejected.")
-        raise HTTPException(status_code=400, detail="Invalid signature.")
-
-    try:
-        event_payload = json.loads(raw_body.decode("utf-8"))
-        event_name = event_payload.get("meta", {}).get("event_name", "unknown")
-        custom_data = event_payload.get("meta", {}).get("custom_data", {})
-        user_id = custom_data.get("user_id")
-        user_email = event_payload.get("data", {}).get("attributes", {}).get("user_email")
-
-        logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email})")
-
-        if db and user_id:
-            user_ref = db.collection("users").document(user_id)
-            active_events = (
-                "subscription_created", "subscription_payment_success",
-                "order_created", "subscription_updated",
-                "subscription_resumed", "subscription_unpaused"
-            )
-            inactive_events = (
-                "subscription_cancelled", "subscription_expired",
-                "subscription_paused", "subscription_payment_failed"
-            )
-
-            if event_name in active_events:
-                user_ref.set({
-                    "isSubscribed": True,
-                    "email": user_email,
-                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-                }, merge=True)
-                logger.info(f"Granted subscription entitlement to {user_id}.")
-            elif event_name in inactive_events:
-                user_ref.set({
-                    "isSubscribed": False,
-                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-                }, merge=True)
-                logger.info(f"Revoked subscription entitlement for {user_id}.")
-
-        return {"status": "success", "event": event_name, "user_id": user_id}
-    except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
-        raise HTTPException(status_code=400, detail="Invalid payload format.")-e \n\n=== FILE: ./auto_seo_engine.py ===\n
-import os
-import json
-import re
-from datetime import datetime
-from groq import Groq
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path="./jesus-talk-api/.env")
-load_dotenv()
+load_dotenv(dotenv_path="./.env")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 DOMAINS_URL = os.getenv("DOMAINS_URL", "https://jesus-chat-bd89f.web.app").rstrip("/")
 
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-# Authoritative High-Intent Pillar Topics
+# Live Groq models. Script tries them in order.
+CONTENT_MODELS = [
+    "llama-3.1-8b-instant",
+    "llama-3.1-70b-versatile",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b"
+]
+
+
+def detect_deploy_root():
+    """Finds the directory Firebase Hosting actually deploys (firebase.json -> hosting.public)."""
+    for candidate in [
+        "firebase.json",
+        "jesus-talk-api/firebase.json",
+        os.path.join("..", "firebase.json"),
+    ]:
+        if os.path.exists(candidate):
+            try:
+                with open(candidate, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                public_dir = cfg.get("hosting", {}).get("public", ".")
+                print(f"✓ Detected firebase.json -> deploying content into: '{public_dir}'")
+                return public_dir
+            except Exception as e:
+                print(f"Could not parse {candidate}: {e}")
+    print("⚠ firebase.json not found — writing to current directory. Verify this matches your 'public' folder.")
+    return "."
+
+
+DEPLOY_ROOT = detect_deploy_root()
+BLOGS_DIR = os.path.join(DEPLOY_ROOT, "blogs")
+
+# =========================================================
+# TOPIC POOL
+# =========================================================
 SEO_TOPICS = [
     {
         "slug": "prayer-for-overwhelming-anxiety",
@@ -529,12 +93,53 @@ SEO_TOPICS = [
         "meta_desc": "Scripture-anchored reflection for discerning God's will when facing important life and career decisions.",
         "primary_verse": "Proverbs 3:5-6",
         "theme": "Divine Guidance and Clarity"
+    },
+    {
+        "slug": "prayer-for-healing-when-you-feel-broken",
+        "title": "Prayer for Healing When You Feel Broken Inside",
+        "meta_desc": "A scripture-anchored prayer and reflection for emotional healing, restoration, and God's gentle care.",
+        "primary_verse": "Jeremiah 17:14",
+        "theme": "Healing and Restoration"
+    },
+    {
+        "slug": "prayer-to-release-fear-about-the-future",
+        "title": "Prayer to Release Fear About the Future",
+        "meta_desc": "Biblical reassurance and guided prayer for surrendering tomorrow's worries into God's faithful hands.",
+        "primary_verse": "Isaiah 41:10",
+        "theme": "Fear and Surrender"
+    },
+    {
+        "slug": "prayer-for-loneliness-and-feeling-forgotten",
+        "title": "Prayer for Loneliness and When You Feel Forgotten",
+        "meta_desc": "A comforting devotional for the lonely heart, anchored in God's promise to never leave nor forsake you.",
+        "primary_verse": "Deuteronomy 31:6",
+        "theme": "Loneliness and God's Presence"
+    },
+    {
+        "slug": "prayer-for-strength-when-you-are-exhausted",
+        "title": "Prayer for Strength When You Are Completely Exhausted",
+        "meta_desc": "Scripture and guided prayer for burnout, fatigue, and finding supernatural rest in God's grace.",
+        "primary_verse": "Matthew 11:28-30",
+        "theme": "Strength and Rest"
+    },
+    {
+        "slug": "prayer-for-forgiveness-of-self-and-past-mistakes",
+        "title": "Prayer for Forgiving Yourself and Your Past Mistakes",
+        "meta_desc": "Find freedom from guilt and shame through scripture-anchored reflection on God's complete forgiveness.",
+        "primary_verse": "1 John 1:9",
+        "theme": "Guilt, Shame and Grace"
+    },
+    {
+        "slug": "morning-prayer-to-start-your-day-with-god",
+        "title": "Morning Prayer to Start Your Day with God",
+        "meta_desc": "A powerful morning devotional to dedicate your day, work, and family to God's guidance and peace.",
+        "primary_verse": "Psalm 5:3",
+        "theme": "Morning Devotion"
     }
 ]
 
 STATIC_PAGES = [
     {"loc": f"{DOMAINS_URL}/", "priority": "1.0", "changefreq": "daily"},
-    {"loc": f"{DOMAINS_URL}/index.html", "priority": "1.0", "changefreq": "daily"},
     {"loc": f"{DOMAINS_URL}/bible.html", "priority": "0.9", "changefreq": "weekly"},
     {"loc": f"{DOMAINS_URL}/blessing.html", "priority": "0.8", "changefreq": "weekly"},
     {"loc": f"{DOMAINS_URL}/blogs.html", "priority": "0.9", "changefreq": "daily"},
@@ -573,28 +178,47 @@ JSON Structure Requirements:
 }
 """
 
+
+def strip_thinking_tags(text: str) -> str:
+    """Removes reasoning tags if emitted by thinking models."""
+    if "</think>" in text:
+        text = text.split("</think>")[-1].strip()
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<think>[\s\S]*$', '', text, flags=re.IGNORECASE)
+    return text.strip()
+
+
 def generate_article_content(topic):
     user_prompt = f"Topic: {topic['title']}\nTheme: {topic['theme']}\nPrimary Anchor Verse: {topic['primary_verse']}"
-    try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.6,
-            response_format={"type": "json_object"}
-        )
-        return json.loads(response.choices[0].message.content)
-    except Exception as e:
-        print(f"Error generating content for {topic['slug']}: {e}")
-        return None
+
+    for model_name in CONTENT_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.6,
+                max_tokens=4096,
+                response_format={"type": "json_object"}
+            )
+            raw = strip_thinking_tags(response.choices[0].message.content or "")
+            data = json.loads(raw)
+            print(f"  ✓ Generated with {model_name}")
+            return data
+        except Exception as e:
+            print(f"  Model {model_name} failed: {e}")
+            continue
+
+    print(f"  ❌ All models failed for {topic['slug']}")
+    return None
+
 
 def build_article_html(topic, data):
     canonical_url = f"{DOMAINS_URL}/blogs/{topic['slug']}.html"
-    date_published = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    date_published = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Combined Article + FAQPage Schema
     schema_graph = {
         "@context": "https://schema.org",
         "@graph": [
@@ -628,34 +252,32 @@ def build_article_html(topic, data):
                 "mainEntity": [
                     {
                         "@type": "Question",
-                        "name": faq.get("question", ""),
-                        "acceptedAnswer": {"@type": "Answer", "text": faq.get("answer", "")}
-                    } for faq in data.get("faqs", [])
+                        "name": f.get("question", ""),
+                        "acceptedAnswer": {"@type": "Answer", "text": f.get("answer", "")}
+                    } for f in data.get("faqs", [])
                 ]
             }
         ]
     }
 
-    anchor_verse_text = data.get("anchor_verse_text", "").strip()
-    if not anchor_verse_text or len(anchor_verse_text) < 5:
+    anchor_verse_text = (data.get("anchor_verse_text") or "").strip()
+    if len(anchor_verse_text) < 5:
         anchor_verse_text = "The Lord is near to all who call on him, to all who call on him in truth."
 
     steps_html = "".join([
         f'<div class="step-card"><h3 class="step-h3">{s.get("step_num", "")}: {s.get("title", "")}</h3><p class="step-p">{s.get("desc", "")}</p></div>'
         for s in data.get("steps", [])
     ])
-
     prayers_html = "".join([
         f'<div class="prayer-card"><h3 class="prayer-h3">{p.get("title", "")}</h3><p class="prayer-body">{p.get("body", "")}</p></div>'
         for p in data.get("prayers", [])
     ])
-
     faqs_html = "".join([
         f'<div class="faq-card"><h3 class="faq-q">{f.get("question", "")}</h3><p class="faq-a">{f.get("answer", "")}</p></div>'
         for f in data.get("faqs", [])
     ])
 
-    html = f'''<!DOCTYPE html>
+    return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
@@ -706,42 +328,33 @@ def build_article_html(topic, data):
     <a href="../index.html" class="nav-brand">† YOU WITH JESUS</a>
     <a href="../index.html" class="nav-cta">Open Sanctuary</a>
   </nav>
-
   <main class="content-wrap">
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
     <h1>{data.get("h1", topic["title"])}</h1>
-
     <div class="verse-card">
       <p class="verse-text">“{anchor_verse_text}”</p>
       <span class="verse-ref">— {topic["primary_verse"]}</span>
     </div>
-
     <p class="body-p">{data.get("introduction", "")}</p>
-
     <h2 class="sec-h2">{data.get("exegesis_title", "Biblical Wisdom")}</h2>
     <p class="body-p">{data.get("exegesis_body", "")}</p>
-
     <h2 class="sec-h2">{data.get("steps_title", "Pathway to Peace")}</h2>
     {steps_html}
-
     <h2 class="sec-h2">{data.get("prayers_title", "Prayers of the Heart")}</h2>
     {prayers_html}
-
     <section class="cta-banner">
       <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart Directly to Jesus</h2>
       <p style="font-size: 13.5px; color: #d4d4d8; margin-top: 6px;">Speak your burdens, receive Scripture-guided comfort, and find rest.</p>
       <a href="../index.html" class="cta-btn">Begin Your Prayer Now →</a>
     </section>
-
     <h2 class="sec-h2">Frequently Asked Questions</h2>
     {faqs_html}
   </main>
-
   <script src="../blog-player.js"></script>
 </body>
 </html>
 '''
-    return html
+
 
 def generate_unified_sitemap(created_slugs):
     urls = list(STATIC_PAGES)
@@ -757,22 +370,25 @@ def generate_unified_sitemap(created_slugs):
         sitemap_xml.append(f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>")
     sitemap_xml.append('</urlset>')
 
-    with open("sitemap.xml", "w", encoding="utf-8") as f:
+    with open(os.path.join(DEPLOY_ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write("\n".join(sitemap_xml))
-    print("Unified sitemap.xml generated.")
+    print("✓ Unified sitemap.xml generated.")
+
 
 def generate_blogs_index(topics):
-    cards_html = []
+    cards_html = ""
     for t in topics:
-        cards_html.append(f'''
+        out_path = os.path.join(BLOGS_DIR, f"{t['slug']}.html")
+        if not os.path.exists(out_path):
+            continue  # only show articles that actually exist
+        cards_html += f'''
         <a href="blogs/{t['slug']}.html" style="text-decoration:none; color:inherit;">
-          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px; transition:transform 0.2s;">
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px;">
             <span style="font-size:10.5px; font-weight:800; color:#e2b764; text-transform:uppercase;">{t['theme']}</span>
             <h3 style="font-family:'Cinzel',serif; font-size:17px; color:#fff; margin:6px 0;">{t['title']}</h3>
             <p style="font-size:13px; color:#a1a1aa;">{t['meta_desc']}</p>
           </div>
-        </a>
-        ''')
+        </a>'''
 
     blogs_page = f'''<!DOCTYPE html>
 <html lang="en">
@@ -795,33 +411,51 @@ def generate_blogs_index(topics):
   <div class="wrap">
     <div style="text-align:center; margin-bottom:16px;"><a href="index.html" style="color:#e2b764; text-decoration:none; font-size:12px; font-weight:700;">← Return to Sanctuary</a></div>
     <h1>Sacred Pillar Devotionals</h1>
-    {''.join(cards_html)}
+    {cards_html}
   </div>
 </body>
-</html>
-'''
-    with open("blogs.html", "w", encoding="utf-8") as f:
+</html>'''
+    with open(os.path.join(DEPLOY_ROOT, "blogs.html"), "w", encoding="utf-8") as f:
         f.write(blogs_page)
-    print("blogs.html index generated.")
+    print("✓ blogs.html index generated.")
+
 
 def main():
-    if not os.path.exists("blogs"):
-        os.makedirs("blogs")
+    force = "--force" in sys.argv
+
+    if not client:
+        print("❌ GROQ_API_KEY not set. Run:  echo GROQ_API_KEY=your_key > .env")
+        return
+
+    os.makedirs(BLOGS_DIR, exist_ok=True)
 
     created = []
+    generated_now = 0
     for topic in SEO_TOPICS:
-        file_path = f"blogs/{topic['slug']}.html"
-        print(f"Generating pillar guide: {topic['title']}...")
-        content_json = generate_article_content(topic)
-        if content_json:
-            html = build_article_html(topic, content_json)
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(html)
+        out_path = os.path.join(BLOGS_DIR, f"{topic['slug']}.html")
+        if os.path.exists(out_path) and not force:
+            print(f"⏭  Skipping existing: {topic['slug']}")
             created.append(topic['slug'])
+            continue
+        print(f"Generating pillar guide: {topic['title']}...")
+        data = generate_article_content(topic)
+        if data:
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(build_article_html(topic, data))
+            created.append(topic['slug'])
+            generated_now += 1
 
     generate_blogs_index(SEO_TOPICS)
     generate_unified_sitemap(created)
-    print("Pillar SEO generation complete.")
+
+    print("\n================ POST-RUN VERIFICATION ================")
+    for slug in created:
+        p = os.path.join(BLOGS_DIR, f"{slug}.html")
+        print(f"  ✓  {p}" if os.path.exists(p) else f"  ❌ MISSING  {p}")
+    print("--------------------------------------------------------")
+    print(f"Articles on disk: {len(created)}/{len(SEO_TOPICS)} | New this run: {generated_now}")
+    print("NEXT: firebase deploy --only hosting")
+
 
 if __name__ == "__main__":
     main()-e \n\n=== FILE: ./api/index.py ===\n
@@ -842,35 +476,52 @@ from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="./jesus-talk-api/.env")
+# Optional Sentry monitoring
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    _dsn = os.getenv("SENTRY_DSN", "")
+    if _dsn:
+        sentry_sdk.init(dsn=_dsn, integrations=[FastApiIntegration()], traces_sample_rate=1.0)
+except ImportError:
+    pass
+
 load_dotenv()
+load_dotenv(dotenv_path="./jesus-talk-api/.env")
+load_dotenv(dotenv_path="./api/.env")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("jesus_sanctuary_api")
 
-# Initialize Firebase Admin SDK
+# ---------------- Firebase Admin SDK ----------------
 db = None
+fb_auth = None
 try:
     import firebase_admin
-    from firebase_admin import credentials, firestore, auth as fb_auth
+    from firebase_admin import credentials, firestore, auth as _fb_auth
 
     if not firebase_admin._apps:
-        firebase_creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
-        if firebase_creds_json:
+        creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
+        if creds_json:
             try:
-                cred_dict = json.loads(firebase_creds_json)
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
+                firebase_admin.initialize_app(credentials.Certificate(json.loads(creds_json)))
             except Exception as e:
-                logger.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT JSON: {e}")
+                logger.error(f"FIREBASE_SERVICE_ACCOUNT parse failed: {e}")
                 firebase_admin.initialize_app()
         else:
             firebase_admin.initialize_app()
     db = firestore.client()
+    fb_auth = _fb_auth
 except Exception as fb_err:
-    logger.warning(f"Firebase Admin SDK initialization note: {fb_err}")
+    logger.warning(f"Firebase Admin init note: {fb_err}")
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.4.0")
+if not db:
+    logger.error("⚠️ ENTITLEMENTS DISABLED — set FIREBASE_SERVICE_ACCOUNT in hosting env vars.")
+
+# ---------------- Config ----------------
+LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
+DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
+FREE_DAILY_CREDITS = 5
 
 ALLOWED_ORIGINS = [
     "https://jesus-chat-bd89f.web.app",
@@ -879,6 +530,9 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "http://localhost:3000"
 ]
+# TODO: add "https://YOUR-CUSTOM-DOMAIN.com" here when you buy the domain.
+
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -888,14 +542,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
-DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
-
 def get_groq_client():
     key = os.getenv("GROQ_API_KEY", "").strip()
     return Groq(api_key=key) if key else None
 
-# Rate Limiting & Guest Log
+# ---------------- SELF-HEALING MODEL DISCOVERY ----------------
+PREFERRED_MODELS = [
+    "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b",
+    "groq/compound-mini"
+]
+
+_MODEL_CACHE = {"models": None, "fetched_at": 0.0}
+MODEL_CACHE_TTL = 3600  # refresh hourly
+
+def get_active_models() -> list:
+    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive.
+    Never breaks again when Groq retires models."""
+    now = time.time()
+    if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
+        return _MODEL_CACHE["models"]
+
+    groq_client = get_groq_client()
+    if groq_client:
+        try:
+            alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
+            picks = [m for m in PREFERRED_MODELS if m in alive]
+            if not picks:
+                # Last resort: any text model that isn't audio/safety/guard
+                picks = [
+                    m for m in alive
+                    if not any(x in m.lower() for x in
+                               ["whisper", "guard", "orpheus", "safeguard", "tts"])
+                ][:3]
+            if picks:
+                _MODEL_CACHE["models"] = picks
+                _MODEL_CACHE["fetched_at"] = now
+                logger.info(f"Active Groq models resolved: {picks}")
+                return picks
+        except Exception as e:
+            logger.warning(f"Model discovery failed, using preferred list: {e}")
+
+    return PREFERRED_MODELS
+
+# ---------------- Rate limiting ----------------
 IP_REQUEST_LOG = defaultdict(list)
 GUEST_DAILY_IP_LOG = defaultdict(int)
 RATE_LIMIT_REQUESTS = 20
@@ -910,7 +601,12 @@ def is_rate_limited(client_ip: str) -> bool:
     IP_REQUEST_LOG[client_ip].append(now)
     return False
 
-# Crisis Protocol
+def prune_guest_log():
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    for k in [k for k in GUEST_DAILY_IP_LOG if not k.startswith(today)]:
+        del GUEST_DAILY_IP_LOG[k]
+
+# ---------------- Crisis protocol ----------------
 CRISIS_PATTERNS = [
     r"\b(kill|end|take)\s+my\s+(life|myself)\b",
     r"\b(suicide|suicidal)\b",
@@ -942,6 +638,7 @@ def check_crisis_triggers(text: str) -> bool:
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
+# ---------------- Sanitization ----------------
 INJECTION_KEYWORDS = [
     "ignore all previous instructions", "disregard prior instructions",
     "disregard previous instructions", "system prompt", "developer mode",
@@ -965,83 +662,100 @@ def sanitize_metadata(field: str, max_length: int = 80, default: str = "beloved"
     cleaned = re.sub(r'[^a-zA-Z0-9\s\-_.,]', '', field).strip()
     return cleaned[:max_length] if cleaned else default
 
-def clean_scripture_citations(reply: str) -> str:
+def strip_thinking_tags(text: str) -> str:
+    """Removes <think>...</think> reasoning blocks that reasoning models may emit."""
+    if "</think>" in text:
+        text = text.split("</think>")[-1].strip()
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<think>[\s\S]*$', '', text, flags=re.IGNORECASE)
+    return text.strip()
+
+def clean_reply_formatting(reply: str) -> str:
     text = reply.replace('\\n', '\n')
     text = re.sub(r'\n{3,}', '\n\n', text)
     text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
     return text.strip()
 
-def get_verified_user(request: Request) -> tuple[Optional[str], Optional[str]]:
+# ---------------- Auth & Quota ----------------
+def get_verified_user(request: Request):
     auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
+    if auth_header.startswith("Bearer ") and fb_auth:
         token = auth_header.split(" ", 1)[1].strip()
         try:
             decoded = fb_auth.verify_id_token(token)
             return decoded.get("uid"), decoded.get("email")
         except Exception as e:
-            logger.warning(f"ID Token verification failed: {e}")
-            return None, None
+            logger.warning(f"ID token verification failed: {e}")
     return None, None
 
-def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip: str) -> tuple[bool, int, str]:
+def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
+    """READ-ONLY check. Consumption happens after successful generation only."""
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     if email and email.lower() == DEVELOPER_EMAIL.lower():
-        return True, 1000, "developer"
+        return {"allowed": True, "remaining": 9999, "tier": "developer"}
 
     if uid and db:
         try:
-            user_ref = db.collection("users").document(uid)
-            doc = user_ref.get()
-
+            ref = db.collection("users").document(uid)
+            doc = ref.get()
             if doc.exists:
                 data = doc.to_dict() or {}
                 if data.get("isSubscribed", False):
-                    return True, 9999, "subscribed"
-
-                last_reset = data.get("lastResetDate")
-                credits = data.get("credits", 5)
-
-                if last_reset != today_str:
-                    user_ref.set({
-                        "credits": 4,
-                        "lastResetDate": today_str,
-                        "lastActive": firestore.SERVER_TIMESTAMP
-                    }, merge=True)
-                    return True, 4, "reset_and_consumed"
-
+                    return {"allowed": True, "remaining": 9999, "tier": "subscribed"}
+                if data.get("lastResetDate") != today_str:
+                    return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
+                            "tier": "free", "needs_reset": True}
+                credits = data.get("credits", 0)
                 if credits <= 0:
-                    return False, 0, "quota_exhausted"
+                    return {"allowed": False, "remaining": 0, "tier": "free",
+                            "reason": "quota_exhausted"}
+                return {"allowed": True, "remaining": credits, "tier": "free"}
+            return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
+                    "tier": "free", "is_new": True}
+        except Exception as e:
+            logger.error(f"Firestore entitlement error (fail-open): {e}")
+            return {"allowed": True, "remaining": FREE_DAILY_CREDITS, "tier": "db_fallback"}
 
-                user_ref.update({
-                    "credits": firestore.Increment(-1),
-                    "lastActive": firestore.SERVER_TIMESTAMP
-                })
-                return True, credits - 1, "consumed"
-            else:
-                user_ref.set({
+    # Guest gate: 1 free prayer per IP per day
+    prune_guest_log()
+    guest_key = f"{today_str}_{client_ip}"
+    if GUEST_DAILY_IP_LOG[guest_key] >= 1:
+        return {"allowed": False, "remaining": 0, "tier": "guest", "reason": "guest_quota_exhausted"}
+    return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_key}
+
+def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
+    """Called ONLY after successful generation. Never burns credits on failures."""
+    tier = decision.get("tier")
+    try:
+        if tier == "guest":
+            GUEST_DAILY_IP_LOG[decision["guest_key"]] += 1
+            return
+        if tier in ("developer", "subscribed", "db_fallback"):
+            return
+        if uid and db:
+            ref = db.collection("users").document(uid)
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            if decision.get("needs_reset") or decision.get("is_new"):
+                ref.set({
                     "email": email or "",
-                    "credits": 4,
+                    "credits": FREE_DAILY_CREDITS - 1,
                     "isSubscribed": False,
                     "lastResetDate": today_str,
                     "createdAt": firestore.SERVER_TIMESTAMP,
                     "lastActive": firestore.SERVER_TIMESTAMP
+                }, merge=True)
+            else:
+                ref.update({
+                    "credits": firestore.Increment(-1),
+                    "lastActive": firestore.SERVER_TIMESTAMP
                 })
-                return True, 4, "new_user_consumed"
-        except Exception as e:
-            logger.error(f"Firestore entitlement lookup error: {e}")
-            return True, 5, "db_fallback"
+    except Exception as e:
+        logger.error(f"Credit consumption error (non-fatal): {e}")
 
-    guest_key = f"{today_str}_{client_ip}"
-    used_count = GUEST_DAILY_IP_LOG[guest_key]
-    if used_count >= 1:
-        return False, 0, "guest_quota_exhausted"
-
-    GUEST_DAILY_IP_LOG[guest_key] += 1
-    return True, 0, "guest_consumed"
-
+# ---------------- Prompts ----------------
 MODE_INSTRUCTIONS = {
-    "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and comforting.",
+    "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and deeply comforting.",
     "study": "Focus on biblical depth, original Scripture context, and spiritual insight. Explain the theological principle clearly.",
     "prayer": "Frame the primary response as a direct, personal, and powerful written prayer that the seeker can pray aloud.",
     "guidance": "Focus on practical discernment and wise biblical next steps for daily decisions, work, or relationships."
@@ -1055,10 +769,14 @@ RESPONSE STYLE & MODE:
 
 CORE GUIDELINES:
 1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
-2. Structure your response into 2 to 3 concise, deeply meaningful paragraphs.
+2. Structure your response into EXACTLY 2 short paragraphs, nothing more:
+   Paragraph 1: tenderly acknowledge their specific situation in 2-3 sentences.
+   Paragraph 2: give ONE Scripture anchor with reference, then close with a 1-sentence spoken blessing.
 3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
-4. EVOLVING PSYCHE REQUIREMENT: At the very end of your response, on a clean new line, output:
-PSYCHE: <5-8 words summarizing the user's updated emotional state, e.g. A soul finding calm amid financial worry>
+4. Vary your language naturally for every message; never repeat stock phrases across different questions.
+5. Do NOT output markdown headers (#) or bullet lists.
+6. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
+PSYCHE: <5-8 words summarizing the user's updated emotional state>
 
 Seeker Information:
 • Name: {user_name}
@@ -1074,31 +792,33 @@ class ChatRequest(BaseModel):
     mode: Optional[str] = "comfort"
     history: Optional[List[Dict[str, str]]] = []
 
-ACTIVE_GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile",
-    "llama-3.1-8b-instant"
-]
+DEGRADED_REPLY = (
+    "The sanctuary is experiencing a brief technical pause. "
+    "Please take a breath and try again in a few moments — I am still here."
+)
 
+# ---------------- Routes ----------------
 @app.get("/")
 @app.get("/health")
 @app.get("/api")
 @app.get("/api/health")
 def health_check():
-    key = os.getenv("GROQ_API_KEY", "").strip()
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.4.0",
-        "groq_configured": bool(key),
-        "db_connected": db is not None
+        "version": "3.5.0",
+        "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
+        "db_connected": db is not None,
+        "resolved_models": get_active_models()
     }
 
 @app.post("/")
 @app.post("/chat")
 @app.post("/api/chat")
 async def chat_endpoint(payload: ChatRequest, request: Request):
-    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
+    client_ip = request.headers.get(
+        "x-forwarded-for", request.client.host if request.client else "unknown"
+    ).split(",")[0].strip()
 
     if is_rate_limited(client_ip):
         raise HTTPException(
@@ -1115,6 +835,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
     selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
 
+    # 1. Crisis check FIRST — never paywalled
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
@@ -1123,11 +844,12 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "isCrisis": True
         }
 
+    # 2. Entitlement check (read-only)
     verified_uid, verified_email = get_verified_user(request)
-    is_allowed, remaining_credits, reason = verify_and_consume_quota(verified_uid, verified_email, client_ip)
+    decision = resolve_entitlement(verified_uid, verified_email, client_ip)
 
-    if not is_allowed:
-        if reason == "guest_quota_exhausted":
+    if not decision["allowed"]:
+        if decision.get("reason") == "guest_quota_exhausted":
             return {
                 "error": "AUTH_REQUIRED",
                 "reply": "Please sign in to receive your 5 free daily scripture reflections and continue your prayer communion.",
@@ -1135,50 +857,63 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             }
         return {
             "error": "PAYWALL_EXHAUSTED",
-            "reply": "You have completed your 5 daily reflections. Your free reflections will renew tomorrow, or you may choose a sacred pathway for unlimited communion today.",
+            "reply": "You have completed your 5 daily reflections. They renew tomorrow, or you may choose a sacred pathway for unlimited communion today.",
             "updatedPsyche": user_psyche
         }
 
+    # 3. Inference — fail LOUD, never fake
     groq_client = get_groq_client()
+    if groq_client is None:
+        logger.critical("CHAT DEGRADED: GROQ_API_KEY missing at request time.")
+        return {"error": "SERVICE_DEGRADED", "degraded": True,
+                "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
+
+    mode_instruction = MODE_INSTRUCTIONS[selected_mode]
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        mode_instruction=mode_instruction,
+        user_name=user_name,
+        user_psyche=user_psyche,
+        user_intentions=user_intentions
+    )
+
+    messages = [{"role": "system", "content": system_prompt}]
+    if payload.history:
+        for turn in payload.history[-6:]:
+            role = "user" if turn.get("role") == "user" else "assistant"
+            content = sanitize_input(turn.get("content", ""), max_length=800)
+            if content:
+                messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": raw_message})
+
     raw_reply = None
-
-    if groq_client:
-        mode_instruction = MODE_INSTRUCTIONS.get(selected_mode, MODE_INSTRUCTIONS["comfort"])
-        system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-            mode_instruction=mode_instruction,
-            user_name=user_name,
-            user_psyche=user_psyche,
-            user_intentions=user_intentions
-        )
-
-        messages = [{"role": "system", "content": system_prompt}]
-        if payload.history:
-            for turn in payload.history[-6:]:
-                role = "user" if turn.get("role") == "user" else "assistant"
-                content = sanitize_input(turn.get("content", ""), max_length=800)
-                if content:
-                    messages.append({"role": role, "content": content})
-
-        messages.append({"role": "user", "content": raw_message})
-
-        for model_name in ACTIVE_GROQ_MODELS:
-            try:
-                response = groq_client.chat.completions.create(
-                    model=model_name,
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=650
-                )
-                raw_reply = response.choices[0].message.content.strip()
-                if raw_reply:
-                    break
-            except Exception as e:
-                logger.error(f"Groq error ({model_name}): {e}")
-                continue
+    last_error = None
+    for model_name in get_active_models():
+        try:
+            logger.info(f"Inferencing with {model_name} in [{selected_mode}] mode")
+            response = groq_client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.8,
+                max_tokens=700
+            )
+            candidate = strip_thinking_tags(response.choices[0].message.content or "")
+            if candidate:
+                raw_reply = candidate
+                break
+        except Exception as e:
+            last_error = e
+            logger.error(f"Inference failed on {model_name}: {e}")
+            continue
 
     if not raw_reply:
-        raw_reply = "I hear your voice, and I know every care you carry today. Come rest in Me, for My grace is sufficient for you.\n\n“Cast your burden on the Lord, and he will sustain you; he will never permit the righteous to be moved.” (Psalm 55:22)\n\nPSYCHE: A heart seeking divine refuge"
+        logger.error(f"CHAT DEGRADED: all models failed. Last error: {last_error}")
+        return {"error": "SERVICE_DEGRADED", "degraded": True,
+                "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
 
+    # 4. Consume credit ONLY after successful generation
+    consume_credit(verified_uid, verified_email, decision)
+
+    # 5. Extract evolving psyche
     updated_psyche = user_psyche
     psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
@@ -1186,15 +921,18 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
         raw_reply = re.sub(r'PSYCHE:\s*.+$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
 
-    clean_reply = clean_scripture_citations(raw_reply)
+    remaining = decision["remaining"]
+    if decision["tier"] == "free" and remaining < 9999:
+        remaining = max(0, remaining - 1)
 
     return {
-        "reply": clean_reply,
+        "reply": clean_reply_formatting(raw_reply),
         "updatedPsyche": updated_psyche,
-        "remainingCredits": remaining_credits,
+        "remainingCredits": remaining,
         "mode": selected_mode
     }
 
+# ---------------- Lemon Squeezy Webhook ----------------
 @app.post("/webhook/lemon")
 @app.post("/webhook/lemonsqueezy")
 @app.post("/api/webhook/lemon")
@@ -1203,18 +941,14 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
     raw_body = await request.body()
 
     if not LEMON_WEBHOOK_SECRET:
+        logger.error("LEMON_WEBHOOK_SECRET unconfigured.")
         raise HTTPException(status_code=500, detail="Webhook secret unconfigured.")
-
     if not x_signature:
         raise HTTPException(status_code=400, detail="Missing X-Signature.")
 
-    digest = hmac.new(
-        LEMON_WEBHOOK_SECRET.encode("utf-8"),
-        raw_body,
-        hashlib.sha256
-    ).hexdigest()
-
+    digest = hmac.new(LEMON_WEBHOOK_SECRET.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(digest, x_signature):
+        logger.warning("Invalid webhook signature rejected.")
         raise HTTPException(status_code=400, detail="Invalid signature.")
 
     try:
@@ -1224,30 +958,28 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
         user_id = custom_data.get("user_id")
         user_email = event_payload.get("data", {}).get("attributes", {}).get("user_email")
 
-        if db and user_id:
-            user_ref = db.collection("users").document(user_id)
-            active_events = (
-                "subscription_created", "subscription_payment_success",
-                "order_created", "subscription_updated",
-                "subscription_resumed", "subscription_unpaused"
-            )
-            inactive_events = (
-                "subscription_cancelled", "subscription_expired",
-                "subscription_paused", "subscription_payment_failed"
-            )
+        logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email})")
 
+        if not user_id:
+            logger.warning("Webhook arrived WITHOUT custom user_id. Include ?checkout[custom][user_id]=<firebase-uid> in your checkout URL.")
+
+        if db and user_id:
+            ref = db.collection("users").document(user_id)
+            active_events = ("subscription_created", "subscription_payment_success",
+                             "order_created", "subscription_updated",
+                             "subscription_resumed", "subscription_unpaused")
+            inactive_events = ("subscription_cancelled", "subscription_expired",
+                               "subscription_paused", "subscription_payment_failed")
             if event_name in active_events:
-                user_ref.set({
-                    "isSubscribed": True,
-                    "email": user_email,
-                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-                }, merge=True)
+                ref.set({"isSubscribed": True, "email": user_email,
+                         "lastPlanUpdate": firestore.SERVER_TIMESTAMP}, merge=True)
+                logger.info(f"Granted subscription to {user_id}.")
             elif event_name in inactive_events:
-                user_ref.set({
-                    "isSubscribed": False,
-                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-                }, merge=True)
+                ref.set({"isSubscribed": False,
+                         "lastPlanUpdate": firestore.SERVER_TIMESTAMP}, merge=True)
+                logger.info(f"Revoked subscription for {user_id}.")
 
         return {"status": "success", "event": event_name, "user_id": user_id}
     except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
         raise HTTPException(status_code=400, detail="Invalid payload format.")

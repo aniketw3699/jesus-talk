@@ -69,7 +69,6 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "http://localhost:3000"
 ]
-# TODO: add "https://YOUR-CUSTOM-DOMAIN.com" here when you buy the domain.
 
 app = FastAPI(title="You With Jesus Sanctuary API", version="3.5.0")
 
@@ -87,18 +86,18 @@ def get_groq_client():
 
 # ---------------- SELF-HEALING MODEL DISCOVERY ----------------
 PREFERRED_MODELS = [
+    "llama-3.1-8b-instant",
+    "llama-3.1-70b-versatile",
     "openai/gpt-oss-120b",
-    "qwen/qwen3.8-27b",
     "openai/gpt-oss-20b",
-    "groq/compound-mini"
+    "qwen/qwen3.8-27b"
 ]
 
 _MODEL_CACHE = {"models": None, "fetched_at": 0.0}
 MODEL_CACHE_TTL = 3600  # refresh hourly
 
 def get_active_models() -> list:
-    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive.
-    Never breaks again when Groq retires models."""
+    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive."""
     now = time.time()
     if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
         return _MODEL_CACHE["models"]
@@ -109,7 +108,6 @@ def get_active_models() -> list:
             alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
             picks = [m for m in PREFERRED_MODELS if m in alive]
             if not picks:
-                # Last resort: any text model that isn't audio/safety/guard
                 picks = [
                     m for m in alive
                     if not any(x in m.lower() for x in
@@ -125,7 +123,7 @@ def get_active_models() -> list:
 
     return PREFERRED_MODELS
 
-# ---------------- Rate limiting ----------------
+# ---------------- Rate Limiting & Guest Tracking ----------------
 IP_REQUEST_LOG = defaultdict(list)
 GUEST_DAILY_IP_LOG = defaultdict(int)
 RATE_LIMIT_REQUESTS = 20
@@ -140,12 +138,16 @@ def is_rate_limited(client_ip: str) -> bool:
     IP_REQUEST_LOG[client_ip].append(now)
     return False
 
+def sanitize_doc_id(raw_id: str) -> str:
+    """Sanitizes strings for safe Firestore document IDs."""
+    return re.sub(r'[^a-zA-Z0-9_-]', '_', raw_id)
+
 def prune_guest_log():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for k in [k for k in GUEST_DAILY_IP_LOG if not k.startswith(today)]:
         del GUEST_DAILY_IP_LOG[k]
 
-# ---------------- Crisis protocol ----------------
+# ---------------- Crisis Protocol ----------------
 CRISIS_PATTERNS = [
     r"\b(kill|end|take)\s+my\s+(life|myself)\b",
     r"\b(suicide|suicidal)\b",
@@ -228,12 +230,14 @@ def get_verified_user(request: Request):
     return None, None
 
 def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
-    """READ-ONLY check. Consumption happens after successful generation only."""
+    """READ-ONLY check. Persists across serverless instances via Firestore."""
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+    # 1. Developer bypass
     if email and email.lower() == DEVELOPER_EMAIL.lower():
         return {"allowed": True, "remaining": 9999, "tier": "developer"}
 
+    # 2. Authenticated user entitlement
     if uid and db:
         try:
             ref = db.collection("users").document(uid)
@@ -256,25 +260,50 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
             logger.error(f"Firestore entitlement error (fail-open): {e}")
             return {"allowed": True, "remaining": FREE_DAILY_CREDITS, "tier": "db_fallback"}
 
-    # Guest gate: 1 free prayer per IP per day
+    # 3. Persistent Guest Gate: 1 free prayer per IP per day stored in Firestore
+    guest_doc_id = sanitize_doc_id(f"{today_str}_{client_ip}")
+    if db:
+        try:
+            guest_ref = db.collection("guest_usage").document(guest_doc_id)
+            doc = guest_ref.get()
+            if doc.exists:
+                data = doc.to_dict() or {}
+                if data.get("count", 0) >= 1:
+                    return {"allowed": False, "remaining": 0, "tier": "guest", "reason": "guest_quota_exhausted"}
+            return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_doc_id}
+        except Exception as e:
+            logger.warning(f"Firestore guest check fallback: {e}")
+
+    # Fallback to local memory if Firestore is offline
     prune_guest_log()
-    guest_key = f"{today_str}_{client_ip}"
-    if GUEST_DAILY_IP_LOG[guest_key] >= 1:
+    if GUEST_DAILY_IP_LOG[guest_doc_id] >= 1:
         return {"allowed": False, "remaining": 0, "tier": "guest", "reason": "guest_quota_exhausted"}
-    return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_key}
+    return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_doc_id}
 
 def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
     """Called ONLY after successful generation. Never burns credits on failures."""
     tier = decision.get("tier")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
     try:
         if tier == "guest":
-            GUEST_DAILY_IP_LOG[decision["guest_key"]] += 1
+            guest_key = decision.get("guest_key")
+            if guest_key:
+                GUEST_DAILY_IP_LOG[guest_key] += 1
+                if db:
+                    guest_ref = db.collection("guest_usage").document(guest_key)
+                    guest_ref.set({
+                        "count": firestore.Increment(1),
+                        "date": today_str,
+                        "lastActive": firestore.SERVER_TIMESTAMP
+                    }, merge=True)
             return
+
         if tier in ("developer", "subscribed", "db_fallback"):
             return
+
         if uid and db:
             ref = db.collection("users").document(uid)
-            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             if decision.get("needs_reset") or decision.get("is_new"):
                 ref.set({
                     "email": email or "",
@@ -374,7 +403,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
     selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
 
-    # 1. Crisis check FIRST — never paywalled
+    # 1. Crisis check FIRST
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
@@ -400,7 +429,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "updatedPsyche": user_psyche
         }
 
-    # 3. Inference — fail LOUD, never fake
+    # 3. Inference
     groq_client = get_groq_client()
     if groq_client is None:
         logger.critical("CHAT DEGRADED: GROQ_API_KEY missing at request time.")
