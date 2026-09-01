@@ -108,6 +108,7 @@ DISCLAIMER_HTML = (
 SYSTEM_PROMPT = """You are an authoritative Christian theologian, biblical scholar, and pastoral counselor.
 Generate a comprehensive, 1,200+ word devotional guide formatted strictly in valid JSON.
 
+
 SCRIPTURE ACCURACY: Only cite real Bible references with correct book, chapter, and verse. Never invent, guess, or misattribute a verse.
 
 JSON Structure Requirements:
