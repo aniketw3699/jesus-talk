@@ -205,7 +205,7 @@ Return strictly valid JSON with all 5 fields populated:
             )
             data = json.loads(strip_thinking_tags(res.choices[0].message.content or ""))
             if data and data.get("slug"):
-                data["slug"] = re.sub(r'[^a-z0-9]+', '-', str(data["slug"]).lower()).strip('-')
+                data["slug"] = re.sub(r'[^a-z0-9-]+', '-', str(data["slug"]).lower()).strip('-')
                 if not data.get("theme"):
                     data["theme"] = "Christian Living & Peace"
                 if not data.get("primary_verse"):
@@ -228,7 +228,7 @@ def split_paragraphs(raw: str, fallback: str = "") -> str:
     return "".join(f'<p class="body-p">{p}</p>' for p in parts)
 
 def build_article_html(topic, data):
-    slug = re.sub(r'[^a-zA-Z0-9_-]', '', topic.get("slug", "daily-prayer"))
+    slug = re.sub(r'[^a-z0-9-]+', '-', topic.get("slug", "daily-prayer").lower()).strip('-')
     title = data.get("h1") or topic.get("title", "Sacred Devotional")
     meta_desc = data.get("meta_description") or topic.get("meta_desc", "A scripture-guided prayer and biblical reflection.")
     primary_verse = topic.get("primary_verse", "Scripture")
@@ -430,7 +430,7 @@ def generate_blogs_index(all_topics):
   <meta name="description" content="Explore scripture-anchored prayer guides for anxiety, grief, healing, relationships, and financial peace." />
   <link rel="canonical" href="{DOMAINS_URL}/blogs.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {{ background: #0d1117; color: #fff; font-family: 'Montserrat', sans-serif; padding: 24px 16px; }}
@@ -499,7 +499,9 @@ def main():
         if t.get("slug") and not os.path.exists(os.path.join(BLOGS_DIR, f"{t['slug']}.html"))
     ]
 
-    while len(pending_topics) < batch_size:
+    attempts = 0
+    while len(pending_topics) < batch_size and attempts < 10:
+        attempts += 1
         existing_slugs = [t.get("slug", "") for t in all_topics if t.get("slug")]
         new_topic = generate_dynamic_topic(existing_slugs)
         if new_topic and new_topic.get("slug"):
