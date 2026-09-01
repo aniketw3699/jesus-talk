@@ -43,9 +43,6 @@ try:
 except Exception as fb_err:
     logger.warning(f"Firebase Admin SDK initialization note: {fb_err}")
 
-if not db:
-    logger.error("⚠️ ENTITLEMENTS DISABLED — running without Firestore persistence. Set FIREBASE_SERVICE_ACCOUNT.")
-
 app = FastAPI(title="You With Jesus Sanctuary API", version="3.4.0")
 
 ALLOWED_ORIGINS = [
@@ -64,11 +61,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
 
-client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+def get_groq_client():
+    key = os.getenv("GROQ_API_KEY", "").strip()
+    return Groq(api_key=key) if key else None
 
 # Rate Limiting & Guest Log
 IP_REQUEST_LOG = defaultdict(list)
@@ -260,10 +258,12 @@ ACTIVE_GROQ_MODELS = [
 @app.get("/api")
 @app.get("/api/health")
 def health_check():
+    key = os.getenv("GROQ_API_KEY", "").strip()
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
         "version": "3.4.0",
+        "groq_configured": bool(key),
         "db_connected": db is not None
     }
 
@@ -312,43 +312,45 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "updatedPsyche": user_psyche
         }
 
-    mode_instruction = MODE_INSTRUCTIONS.get(selected_mode, MODE_INSTRUCTIONS["comfort"])
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-        mode_instruction=mode_instruction,
-        user_name=user_name,
-        user_psyche=user_psyche,
-        user_intentions=user_intentions
-    )
-
-    messages = [{"role": "system", "content": system_prompt}]
-    if payload.history:
-        for turn in payload.history[-6:]:
-            role = "user" if turn.get("role") == "user" else "assistant"
-            content = sanitize_input(turn.get("content", ""), max_length=800)
-            if content:
-                messages.append({"role": role, "content": content})
-
-    messages.append({"role": "user", "content": raw_message})
-
+    groq_client = get_groq_client()
     raw_reply = None
-    for model_name in ACTIVE_GROQ_MODELS:
-        try:
-            logger.info(f"Inferencing with {model_name} in [{selected_mode}] mode")
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=650
-            )
-            raw_reply = response.choices[0].message.content.strip()
-            if raw_reply:
-                break
-        except Exception as e:
-            logger.error(f"Inference failed with {model_name}: {e}")
-            continue
+
+    if groq_client:
+        mode_instruction = MODE_INSTRUCTIONS.get(selected_mode, MODE_INSTRUCTIONS["comfort"])
+        system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+            mode_instruction=mode_instruction,
+            user_name=user_name,
+            user_psyche=user_psyche,
+            user_intentions=user_intentions
+        )
+
+        messages = [{"role": "system", "content": system_prompt}]
+        if payload.history:
+            for turn in payload.history[-6:]:
+                role = "user" if turn.get("role") == "user" else "assistant"
+                content = sanitize_input(turn.get("content", ""), max_length=800)
+                if content:
+                    messages.append({"role": role, "content": content})
+
+        messages.append({"role": "user", "content": raw_message})
+
+        for model_name in ACTIVE_GROQ_MODELS:
+            try:
+                response = groq_client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=650
+                )
+                raw_reply = response.choices[0].message.content.strip()
+                if raw_reply:
+                    break
+            except Exception as e:
+                logger.error(f"Groq error ({model_name}): {e}")
+                continue
 
     if not raw_reply:
-        raw_reply = "Peace be with you. Lay down what burdens your spirit, for I am listening. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nPSYCHE: A soul resting in divine presence"
+        raw_reply = "I hear your voice, and I know every care you carry today. Come rest in Me, for My grace is sufficient for you.\n\n“Cast your burden on the Lord, and he will sustain you; he will never permit the righteous to be moved.” (Psalm 55:22)\n\nPSYCHE: A heart seeking divine refuge"
 
     updated_psyche = user_psyche
     psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
@@ -374,11 +376,9 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
     raw_body = await request.body()
 
     if not LEMON_WEBHOOK_SECRET:
-        logger.error("LEMON_WEBHOOK_SECRET is unconfigured.")
         raise HTTPException(status_code=500, detail="Webhook secret unconfigured.")
 
     if not x_signature:
-        logger.warning("Missing X-Signature header.")
         raise HTTPException(status_code=400, detail="Missing X-Signature.")
 
     digest = hmac.new(
@@ -388,7 +388,6 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
     ).hexdigest()
 
     if not hmac.compare_digest(digest, x_signature):
-        logger.warning("Invalid webhook signature rejected.")
         raise HTTPException(status_code=400, detail="Invalid signature.")
 
     try:
@@ -397,8 +396,6 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
         custom_data = event_payload.get("meta", {}).get("custom_data", {})
         user_id = custom_data.get("user_id")
         user_email = event_payload.get("data", {}).get("attributes", {}).get("user_email")
-
-        logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email})")
 
         if db and user_id:
             user_ref = db.collection("users").document(user_id)
@@ -418,15 +415,12 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
                     "email": user_email,
                     "lastPlanUpdate": firestore.SERVER_TIMESTAMP
                 }, merge=True)
-                logger.info(f"Granted subscription entitlement to {user_id}.")
             elif event_name in inactive_events:
                 user_ref.set({
                     "isSubscribed": False,
                     "lastPlanUpdate": firestore.SERVER_TIMESTAMP
                 }, merge=True)
-                logger.info(f"Revoked subscription entitlement for {user_id}.")
 
         return {"status": "success", "event": event_name, "user_id": user_id}
     except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
         raise HTTPException(status_code=400, detail="Invalid payload format.")
