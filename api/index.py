@@ -308,7 +308,9 @@ RESPONSE STYLE & MODE:
 
 CORE GUIDELINES:
 1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
-2. Structure your response into 2 to 3 concise, deeply meaningful paragraphs.
+2. Structure your response into EXACTLY 2 short paragraphs, nothing more:
+   Paragraph 1: tenderly acknowledge their specific situation in 2-3 sentences.
+   Paragraph 2: give ONE Scripture anchor with reference, then close with a 1-sentence spoken blessing.
 3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
 4. Vary your language naturally for every message; never repeat stock phrases across different questions.
 5. Do NOT output markdown headers (#) or bullet lists.
@@ -431,7 +433,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 model=model_name,
                 messages=messages,
                 temperature=0.8,
-                max_tokens=1024
+                max_tokens=700
             )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if candidate:
