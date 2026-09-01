@@ -151,9 +151,9 @@ def normalize_topic(t: dict) -> dict:
     t["theme"] = t.get("theme") or t.get("category") or "Devotional"
     t["primary_verse"] = t.get("primary_verse") or t.get("scripture") or "Psalm 23:1"
     
-    # Always normalize the slug to strict lowercase alphanumeric + hyphens
-    raw_slug = t.get("slug") or t["title"]
-    t["slug"] = re.sub(r'[^a-z0-9]+', '-', raw_slug.lower()).strip('-')
+    # UNCONDITIONAL SANITIZATION: strips '/', '\', spaces, '..' and non-alphanumerics
+    raw_slug = str(t.get("slug") or t.get("title") or "sacred-devotional").lower()
+    t["slug"] = re.sub(r'[^a-z0-9-]+', '-', raw_slug).strip('-')
     return t
 
 def generate_article_content(topic):
