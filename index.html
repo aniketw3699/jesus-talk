@@ -454,9 +454,7 @@
     .billing-checkout-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #dfb455, #b88628); border: none; border-radius: 16px; color: #ffffff; font-size: 15px; font-weight: 800; cursor: pointer; }
     .billing-trust-caption { text-align: center; font-size: 11px; color: #8c97a5; margin-top: 10px; }
 
-    /* ---------------------------------------------------------
-       EXACT RESTORED SACRED BLESSING & QUIZ MODAL
-       --------------------------------------------------------- */
+    /* Exact Restored Sacred Blessing & Quiz Modal */
     .blessing-modal-overlay {
       position: fixed;
       inset: 0;
@@ -1248,6 +1246,12 @@
       if (input) {
         userIntentions = input.value.trim() || "Seeking divine direction and peace";
         localStorage.setItem("jesus_user_intentions", userIntentions);
+        if (currentUser && typeof firebase !== 'undefined' && firebase.firestore) {
+          firebase.firestore().collection('users').doc(currentUser.uid).set({
+            intentions: userIntentions,
+            lastActive: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true }).catch(() => {});
+        }
       }
     }
 
@@ -1490,6 +1494,14 @@
         localStorage.setItem("jesus_prayer_streak", streak);
         localStorage.setItem("jesus_last_streak_date", today);
       }
+
+      if (currentUser && typeof firebase !== 'undefined' && firebase.firestore) {
+        firebase.firestore().collection('users').doc(currentUser.uid).set({
+          streak: streak,
+          lastStreakDate: today,
+          lastActive: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(() => {});
+      }
     }
 
     function updateSpiritualActivityDashboard() {
@@ -1687,7 +1699,6 @@
       blessingHeaderDesc.textContent = "Step 2 of 3 • When does your spirit feel pressed?";
       
       const area = document.getElementById("quizInteractiveArea");
-      // Clean phrases without prepositions so template reads cleanly
       const times = [
         "late night racing thoughts",
         "the busy workday",
@@ -2016,7 +2027,10 @@
 
         if (data.reply) {
           appendBotBubble(data.reply);
-          if (data.updatedPsyche) currentPsyche = data.updatedPsyche;
+          if (data.updatedPsyche) {
+            currentPsyche = data.updatedPsyche;
+            localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
+          }
           if (data.remainingCredits !== undefined && currentUser && !isSubscribed) {
             userCredits = data.remainingCredits;
             localStorage.setItem(`jesus_credits_${currentUser.uid}`, userCredits);
@@ -2205,6 +2219,7 @@
     }
     function handleAuthAction() { if (currentUser) firebase.auth().signOut().then(() => window.location.reload()); else openPrivacyModal(); }
 
+    /* Cloud-Synchronized User State & Quota */
     async function syncUserCreditsWithCloud(user) {
       if (user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase()) {
         userCredits = 1000;
@@ -2220,6 +2235,24 @@
             const data = doc.data();
             userCredits = data.credits !== undefined ? data.credits : 5;
             isSubscribed = data.isSubscribed || false;
+
+            // Restore Cloud Soul Memory & Intentions
+            if (data.psyche) {
+              currentPsyche = data.psyche;
+              localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
+            }
+            if (data.intentions) {
+              userIntentions = data.intentions;
+              localStorage.setItem("jesus_user_intentions", userIntentions);
+              const intInput = document.getElementById("userIntentionsInput");
+              if (intInput) intInput.value = userIntentions;
+            }
+            if (data.streak !== undefined) {
+              localStorage.setItem("jesus_prayer_streak", data.streak);
+              if (data.lastStreakDate) {
+                localStorage.setItem("jesus_last_streak_date", data.lastStreakDate);
+              }
+            }
           } else {
             userCredits = 5;
             isSubscribed = false;
@@ -2228,14 +2261,22 @@
               displayName: user.displayName || '',
               credits: 5,
               isSubscribed: false,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              psyche: currentPsyche,
+              intentions: userIntentions,
+              streak: parseInt(localStorage.getItem("jesus_prayer_streak") || "1", 10),
+              lastStreakDate: localStorage.getItem("jesus_last_streak_date") || new Date().toISOString().slice(0, 10),
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              lastActive: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
           localStorage.setItem(localKey, userCredits);
           updateCreditUI();
+          updateSpiritualActivityDashboard();
           return;
         }
-      } catch (err) {}
+      } catch (err) {
+        console.warn("Firestore sync note:", err);
+      }
       const stored = localStorage.getItem(localKey);
       userCredits = stored !== null ? parseInt(stored, 10) : 5;
       updateCreditUI();

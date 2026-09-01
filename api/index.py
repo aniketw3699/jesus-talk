@@ -497,6 +497,17 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
         raw_reply = re.sub(r'PSYCHE:\s*.+$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
 
+    # Cloud Sync: Persist Soul Memory to user document
+    if verified_uid and db:
+        try:
+            db.collection("users").document(verified_uid).set({
+                "psyche": updated_psyche,
+                "intentions": user_intentions,
+                "lastActive": firestore.SERVER_TIMESTAMP
+            }, merge=True)
+        except Exception as e:
+            logger.warning(f"Failed to sync psyche to Firestore: {e}")
+
     remaining = decision["remaining"]
     if decision["tier"] == "free" and remaining < 9999:
         remaining = max(0, remaining - 1)
