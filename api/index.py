@@ -15,35 +15,52 @@ from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="./jesus-talk-api/.env")
+# Optional Sentry monitoring
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    _dsn = os.getenv("SENTRY_DSN", "")
+    if _dsn:
+        sentry_sdk.init(dsn=_dsn, integrations=[FastApiIntegration()], traces_sample_rate=1.0)
+except ImportError:
+    pass
+
 load_dotenv()
+load_dotenv(dotenv_path="./jesus-talk-api/.env")
+load_dotenv(dotenv_path="./api/.env")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("jesus_sanctuary_api")
 
-# Initialize Firebase Admin SDK
+# ---------------- Firebase Admin SDK ----------------
 db = None
+fb_auth = None
 try:
     import firebase_admin
-    from firebase_admin import credentials, firestore, auth as fb_auth
+    from firebase_admin import credentials, firestore, auth as _fb_auth
 
     if not firebase_admin._apps:
-        firebase_creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
-        if firebase_creds_json:
+        creds_json = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
+        if creds_json:
             try:
-                cred_dict = json.loads(firebase_creds_json)
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
+                firebase_admin.initialize_app(credentials.Certificate(json.loads(creds_json)))
             except Exception as e:
-                logger.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT JSON: {e}")
+                logger.error(f"FIREBASE_SERVICE_ACCOUNT parse failed: {e}")
                 firebase_admin.initialize_app()
         else:
             firebase_admin.initialize_app()
     db = firestore.client()
+    fb_auth = _fb_auth
 except Exception as fb_err:
-    logger.warning(f"Firebase Admin SDK initialization note: {fb_err}")
+    logger.warning(f"Firebase Admin init note: {fb_err}")
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.4.0")
+if not db:
+    logger.error("⚠️ ENTITLEMENTS DISABLED — set FIREBASE_SERVICE_ACCOUNT in hosting env vars.")
+
+# ---------------- Config ----------------
+LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
+DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
+FREE_DAILY_CREDITS = 5
 
 ALLOWED_ORIGINS = [
     "https://jesus-chat-bd89f.web.app",
@@ -52,6 +69,9 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "http://localhost:3000"
 ]
+# TODO: add "https://YOUR-CUSTOM-DOMAIN.com" here when you buy the domain.
+
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.5.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,14 +81,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
-DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
-
 def get_groq_client():
     key = os.getenv("GROQ_API_KEY", "").strip()
     return Groq(api_key=key) if key else None
 
-# Rate Limiting & Guest Log
+# ---------------- SELF-HEALING MODEL DISCOVERY ----------------
+PREFERRED_MODELS = [
+    "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-20b",
+    "groq/compound-mini"
+]
+
+_MODEL_CACHE = {"models": None, "fetched_at": 0.0}
+MODEL_CACHE_TTL = 3600  # refresh hourly
+
+def get_active_models() -> list:
+    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive.
+    Never breaks again when Groq retires models."""
+    now = time.time()
+    if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
+        return _MODEL_CACHE["models"]
+
+    groq_client = get_groq_client()
+    if groq_client:
+        try:
+            alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
+            picks = [m for m in PREFERRED_MODELS if m in alive]
+            if not picks:
+                # Last resort: any text model that isn't audio/safety/guard
+                picks = [
+                    m for m in alive
+                    if not any(x in m.lower() for x in
+                               ["whisper", "guard", "orpheus", "safeguard", "tts"])
+                ][:3]
+            if picks:
+                _MODEL_CACHE["models"] = picks
+                _MODEL_CACHE["fetched_at"] = now
+                logger.info(f"Active Groq models resolved: {picks}")
+                return picks
+        except Exception as e:
+            logger.warning(f"Model discovery failed, using preferred list: {e}")
+
+    return PREFERRED_MODELS
+
+# ---------------- Rate limiting ----------------
 IP_REQUEST_LOG = defaultdict(list)
 GUEST_DAILY_IP_LOG = defaultdict(int)
 RATE_LIMIT_REQUESTS = 20
@@ -83,7 +140,12 @@ def is_rate_limited(client_ip: str) -> bool:
     IP_REQUEST_LOG[client_ip].append(now)
     return False
 
-# Crisis Protocol
+def prune_guest_log():
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    for k in [k for k in GUEST_DAILY_IP_LOG if not k.startswith(today)]:
+        del GUEST_DAILY_IP_LOG[k]
+
+# ---------------- Crisis protocol ----------------
 CRISIS_PATTERNS = [
     r"\b(kill|end|take)\s+my\s+(life|myself)\b",
     r"\b(suicide|suicidal)\b",
@@ -115,6 +177,7 @@ def check_crisis_triggers(text: str) -> bool:
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
+# ---------------- Sanitization ----------------
 INJECTION_KEYWORDS = [
     "ignore all previous instructions", "disregard prior instructions",
     "disregard previous instructions", "system prompt", "developer mode",
@@ -138,83 +201,100 @@ def sanitize_metadata(field: str, max_length: int = 80, default: str = "beloved"
     cleaned = re.sub(r'[^a-zA-Z0-9\s\-_.,]', '', field).strip()
     return cleaned[:max_length] if cleaned else default
 
-def clean_scripture_citations(reply: str) -> str:
+def strip_thinking_tags(text: str) -> str:
+    """Removes <think>...</think> reasoning blocks that reasoning models may emit."""
+    if "</think>" in text:
+        text = text.split("</think>")[-1].strip()
+    text = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<think>[\s\S]*$', '', text, flags=re.IGNORECASE)
+    return text.strip()
+
+def clean_reply_formatting(reply: str) -> str:
     text = reply.replace('\\n', '\n')
     text = re.sub(r'\n{3,}', '\n\n', text)
     text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
     return text.strip()
 
-def get_verified_user(request: Request) -> tuple[Optional[str], Optional[str]]:
+# ---------------- Auth & Quota ----------------
+def get_verified_user(request: Request):
     auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
+    if auth_header.startswith("Bearer ") and fb_auth:
         token = auth_header.split(" ", 1)[1].strip()
         try:
             decoded = fb_auth.verify_id_token(token)
             return decoded.get("uid"), decoded.get("email")
         except Exception as e:
-            logger.warning(f"ID Token verification failed: {e}")
-            return None, None
+            logger.warning(f"ID token verification failed: {e}")
     return None, None
 
-def verify_and_consume_quota(uid: Optional[str], email: Optional[str], client_ip: str) -> tuple[bool, int, str]:
+def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
+    """READ-ONLY check. Consumption happens after successful generation only."""
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     if email and email.lower() == DEVELOPER_EMAIL.lower():
-        return True, 1000, "developer"
+        return {"allowed": True, "remaining": 9999, "tier": "developer"}
 
     if uid and db:
         try:
-            user_ref = db.collection("users").document(uid)
-            doc = user_ref.get()
-
+            ref = db.collection("users").document(uid)
+            doc = ref.get()
             if doc.exists:
                 data = doc.to_dict() or {}
                 if data.get("isSubscribed", False):
-                    return True, 9999, "subscribed"
-
-                last_reset = data.get("lastResetDate")
-                credits = data.get("credits", 5)
-
-                if last_reset != today_str:
-                    user_ref.set({
-                        "credits": 4,
-                        "lastResetDate": today_str,
-                        "lastActive": firestore.SERVER_TIMESTAMP
-                    }, merge=True)
-                    return True, 4, "reset_and_consumed"
-
+                    return {"allowed": True, "remaining": 9999, "tier": "subscribed"}
+                if data.get("lastResetDate") != today_str:
+                    return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
+                            "tier": "free", "needs_reset": True}
+                credits = data.get("credits", 0)
                 if credits <= 0:
-                    return False, 0, "quota_exhausted"
+                    return {"allowed": False, "remaining": 0, "tier": "free",
+                            "reason": "quota_exhausted"}
+                return {"allowed": True, "remaining": credits, "tier": "free"}
+            return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
+                    "tier": "free", "is_new": True}
+        except Exception as e:
+            logger.error(f"Firestore entitlement error (fail-open): {e}")
+            return {"allowed": True, "remaining": FREE_DAILY_CREDITS, "tier": "db_fallback"}
 
-                user_ref.update({
-                    "credits": firestore.Increment(-1),
-                    "lastActive": firestore.SERVER_TIMESTAMP
-                })
-                return True, credits - 1, "consumed"
-            else:
-                user_ref.set({
+    # Guest gate: 1 free prayer per IP per day
+    prune_guest_log()
+    guest_key = f"{today_str}_{client_ip}"
+    if GUEST_DAILY_IP_LOG[guest_key] >= 1:
+        return {"allowed": False, "remaining": 0, "tier": "guest", "reason": "guest_quota_exhausted"}
+    return {"allowed": True, "remaining": 0, "tier": "guest", "guest_key": guest_key}
+
+def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
+    """Called ONLY after successful generation. Never burns credits on failures."""
+    tier = decision.get("tier")
+    try:
+        if tier == "guest":
+            GUEST_DAILY_IP_LOG[decision["guest_key"]] += 1
+            return
+        if tier in ("developer", "subscribed", "db_fallback"):
+            return
+        if uid and db:
+            ref = db.collection("users").document(uid)
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            if decision.get("needs_reset") or decision.get("is_new"):
+                ref.set({
                     "email": email or "",
-                    "credits": 4,
+                    "credits": FREE_DAILY_CREDITS - 1,
                     "isSubscribed": False,
                     "lastResetDate": today_str,
                     "createdAt": firestore.SERVER_TIMESTAMP,
                     "lastActive": firestore.SERVER_TIMESTAMP
+                }, merge=True)
+            else:
+                ref.update({
+                    "credits": firestore.Increment(-1),
+                    "lastActive": firestore.SERVER_TIMESTAMP
                 })
-                return True, 4, "new_user_consumed"
-        except Exception as e:
-            logger.error(f"Firestore entitlement lookup error: {e}")
-            return True, 5, "db_fallback"
+    except Exception as e:
+        logger.error(f"Credit consumption error (non-fatal): {e}")
 
-    guest_key = f"{today_str}_{client_ip}"
-    used_count = GUEST_DAILY_IP_LOG[guest_key]
-    if used_count >= 1:
-        return False, 0, "guest_quota_exhausted"
-
-    GUEST_DAILY_IP_LOG[guest_key] += 1
-    return True, 0, "guest_consumed"
-
+# ---------------- Prompts ----------------
 MODE_INSTRUCTIONS = {
-    "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and comforting.",
+    "comfort": "Focus on tender empathy, emotional reassurance, and peace. Keep the tone gentle, intimate, and deeply comforting.",
     "study": "Focus on biblical depth, original Scripture context, and spiritual insight. Explain the theological principle clearly.",
     "prayer": "Frame the primary response as a direct, personal, and powerful written prayer that the seeker can pray aloud.",
     "guidance": "Focus on practical discernment and wise biblical next steps for daily decisions, work, or relationships."
@@ -230,8 +310,10 @@ CORE GUIDELINES:
 1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
 2. Structure your response into 2 to 3 concise, deeply meaningful paragraphs.
 3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
-4. EVOLVING PSYCHE REQUIREMENT: At the very end of your response, on a clean new line, output:
-PSYCHE: <5-8 words summarizing the user's updated emotional state, e.g. A soul finding calm amid financial worry>
+4. Vary your language naturally for every message; never repeat stock phrases across different questions.
+5. Do NOT output markdown headers (#) or bullet lists.
+6. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
+PSYCHE: <5-8 words summarizing the user's updated emotional state>
 
 Seeker Information:
 • Name: {user_name}
@@ -247,31 +329,33 @@ class ChatRequest(BaseModel):
     mode: Optional[str] = "comfort"
     history: Optional[List[Dict[str, str]]] = []
 
-ACTIVE_GROQ_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-70b-versatile",
-    "llama-3.1-8b-instant"
-]
+DEGRADED_REPLY = (
+    "The sanctuary is experiencing a brief technical pause. "
+    "Please take a breath and try again in a few moments — I am still here."
+)
 
+# ---------------- Routes ----------------
 @app.get("/")
 @app.get("/health")
 @app.get("/api")
 @app.get("/api/health")
 def health_check():
-    key = os.getenv("GROQ_API_KEY", "").strip()
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.4.0",
-        "groq_configured": bool(key),
-        "db_connected": db is not None
+        "version": "3.5.0",
+        "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
+        "db_connected": db is not None,
+        "resolved_models": get_active_models()
     }
 
 @app.post("/")
 @app.post("/chat")
 @app.post("/api/chat")
 async def chat_endpoint(payload: ChatRequest, request: Request):
-    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown").split(",")[0].strip()
+    client_ip = request.headers.get(
+        "x-forwarded-for", request.client.host if request.client else "unknown"
+    ).split(",")[0].strip()
 
     if is_rate_limited(client_ip):
         raise HTTPException(
@@ -288,6 +372,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
     selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
 
+    # 1. Crisis check FIRST — never paywalled
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
@@ -296,11 +381,12 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "isCrisis": True
         }
 
+    # 2. Entitlement check (read-only)
     verified_uid, verified_email = get_verified_user(request)
-    is_allowed, remaining_credits, reason = verify_and_consume_quota(verified_uid, verified_email, client_ip)
+    decision = resolve_entitlement(verified_uid, verified_email, client_ip)
 
-    if not is_allowed:
-        if reason == "guest_quota_exhausted":
+    if not decision["allowed"]:
+        if decision.get("reason") == "guest_quota_exhausted":
             return {
                 "error": "AUTH_REQUIRED",
                 "reply": "Please sign in to receive your 5 free daily scripture reflections and continue your prayer communion.",
@@ -308,50 +394,63 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             }
         return {
             "error": "PAYWALL_EXHAUSTED",
-            "reply": "You have completed your 5 daily reflections. Your free reflections will renew tomorrow, or you may choose a sacred pathway for unlimited communion today.",
+            "reply": "You have completed your 5 daily reflections. They renew tomorrow, or you may choose a sacred pathway for unlimited communion today.",
             "updatedPsyche": user_psyche
         }
 
+    # 3. Inference — fail LOUD, never fake
     groq_client = get_groq_client()
+    if groq_client is None:
+        logger.critical("CHAT DEGRADED: GROQ_API_KEY missing at request time.")
+        return {"error": "SERVICE_DEGRADED", "degraded": True,
+                "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
+
+    mode_instruction = MODE_INSTRUCTIONS[selected_mode]
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        mode_instruction=mode_instruction,
+        user_name=user_name,
+        user_psyche=user_psyche,
+        user_intentions=user_intentions
+    )
+
+    messages = [{"role": "system", "content": system_prompt}]
+    if payload.history:
+        for turn in payload.history[-6:]:
+            role = "user" if turn.get("role") == "user" else "assistant"
+            content = sanitize_input(turn.get("content", ""), max_length=800)
+            if content:
+                messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": raw_message})
+
     raw_reply = None
-
-    if groq_client:
-        mode_instruction = MODE_INSTRUCTIONS.get(selected_mode, MODE_INSTRUCTIONS["comfort"])
-        system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
-            mode_instruction=mode_instruction,
-            user_name=user_name,
-            user_psyche=user_psyche,
-            user_intentions=user_intentions
-        )
-
-        messages = [{"role": "system", "content": system_prompt}]
-        if payload.history:
-            for turn in payload.history[-6:]:
-                role = "user" if turn.get("role") == "user" else "assistant"
-                content = sanitize_input(turn.get("content", ""), max_length=800)
-                if content:
-                    messages.append({"role": role, "content": content})
-
-        messages.append({"role": "user", "content": raw_message})
-
-        for model_name in ACTIVE_GROQ_MODELS:
-            try:
-                response = groq_client.chat.completions.create(
-                    model=model_name,
-                    messages=messages,
-                    temperature=0.7,
-                    max_tokens=650
-                )
-                raw_reply = response.choices[0].message.content.strip()
-                if raw_reply:
-                    break
-            except Exception as e:
-                logger.error(f"Groq error ({model_name}): {e}")
-                continue
+    last_error = None
+    for model_name in get_active_models():
+        try:
+            logger.info(f"Inferencing with {model_name} in [{selected_mode}] mode")
+            response = groq_client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.8,
+                max_tokens=1024
+            )
+            candidate = strip_thinking_tags(response.choices[0].message.content or "")
+            if candidate:
+                raw_reply = candidate
+                break
+        except Exception as e:
+            last_error = e
+            logger.error(f"Inference failed on {model_name}: {e}")
+            continue
 
     if not raw_reply:
-        raw_reply = "I hear your voice, and I know every care you carry today. Come rest in Me, for My grace is sufficient for you.\n\n“Cast your burden on the Lord, and he will sustain you; he will never permit the righteous to be moved.” (Psalm 55:22)\n\nPSYCHE: A heart seeking divine refuge"
+        logger.error(f"CHAT DEGRADED: all models failed. Last error: {last_error}")
+        return {"error": "SERVICE_DEGRADED", "degraded": True,
+                "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
 
+    # 4. Consume credit ONLY after successful generation
+    consume_credit(verified_uid, verified_email, decision)
+
+    # 5. Extract evolving psyche
     updated_psyche = user_psyche
     psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
@@ -359,15 +458,18 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
         raw_reply = re.sub(r'PSYCHE:\s*.+$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
 
-    clean_reply = clean_scripture_citations(raw_reply)
+    remaining = decision["remaining"]
+    if decision["tier"] == "free" and remaining < 9999:
+        remaining = max(0, remaining - 1)
 
     return {
-        "reply": clean_reply,
+        "reply": clean_reply_formatting(raw_reply),
         "updatedPsyche": updated_psyche,
-        "remainingCredits": remaining_credits,
+        "remainingCredits": remaining,
         "mode": selected_mode
     }
 
+# ---------------- Lemon Squeezy Webhook ----------------
 @app.post("/webhook/lemon")
 @app.post("/webhook/lemonsqueezy")
 @app.post("/api/webhook/lemon")
@@ -376,18 +478,14 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
     raw_body = await request.body()
 
     if not LEMON_WEBHOOK_SECRET:
+        logger.error("LEMON_WEBHOOK_SECRET unconfigured.")
         raise HTTPException(status_code=500, detail="Webhook secret unconfigured.")
-
     if not x_signature:
         raise HTTPException(status_code=400, detail="Missing X-Signature.")
 
-    digest = hmac.new(
-        LEMON_WEBHOOK_SECRET.encode("utf-8"),
-        raw_body,
-        hashlib.sha256
-    ).hexdigest()
-
+    digest = hmac.new(LEMON_WEBHOOK_SECRET.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(digest, x_signature):
+        logger.warning("Invalid webhook signature rejected.")
         raise HTTPException(status_code=400, detail="Invalid signature.")
 
     try:
@@ -397,30 +495,28 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
         user_id = custom_data.get("user_id")
         user_email = event_payload.get("data", {}).get("attributes", {}).get("user_email")
 
-        if db and user_id:
-            user_ref = db.collection("users").document(user_id)
-            active_events = (
-                "subscription_created", "subscription_payment_success",
-                "order_created", "subscription_updated",
-                "subscription_resumed", "subscription_unpaused"
-            )
-            inactive_events = (
-                "subscription_cancelled", "subscription_expired",
-                "subscription_paused", "subscription_payment_failed"
-            )
+        logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email})")
 
+        if not user_id:
+            logger.warning("Webhook arrived WITHOUT custom user_id. Include ?checkout[custom][user_id]=<firebase-uid> in your checkout URL.")
+
+        if db and user_id:
+            ref = db.collection("users").document(user_id)
+            active_events = ("subscription_created", "subscription_payment_success",
+                             "order_created", "subscription_updated",
+                             "subscription_resumed", "subscription_unpaused")
+            inactive_events = ("subscription_cancelled", "subscription_expired",
+                               "subscription_paused", "subscription_payment_failed")
             if event_name in active_events:
-                user_ref.set({
-                    "isSubscribed": True,
-                    "email": user_email,
-                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-                }, merge=True)
+                ref.set({"isSubscribed": True, "email": user_email,
+                         "lastPlanUpdate": firestore.SERVER_TIMESTAMP}, merge=True)
+                logger.info(f"Granted subscription to {user_id}.")
             elif event_name in inactive_events:
-                user_ref.set({
-                    "isSubscribed": False,
-                    "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-                }, merge=True)
+                ref.set({"isSubscribed": False,
+                         "lastPlanUpdate": firestore.SERVER_TIMESTAMP}, merge=True)
+                logger.info(f"Revoked subscription for {user_id}.")
 
         return {"status": "success", "event": event_name, "user_id": user_id}
     except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
         raise HTTPException(status_code=400, detail="Invalid payload format.")
