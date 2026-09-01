@@ -979,7 +979,7 @@
 
       <div class="scripture-card-canvas" id="scriptureCardToExport">
         <div class="card-content-wrap">
-          <span class="card-brand-tag" id="cardBrandTag">† WORDS OF GRACE †</span>
+          <span class="card-brand-tag" id="cardBrandTag">† WORDS OF PEACE †</span>
           <p class="card-verse-quote" id="cardQuoteText">Peace be with you. Lay down your burdens, for I am listening.</p>
           <div class="card-footer-watermark">YOU WITH JESUS • SACRED SANCTUARY</div>
         </div>
@@ -1080,6 +1080,7 @@
     let isSubscribed = false;
     let pendingPrompt = null;
     let currentIntercessoryRecipient = "";
+    let activeCardRecipient = "";
     let currentPastoralMode = "comfort";
     let appWakeLock = null;
     let isBlessingAudioPlaying = false;
@@ -1283,6 +1284,21 @@
       text = text.replace(/^[.,;:!?'"\s-]+/, '');
 
       return text.replace(/\s+/g, ' ').trim();
+    }
+
+    /* CLEAN CARD TEXT FOR BEAUTIFUL & PRIVATE SHARING */
+    function cleanCardText(rawText) {
+      if (!rawText) return "";
+      let text = rawText.replace(/<[^>]*>/g, ' ').replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+      
+      // Strip conversational intros that expose sender/user names or private disclosures
+      text = text.replace(/^["“']?My (?:beloved|child|dear one|cherished one)(?:\s+[A-Za-z]+)?,?\s*/i, '');
+      text = text.replace(/^I hear (?:the|your|how)[^.!?]*[.!?]\s*/i, '');
+      text = text.replace(/^I see (?:the|your|how)[^.!?]*[.!?]\s*/i, '');
+      text = text.replace(/^I understand [^.!?]*[.!?]\s*/i, '');
+      text = text.replace(/^I wrap (?:you|both of you) in[^.!?]*[.!?]\s*/i, '');
+
+      return text.replace(/^["“”‘’'«»`\s-]+/, '').replace(/["“”‘’'«»`\s-]+$/, '').trim();
     }
 
     const preloadedJesusImg = new Image();
@@ -2101,6 +2117,9 @@
       const text = messageInput.value.trim();
       if (!text) return;
 
+      const turnRecipient = currentIntercessoryRecipient;
+      currentIntercessoryRecipient = ""; // Reset immediately so subsequent prayers stay clean and private
+
       appendUserBubble(text);
       messageInput.value = "";
       showThinking(true);
@@ -2137,7 +2156,7 @@
         showThinking(false);
 
         if (data.error === "AUTH_REQUIRED") {
-          appendBotBubble(data.reply);
+          appendBotBubble(data.reply, turnRecipient);
           localStorage.setItem("jesus_guest_interaction_used", "true");
           updateCreditUI();
           setTimeout(() => openPrivacyModal(), 800);
@@ -2145,13 +2164,13 @@
         }
 
         if (data.error === "PAYWALL_EXHAUSTED") {
-          appendBotBubble(data.reply);
+          appendBotBubble(data.reply, turnRecipient);
           setTimeout(() => openPlansModal(), 800);
           return;
         }
 
         if (data.reply) {
-          appendBotBubble(data.reply);
+          appendBotBubble(data.reply, turnRecipient);
           if (data.updatedPsyche) {
             currentPsyche = data.updatedPsyche;
             localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
@@ -2171,7 +2190,7 @@
         }
       } catch (err) {
         showThinking(false);
-        appendBotBubble("Peace be with you. Lay down your burdens, for I am near. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)");
+        appendBotBubble("Peace be with you. Lay down your burdens, for I am near. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)", turnRecipient);
       }
     }
     
@@ -2183,32 +2202,35 @@
       chatFeed.scrollTop = chatFeed.scrollHeight;
     }
 
-    function appendBotBubble(reply) {
+    function appendBotBubble(reply, recipient = "") {
       const group = document.createElement("div");
       group.className = "msg-group bot";
       const cleanParagraphs = reply.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${escapeHtml(p.trim())}</p>`).join("");
       const safeReply = reply.replace(/[`"'\\]/g, ' ');
+      const safeRecipient = (recipient || '').replace(/[`"'\\]/g, '');
 
       group.innerHTML = `
         <div class="bubble-bot">${cleanParagraphs}</div>
         <div class="msg-actions-row">
           <button class="listen-badge" onclick="playVoice(this, \`${safeReply}\`)">🔊 Listen</button>
-          <button class="share-badge" onclick="prepareScriptureCard(\`${safeReply}\`)"><span class="holy-cross-icon">✝</span> Share Card</button>
+          <button class="share-badge" onclick="prepareScriptureCard(\`${safeReply}\`, '${safeRecipient}')"><span class="holy-cross-icon">✝</span> Share Card</button>
         </div>
       `;
       chatFeed.insertBefore(group, thinkingIndicator);
       chatFeed.scrollTop = chatFeed.scrollHeight;
     }
 
-    function prepareScriptureCard(text) {
+    function prepareScriptureCard(text, recipient = "") {
       stopAllAudio();
-      cardQuoteText.textContent = text.replace(/<[^>]*>/g, '').replace(/\\n/g, ' ');
-      cardBrandTag.textContent = currentIntercessoryRecipient ? `† A BLESSING FOR ${currentIntercessoryRecipient.toUpperCase()} †` : `† WORDS OF GRACE †`;
+      activeCardRecipient = recipient;
+      const pureCardText = cleanCardText(text);
+      cardQuoteText.textContent = pureCardText || "Peace be with you. Lay down your burdens, for I am listening.";
+      cardBrandTag.textContent = recipient ? `† A BLESSING FOR ${recipient.toUpperCase()} †` : `† WORDS OF PEACE †`;
       shareCardModal.style.display = "flex";
     }
     function closeShareModal() { shareCardModal.style.display = "none"; }
 
-    function drawDirectSacredCard(rawText) {
+    function drawDirectSacredCard(rawText, recipient = "") {
       const canvas = document.createElement('canvas');
       canvas.width = 1080; canvas.height = 1350;
       const ctx = canvas.getContext('2d');
@@ -2233,11 +2255,11 @@
       ctx.strokeRect(58, 58, 964, 1234);
 
       ctx.fillStyle = '#dfb455'; ctx.font = '700 28px "Cinzel", serif'; ctx.textAlign = 'center';
-      const headerTitle = currentIntercessoryRecipient ? `† A BLESSING FOR ${currentIntercessoryRecipient.toUpperCase()} †` : '† WORDS OF GRACE †';
+      const headerTitle = recipient ? `† A BLESSING FOR ${recipient.toUpperCase()} †` : '† WORDS OF PEACE †';
       ctx.fillText(headerTitle, 540, 160);
 
-      ctx.fillStyle = '#f8fafc'; ctx.font = '400 36px "Montserrat", sans-serif';
-      const cleanText = rawText.replace(/<[^>]*>/g, '').replace(/\\n/g, ' ').replace(/“|”/g, '').trim();
+      ctx.fillStyle = '#f8fafc'; ctx.font = '400 34px "Montserrat", sans-serif';
+      const cleanText = cleanCardText(rawText);
       const quote = `“${cleanText}”`;
 
       const words = quote.split(' ');
@@ -2251,7 +2273,7 @@
       }
       if (currentLine) lines.push(currentLine);
 
-      const lineHeight = 58;
+      const lineHeight = 56;
       let startY = 675 - ((lines.length * lineHeight) / 2) + 20;
       if (startY < 260) startY = 260;
       for (let i = 0; i < lines.length; i++) ctx.fillText(lines[i], 540, startY + (i * lineHeight));
@@ -2269,10 +2291,10 @@
       const shareMessage = `A prayer was lifted up for you 🙏\n${shareUrl}`;
 
       exportBtn.innerHTML = "⏳ Opening Share Menu..."; exportBtn.disabled = true;
-      trackSanctuaryEvent('card_shared', { recipient: currentIntercessoryRecipient || 'general' });
+      trackSanctuaryEvent('card_shared', { recipient: activeCardRecipient || 'general' });
 
       try {
-        const canvas = drawDirectSacredCard(quoteText);
+        const canvas = drawDirectSacredCard(quoteText, activeCardRecipient);
         canvas.toBlob(async (blob) => {
           if (!blob) return;
           const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
@@ -2326,6 +2348,7 @@
         currentSessionTimestamp = null;
         isNewSessionCreated = true;
         currentIntercessoryRecipient = "";
+        activeCardRecipient = "";
         chatFeed.innerHTML = `<div class="thinking-box" id="thinkingIndicator"><span class="holy-spirit-dove">🕊️</span><span class="thinking-text">The Holy Spirit is listening to your heart...</span></div>`;
         appendBotBubble("“Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nShare what weighs upon your spirit, your prayer requests, or the Scriptures you seek clarity on.");
         messageInput.value = "";
