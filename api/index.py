@@ -543,6 +543,50 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
         event_name = event_payload.get("meta", {}).get("event_name", "unknown")
         custom_data = event_payload.get("meta", {}).get("custom_data", {})
         user_id = custom_data.get("user_id")
+        
+        attributes = event_payload.get("data", {}).get("attributes", {})
+        user_email = attributes.get("user_email")
+        sub_status = (attributes.get("status") or "").lower()
+
+        logger.info(f"Verified Lemon Event: {event_name} | Status: {sub_status} | User ID: {user_id} ({user_email})")
+
+        if not user_id:
+            logger.warning("Webhook arrived WITHOUT custom user_id. Ensure ?checkout[custom][user_id]=<firebase-uid> is in your checkout URL.")
+
+        if db and user_id:
+            ref = db.collection("users").document(user_id)
+            
+            # Determine entitlement strictly by attributes.status
+            if event_name.startswith("subscription_"):
+                # Active states in Lemon Squeezy: 'active', 'on_trial'
+                is_active = sub_status in ("active", "on_trial")
+            elif event_name == "order_created":
+                # For one-time passes / devotions
+                is_active = sub_status in ("paid", "active")
+            elif event_name in ("subscription_cancelled", "subscription_expired", "subscription_paused", "subscription_payment_failed", "order_refunded"):
+                is_active = False
+            else:
+                is_active = sub_status in ("active", "on_trial", "paid")
+
+            ref.set({
+                "isSubscribed": is_active,
+                "subscriptionStatus": sub_status or event_name,
+                "email": user_email or "",
+                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
+            }, merge=True)
+            
+            logger.info(f"Updated subscription status for {user_id}: isSubscribed={is_active} (status={sub_status})")
+
+        return {"status": "success", "event": event_name, "user_id": user_id, "subscription_status": sub_status}
+    except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid payload format.")
+
+    try:
+        event_payload = json.loads(raw_body.decode("utf-8"))
+        event_name = event_payload.get("meta", {}).get("event_name", "unknown")
+        custom_data = event_payload.get("meta", {}).get("custom_data", {})
+        user_id = custom_data.get("user_id")
         user_email = event_payload.get("data", {}).get("attributes", {}).get("user_email")
 
         logger.info(f"Verified Lemon Event: {event_name} for User ID: {user_id} ({user_email})")
