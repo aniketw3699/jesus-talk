@@ -1,12 +1,23 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": ".",
     "ignore": [
       "firebase.json",
+      "firestore.rules",
       "**/.*",
       "**/node_modules/**",
       "jesus-talk-api/**",
-      "api/**"
+      "api/**",
+      "*.env*",
+      "topics.json",
+      "published_slugs.json",
+      "codebase.txt",
+      "*.py",
+      "requirements.txt",
+      "vercel.json"
     ],
     "cleanUrls": true,
     "trailingSlash": false

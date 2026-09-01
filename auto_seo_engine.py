@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import re
+import html
 from datetime import datetime, timezone
 from groq import Groq
 from dotenv import load_dotenv
@@ -15,12 +16,41 @@ DOMAINS_URL = os.getenv("DOMAINS_URL", "https://jesus-chat-bd89f.web.app").rstri
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 CONTENT_MODELS = [
-    "llama-3.1-8b-instant",
-    "llama-3.1-70b-versatile",
     "openai/gpt-oss-120b",
+    "llama-3.1-70b-versatile",
     "openai/gpt-oss-20b",
+    "llama-3.1-8b-instant",
     "qwen/qwen3.8-27b"
 ]
+
+# ---------------- SELF-HEALING MODEL DISCOVERY ----------------
+_MODEL_CACHE = {"models": None, "fetched_at": 0.0}
+MODEL_CACHE_TTL = 3600
+
+def get_active_models() -> list:
+    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive."""
+    import time
+    now = time.time()
+    if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
+        return _MODEL_CACHE["models"]
+    if client:
+        try:
+            alive = {m.id for m in client.models.list().data if getattr(m, "active", True)}
+            picks = [m for m in CONTENT_MODELS if m in alive]
+            if not picks:
+                picks = [
+                    m for m in alive
+                    if not any(x in m.lower() for x in
+                               ["whisper", "guard", "orpheus", "safeguard", "tts", "playai"])
+                ][:3]
+            if picks:
+                _MODEL_CACHE["models"] = picks
+                _MODEL_CACHE["fetched_at"] = now
+                print(f"  Active Groq models resolved: {picks}")
+                return picks
+        except Exception as e:
+            print(f"  Model discovery failed, using preferred list: {e}")
+    return CONTENT_MODELS
 
 def detect_deploy_root():
     for candidate in ["firebase.json", "jesus-talk-api/firebase.json", os.path.join("..", "firebase.json")]:
@@ -36,6 +66,9 @@ def detect_deploy_root():
 
 DEPLOY_ROOT = detect_deploy_root()
 BLOGS_DIR = os.path.join(DEPLOY_ROOT, "blogs")
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TOPICS_FILE = os.path.join(SCRIPT_DIR, "topics.json")
 
 INITIAL_SEO_TOPICS = [
     {"slug": "prayer-for-overwhelming-anxiety", "title": "Prayer for Overwhelming Anxiety & Racing Thoughts", "meta_desc": "A biblical guide and guided prayer to calm anxiety, guard your heart, and experience God's peace.", "primary_verse": "Philippians 4:6-7", "theme": "Overcoming Anxiety and Fear"},
@@ -62,17 +95,29 @@ STATIC_PAGES = [
     {"loc": f"{DOMAINS_URL}/refund.html", "priority": "0.3", "changefreq": "monthly"}
 ]
 
+DISCLAIMER_HTML = (
+    '<footer class="disclaimer">'
+    '<p><strong>An honest note:</strong> You With Jesus is an AI-assisted prayer companion. '
+    'Devotionals are generated with AI and anchored in public-domain Scripture (KJV). '
+    'They are meant to encourage you — never to replace your church community, pastoral care, '
+    'or professional help. If you are in crisis, please contact local emergency services or '
+    'visit findahelpline.com.</p>'
+    '</footer>'
+)
+
 SYSTEM_PROMPT = """You are an authoritative Christian theologian, biblical scholar, and pastoral counselor.
 Generate a comprehensive, 1,200+ word devotional guide formatted strictly in valid JSON.
+
+SCRIPTURE ACCURACY: Only cite real Bible references with correct book, chapter, and verse. Never invent, guess, or misattribute a verse.
 
 JSON Structure Requirements:
 {
   "h1": "Title of the guide",
   "meta_description": "Search meta description under 155 characters",
   "anchor_verse_text": "The exact wording of the primary anchor verse requested.",
-  "introduction": "3 in-depth paragraphs explaining the emotional struggle and the biblical path forward.",
+  "introduction": "3 in-depth paragraphs explaining the emotional struggle and the biblical path forward. Separate each paragraph with a blank line.",
   "exegesis_title": "Understanding the Scripture Context",
-  "exegesis_body": "2 detailed paragraphs analyzing original biblical context and theological depth.",
+  "exegesis_body": "2 detailed paragraphs analyzing original biblical context and theological depth. Separate them with a blank line.",
   "steps_title": "3 Steps to Spiritual Breakthrough",
   "steps": [
     {"step_num": "Step 1", "title": "...", "desc": "..."},
@@ -99,14 +144,24 @@ def strip_thinking_tags(text: str) -> str:
     text = re.sub(r'<think>[\s\S]*$', '', text, flags=re.IGNORECASE)
     return text.strip()
 
+# ---------------- TOPIC NORMALIZATION ----------------
+def normalize_topic(t: dict) -> dict:
+    t["title"] = t.get("title") or t.get("keyword") or "Sacred Devotional"
+    t["meta_desc"] = t.get("meta_desc") or t.get("keyword") or t.get("title", "")
+    t["theme"] = t.get("theme") or t.get("category") or "Devotional"
+    t["primary_verse"] = t.get("primary_verse") or t.get("scripture") or "Psalm 23:1"
+    if not t.get("slug"):
+        t["slug"] = re.sub(r'[^a-z0-9]+', '-', t["title"].lower()).strip('-')
+    return t
+
 def generate_article_content(topic):
     title = topic.get("title", "Sacred Devotional")
     theme = topic.get("theme", "Spiritual Peace")
     primary_verse = topic.get("primary_verse", "Psalm 23:1-3")
-    
+
     user_prompt = f"Topic: {title}\nTheme: {theme}\nPrimary Anchor Verse: {primary_verse}"
-    
-    for model_name in CONTENT_MODELS:
+
+    for model_name in get_active_models():
         try:
             response = client.chat.completions.create(
                 model=model_name,
@@ -115,7 +170,7 @@ def generate_article_content(topic):
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.6,
-                max_tokens=4096,
+                max_tokens=8192,
                 response_format={"type": "json_object"}
             )
             raw = strip_thinking_tags(response.choices[0].message.content or "")
@@ -138,7 +193,7 @@ Return strictly valid JSON with all 5 fields populated:
   "theme": "Theme Name"
 }}
 """
-    for model_name in CONTENT_MODELS:
+    for model_name in get_active_models():
         try:
             res = client.chat.completions.create(
                 model=model_name,
@@ -159,12 +214,22 @@ Return strictly valid JSON with all 5 fields populated:
             continue
     return None
 
+def split_paragraphs(raw: str, fallback: str = "") -> str:
+    """Split an LLM text blob into real <p> paragraphs while escaping special characters."""
+    parts = [html.escape(re.sub(r'\s+', ' ', p).strip()) for p in re.split(r'\n\s*\n|\n', raw or "") if p.strip()]
+    if not parts:
+        single = (raw or "").strip() or fallback
+        if not single:
+            return ""
+        parts = [html.escape(single)]
+    return "".join(f'<p class="body-p">{p}</p>' for p in parts)
+
 def build_article_html(topic, data):
-    slug = topic.get("slug", "daily-prayer")
+    slug = re.sub(r'[^a-zA-Z0-9_-]', '', topic.get("slug", "daily-prayer"))
     title = data.get("h1") or topic.get("title", "Sacred Devotional")
     meta_desc = data.get("meta_description") or topic.get("meta_desc", "A scripture-guided prayer and biblical reflection.")
     primary_verse = topic.get("primary_verse", "Scripture")
-    
+
     canonical_url = f"{DOMAINS_URL}/blogs/{slug}.html"
     date_published = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -194,13 +259,43 @@ def build_article_html(topic, data):
         ]
     }
 
+    # Prevent JSON-LD script breakout attacks
+    safe_schema_json = json.dumps(schema_graph, ensure_ascii=False).replace("</", "<\\/")
+
     anchor_verse_text = (data.get("anchor_verse_text") or "").strip()
     if len(anchor_verse_text) < 5:
         anchor_verse_text = "The Lord is near to all who call on him, to all who call on him in truth."
 
-    steps_html = "".join([f'<div class="step-card"><h3 class="step-h3">{s.get("step_num", "")}: {s.get("title", "")}</h3><p class="step-p">{s.get("desc", "")}</p></div>' for s in data.get("steps", [])])
-    prayers_html = "".join([f'<div class="prayer-card"><h3 class="prayer-h3">{p.get("title", "")}</h3><p class="prayer-body">{p.get("body", "")}</p></div>' for p in data.get("prayers", [])])
-    faqs_html = "".join([f'<div class="faq-card"><h3 class="faq-q">{f.get("question", "")}</h3><p class="faq-a">{f.get("answer", "")}</p></div>' for f in data.get("faqs", [])])
+    # HTML Escaping for variables inserted into HTML
+    escaped_title = html.escape(title, quote=True)
+    escaped_meta_desc = html.escape(meta_desc, quote=True)
+    escaped_primary_verse = html.escape(primary_verse)
+    escaped_anchor_verse = html.escape(anchor_verse_text)
+
+    intro_html = split_paragraphs(data.get("introduction", ""), "Find peace in God's presence today.")
+
+    exegesis_html = split_paragraphs(data.get("exegesis_body", ""))
+    exegesis_section = ""
+    if exegesis_html:
+        exegesis_title = html.escape(data.get("exegesis_title", "Biblical Wisdom"))
+        exegesis_section = f'<h2 class="sec-h2">{exegesis_title}</h2>{exegesis_html}'
+
+    steps_title = html.escape(data.get("steps_title", "Pathway to Peace"))
+    steps_html = "".join([
+        f'<div class="step-card"><h3 class="step-h3">{html.escape(s.get("step_num", ""))}: {html.escape(s.get("title", ""))}</h3><p class="step-p">{html.escape(s.get("desc", ""))}</p></div>'
+        for s in data.get("steps", [])
+    ])
+
+    prayers_title = html.escape(data.get("prayers_title", "Prayers of the Heart"))
+    prayers_html = "".join([
+        f'<div class="prayer-card"><h3 class="prayer-h3">{html.escape(p.get("title", ""))}</h3><p class="prayer-body">{html.escape(p.get("body", ""))}</p></div>'
+        for p in data.get("prayers", [])
+    ])
+
+    faqs_html = "".join([
+        f'<div class="faq-card"><h3 class="faq-q">{html.escape(f.get("question", ""))}</h3><p class="faq-a">{html.escape(f.get("answer", ""))}</p></div>'
+        for f in data.get("faqs", [])
+    ])
 
     return f'''<!DOCTYPE html>
 <html lang="en">
@@ -214,18 +309,19 @@ def build_article_html(topic, data):
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} | You With Jesus</title>
-  <meta name="description" content="{meta_desc}" />
+  <title>{escaped_title} | You With Jesus</title>
+  <meta name="description" content="{escaped_meta_desc}" />
+  <meta name="author" content="You With Jesus" />
   <link rel="canonical" href="{canonical_url}" />
   <meta property="og:site_name" content="You With Jesus" />
-  <meta property="og:title" content="{title}" />
-  <meta property="og:description" content="{meta_desc}" />
+  <meta property="og:title" content="{escaped_title}" />
+  <meta property="og:description" content="{escaped_meta_desc}" />
   <meta property="og:url" content="{canonical_url}" />
   <meta property="og:type" content="article" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script type="application/ld+json">{json.dumps(schema_graph)}</script>
+  <script type="application/ld+json">{safe_schema_json}</script>
   <style>
     :root {{ --bg: #0d1117; --gold: #e2b764; --border: rgba(226, 183, 100, 0.35); --text: #f4f4f5; --muted: #a1a1aa; }}
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -246,6 +342,8 @@ def build_article_html(topic, data):
     .step-p, .prayer-body, .faq-a {{ font-size: 14px; color: #a1a1aa; }}
     .cta-banner {{ background: linear-gradient(135deg, rgba(226, 183, 100, 0.15), rgba(226, 183, 100, 0.05)); border: 1.5px solid var(--gold); border-radius: 20px; padding: 28px 20px; text-align: center; margin: 40px 0; }}
     .cta-btn {{ display: inline-block; background: linear-gradient(135deg, #dfb455, #b88628); color: #000; font-weight: 800; padding: 12px 28px; border-radius: 20px; text-decoration: none; margin-top: 14px; }}
+    .disclaimer {{ border-top: 1px solid var(--border); margin-top: 40px; padding-top: 16px; }}
+    .disclaimer p {{ font-size: 12px; color: #71717a; line-height: 1.6; }}
   </style>
 </head>
 <body>
@@ -255,17 +353,16 @@ def build_article_html(topic, data):
   </nav>
   <main class="content-wrap">
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
-    <h1>{title}</h1>
+    <h1>{escaped_title}</h1>
     <div class="verse-card">
-      <p class="verse-text">“{anchor_verse_text}”</p>
-      <span class="verse-ref">— {primary_verse}</span>
+      <p class="verse-text">“{escaped_anchor_verse}”</p>
+      <span class="verse-ref">— {escaped_primary_verse}</span>
     </div>
-    <p class="body-p">{data.get("introduction", "")}</p>
-    <h2 class="sec-h2">{data.get("exegesis_title", "Biblical Wisdom")}</h2>
-    <p class="body-p">{data.get("exegesis_body", "")}</p>
-    <h2 class="sec-h2">{data.get("steps_title", "Pathway to Peace")}</h2>
+    {intro_html}
+    {exegesis_section}
+    <h2 class="sec-h2">{steps_title}</h2>
     {steps_html}
-    <h2 class="sec-h2">{data.get("prayers_title", "Prayers of the Heart")}</h2>
+    <h2 class="sec-h2">{prayers_title}</h2>
     {prayers_html}
     <section class="cta-banner">
       <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart Directly to Jesus</h2>
@@ -274,6 +371,7 @@ def build_article_html(topic, data):
     </section>
     <h2 class="sec-h2">Frequently Asked Questions</h2>
     {faqs_html}
+    {DISCLAIMER_HTML}
   </main>
   <script src="../blog-player.js"></script>
 </body>
@@ -281,12 +379,22 @@ def build_article_html(topic, data):
 '''
 
 def generate_unified_sitemap(created_slugs):
-    urls = list(STATIC_PAGES)
+    """Unified sitemap with <lastmod> (blogs use real file mtime)."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    urls = [(u["loc"], u["priority"], u["changefreq"], today) for u in STATIC_PAGES]
     for slug in created_slugs:
-        urls.append({"loc": f"{DOMAINS_URL}/blogs/{slug}.html", "priority": "0.8", "changefreq": "weekly"})
+        path = os.path.join(BLOGS_DIR, f"{slug}.html")
+        if os.path.exists(path):
+            lastmod = datetime.fromtimestamp(os.path.getmtime(path), tz=timezone.utc).strftime("%Y-%m-%d")
+        else:
+            lastmod = today
+        urls.append((f"{DOMAINS_URL}/blogs/{slug}.html", "0.8", "weekly", lastmod))
+
     sitemap_xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
-    for u in urls:
-        sitemap_xml.append(f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>")
+    for loc, priority, changefreq, lastmod in urls:
+        sitemap_xml.append(
+            f"  <url>\n    <loc>{loc}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>{changefreq}</changefreq>\n    <priority>{priority}</priority>\n  </url>"
+        )
     sitemap_xml.append('</urlset>')
     with open(os.path.join(DEPLOY_ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
         f.write("\n".join(sitemap_xml))
@@ -298,9 +406,9 @@ def generate_blogs_index(all_topics):
         out_path = os.path.join(BLOGS_DIR, f"{slug}.html")
         if not os.path.exists(out_path):
             continue
-        theme = t.get("theme", "Devotional")
-        title = t.get("title", "Sacred Reflection")
-        meta_desc = t.get("meta_desc", "")
+        theme = html.escape(t.get("theme", "Devotional"))
+        title = html.escape(t.get("title", "Sacred Reflection"))
+        meta_desc = html.escape(t.get("meta_desc", ""))
         cards_html += f'''
         <a href="blogs/{slug}.html" style="text-decoration:none; color:inherit;">
           <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px;">
@@ -325,6 +433,8 @@ def generate_blogs_index(all_topics):
     body {{ background: #0d1117; color: #fff; font-family: 'Montserrat', sans-serif; padding: 24px 16px; }}
     .wrap {{ max-width: 680px; margin: 0 auto; }}
     h1 {{ font-family: 'Cinzel', serif; font-size: 24px; color: #e2b764; text-align: center; margin-bottom: 24px; }}
+    .disclaimer {{ border-top: 1px solid rgba(226,183,100,0.3); margin-top: 36px; padding-top: 14px; }}
+    .disclaimer p {{ font-size: 11.5px; color: #71717a; line-height: 1.6; }}
   </style>
 </head>
 <body>
@@ -332,11 +442,39 @@ def generate_blogs_index(all_topics):
     <div style="text-align:center; margin-bottom:16px;"><a href="index.html" style="color:#e2b764; text-decoration:none; font-size:12px; font-weight:700;">← Return to Sanctuary</a></div>
     <h1>Sacred Pillar Devotionals</h1>
     {cards_html}
+    <div class="disclaimer">
+      <p>You With Jesus is an AI-assisted prayer companion. Devotional content is generated with AI and anchored in public-domain Scripture (KJV). It is meant to encourage — never to replace — your church community, pastoral care, or professional help. If you are in crisis, visit findahelpline.com.</p>
+    </div>
   </div>
 </body>
 </html>'''
     with open(os.path.join(DEPLOY_ROOT, "blogs.html"), "w", encoding="utf-8") as f:
         f.write(blogs_page)
+
+def load_topics():
+    if os.path.exists(TOPICS_FILE):
+        try:
+            with open(TOPICS_FILE, "r", encoding="utf-8") as f:
+                topics = json.load(f)
+            normalized = [normalize_topic(t) for t in topics if isinstance(t, dict)]
+            with open(TOPICS_FILE, "w", encoding="utf-8") as f:
+                json.dump(normalized, f, indent=2)
+            return normalized
+        except Exception as e:
+            print(f"  ⚠ Could not load {TOPICS_FILE}: {e}")
+    legacy_path = os.path.join(DEPLOY_ROOT, "topics.json")
+    if os.path.exists(legacy_path):
+        try:
+            with open(legacy_path, "r", encoding="utf-8") as f:
+                topics = json.load(f)
+            normalized = [normalize_topic(t) for t in topics if isinstance(t, dict)]
+            with open(TOPICS_FILE, "w", encoding="utf-8") as f:
+                json.dump(normalized, f, indent=2)
+            print(f"  ✓ Migrated topics.json → {TOPICS_FILE}")
+            return normalized
+        except Exception:
+            pass
+    return list(INITIAL_SEO_TOPICS)
 
 def main():
     batch_size = 2
@@ -351,19 +489,10 @@ def main():
         return
 
     os.makedirs(BLOGS_DIR, exist_ok=True)
-
-    topics_file = os.path.join(DEPLOY_ROOT, "topics.json")
-    if os.path.exists(topics_file):
-        try:
-            with open(topics_file, "r", encoding="utf-8") as f:
-                all_topics = json.load(f)
-        except Exception:
-            all_topics = list(INITIAL_SEO_TOPICS)
-    else:
-        all_topics = list(INITIAL_SEO_TOPICS)
+    all_topics = load_topics()
 
     pending_topics = [
-        t for t in all_topics 
+        t for t in all_topics
         if t.get("slug") and not os.path.exists(os.path.join(BLOGS_DIR, f"{t['slug']}.html"))
     ]
 
@@ -373,7 +502,7 @@ def main():
         if new_topic and new_topic.get("slug"):
             all_topics.append(new_topic)
             pending_topics.append(new_topic)
-            with open(topics_file, "w", encoding="utf-8") as f:
+            with open(TOPICS_FILE, "w", encoding="utf-8") as f:
                 json.dump(all_topics, f, indent=2)
         else:
             break

@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      // Allow initial document creation with default free quota
+      allow create: if isOwner(userId)
+        && request.resource.data.isSubscribed == false
+        && request.resource.data.credits <= 5;
+
+      // Restrict client updates to safe non-billing fields
+      allow update: if isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['isSubscribed', 'credits', 'subscriptionStatus', 'lastPlanUpdate', 'lastResetDate']);
+
+      allow delete: if false;
+
+      match /saved_prayers/{prayerId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Block all client writes to the server-managed guest usage collection
+    match /guest_usage/{docId} {
+      allow read, write: if false;
+    }
+  }
+}
