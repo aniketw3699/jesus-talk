@@ -149,18 +149,24 @@ def prune_guest_log():
 
 # ---------------- Crisis Protocol ----------------
 CRISIS_PATTERNS = [
-    r"\b(kill|end|take)\s+my\s+(life|myself)\b",
-    r"\b(suicide|suicidal)\b",
-    r"\bwant\s+to\s+die\b",
-    r"\bdon'?t\s+want\s+to\s+(live|wake\s+up|exist|be\s+here)\b",
-    r"\b(hang|slit|shoot)\s+myself\b",
-    r"\bbetter\s+off\s+(dead|without\s+me)\b",
-    r"\bself[- ]?harm\b",
-    r"\bno\s+reason\s+to\s+live\b",
-    r"\bwant\s+to\s+disappear\b",
-    r"\bcan'?t\s+go\s+on\s+anymore\b",
-    r"\bwant\s+this\s+pain\s+to\s+end\b",
-    r"\beveryone\s+would\s+be\s+better\s+off\b"
+    # Direct suicidal intent
+    r"\b(kill|end|take)\s+my\s+(life|myself|own\s+life)\b",
+    r"\b(suicide|suicidal|suicidality)\b",
+    r"\bwant\s+to\s+(die|be\s+dead|kill\s+myself|end\s+it\s+all)\b",
+    r"\bdon'?t\s+want\s+to\s+(live|wake\s+up|exist|be\s+here|go\s+on)\b",
+    r"\b(hang|slit|shoot|overdose|poison|drown)\s+myself\b",
+    r"\bbetter\s+off\s+(dead|without\s+me|gone)\b",
+    r"\bself[- ]?harm(ing)?\b",
+    r"\bcutting\s+myself\b",
+    r"\bno\s+(reason|point|will)\s+to\s+(live|stay\s+alive)\b",
+    r"\bwant\s+to\s+disappear\s+forever\b",
+    r"\bcan'?t\s+(take|bear|survive|handle|go\s+on\s+with)\s+this\s+(pain|life|anymore)\b",
+    r"\bready\s+to\s+end\s+(everything|it\s+all|my\s+life)\b",
+    r"\beveryone\s+would\s+be\s+better\s+off\s+without\s+me\b",
+    r"\bgiving\s+away\s+my\s+things\b",
+    r"\bsaying\s+my\s+last\s+goodbyes\b",
+    r"\bdone\s+with\s+living\b",
+    r"\bplanning\s+my\s+suicide\b"
 ]
 
 CRISIS_RESPONSE = (
@@ -176,6 +182,7 @@ CRISIS_RESPONSE = (
 )
 
 def check_crisis_triggers(text: str) -> bool:
+    """Checks for explicit or colloquial crisis indicators."""
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
