@@ -1,67 +1,57 @@
 import os
 import json
-import re
-from datetime import datetime
+from datetime import datetime, timezone
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="./jesus-talk-api/.env")
 load_dotenv()
+load_dotenv(dotenv_path="./jesus-talk-api/.env")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 DOMAINS_URL = os.getenv("DOMAINS_URL", "https://jesus-chat-bd89f.web.app").rstrip("/")
-
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-# Authoritative High-Intent Pillar Topics
+def detect_deploy_root():
+    """Finds the directory Firebase Hosting actually deploys (firebase.json -> hosting.public)."""
+    for candidate in ["firebase.json", "jesus-talk-api/firebase.json", os.path.join("..", "firebase.json")]:
+        if os.path.exists(candidate):
+            try:
+                with open(candidate, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                public_dir = cfg.get("hosting", {}).get("public", ".")
+                print(f"✓ Detected firebase.json -> deploying content into: '{public_dir}'")
+                return public_dir
+            except Exception as e:
+                print(f"Could not parse {candidate}: {e}")
+    print("⚠ firebase.json not found — writing to current directory. Verify this matches your 'public' folder.")
+    return "."
+
+DEPLOY_ROOT = detect_deploy_root()
+BLOGS_DIR = os.path.join(DEPLOY_ROOT, "blogs")
+
 SEO_TOPICS = [
-    {
-        "slug": "prayer-for-overwhelming-anxiety",
-        "title": "Prayer for Overwhelming Anxiety & Racing Thoughts",
-        "meta_desc": "A biblical guide and guided prayer to calm anxiety, guard your heart, and experience God's supernatural peace.",
-        "primary_verse": "Philippians 4:6-7",
-        "theme": "Overcoming Anxiety and Fear"
-    },
-    {
-        "slug": "prayer-for-financial-breakthrough-and-peace",
-        "title": "Prayer for Financial Breakthrough & Freedom from Worry",
-        "meta_desc": "Biblical promises and guided reflection for releasing debt anxiety and trusting in divine provision.",
-        "primary_verse": "Matthew 6:31-34",
-        "theme": "Financial Trust and Divine Provision"
-    },
-    {
-        "slug": "prayer-for-grief-and-broken-heart",
-        "title": "Prayer for Comfort in Grief, Loss, and Heartbreak",
-        "meta_desc": "Find healing in the presence of Jesus when walking through sorrow, bereavement, and heavy grief.",
-        "primary_verse": "Psalm 34:18",
-        "theme": "Comfort in Sorrow and Grief"
-    },
-    {
-        "slug": "prayer-for-restoring-marriage-and-relationships",
-        "title": "Prayer for Healing Broken Relationships & Marriage",
-        "meta_desc": "Biblical exegesis and prayers for releasing resentment, restoring intimacy, and choosing forgiveness.",
-        "primary_verse": "Colossians 3:13",
-        "theme": "Restoration and Forgiveness"
-    },
-    {
-        "slug": "prayer-for-peaceful-sleep-and-insomnia",
-        "title": "Bedtime Prayer for Peaceful Sleep & Quieting Night Anxiety",
-        "meta_desc": "A calming evening devotional to release the burdens of the day and rest securely in God's keeping.",
-        "primary_verse": "Psalm 4:8",
-        "theme": "Nighttime Peace and Rest"
-    },
-    {
-        "slug": "prayer-for-guidance-and-life-direction",
-        "title": "Prayer for Clarity, Wisdom, and God's Direction",
-        "meta_desc": "Scripture-anchored reflection for discerning God's will when facing important life and career decisions.",
-        "primary_verse": "Proverbs 3:5-6",
-        "theme": "Divine Guidance and Clarity"
-    }
+    {"slug": "prayer-for-overwhelming-anxiety", "title": "Prayer for Overwhelming Anxiety & Racing Thoughts",
+     "meta_desc": "A biblical guide and guided prayer to calm anxiety, guard your heart, and experience God's supernatural peace.",
+     "primary_verse": "Philippians 4:6-7", "theme": "Overcoming Anxiety and Fear"},
+    {"slug": "prayer-for-financial-breakthrough-and-peace", "title": "Prayer for Financial Breakthrough & Freedom from Worry",
+     "meta_desc": "Biblical promises and guided reflection for releasing debt anxiety and trusting in divine provision.",
+     "primary_verse": "Matthew 6:31-34", "theme": "Financial Trust and Divine Provision"},
+    {"slug": "prayer-for-grief-and-broken-heart", "title": "Prayer for Comfort in Grief, Loss, and Heartbreak",
+     "meta_desc": "Find healing in the presence of Jesus when walking through sorrow, bereavement, and heavy grief.",
+     "primary_verse": "Psalm 34:18", "theme": "Comfort in Sorrow and Grief"},
+    {"slug": "prayer-for-restoring-marriage-and-relationships", "title": "Prayer for Healing Broken Relationships & Marriage",
+     "meta_desc": "Biblical exegesis and prayers for releasing resentment, restoring intimacy, and choosing forgiveness.",
+     "primary_verse": "Colossians 3:13", "theme": "Restoration and Forgiveness"},
+    {"slug": "prayer-for-peaceful-sleep-and-insomnia", "title": "Bedtime Prayer for Peaceful Sleep & Quieting Night Anxiety",
+     "meta_desc": "A calming evening devotional to release the burdens of the day and rest securely in God's keeping.",
+     "primary_verse": "Psalm 4:8", "theme": "Nighttime Peace and Rest"},
+    {"slug": "prayer-for-guidance-and-life-direction", "title": "Prayer for Clarity, Wisdom, and God's Direction",
+     "meta_desc": "Scripture-anchored reflection for discerning God's will when facing important life and career decisions.",
+     "primary_verse": "Proverbs 3:5-6", "theme": "Divine Guidance and Clarity"}
 ]
 
 STATIC_PAGES = [
     {"loc": f"{DOMAINS_URL}/", "priority": "1.0", "changefreq": "daily"},
-    {"loc": f"{DOMAINS_URL}/index.html", "priority": "1.0", "changefreq": "daily"},
     {"loc": f"{DOMAINS_URL}/bible.html", "priority": "0.9", "changefreq": "weekly"},
     {"loc": f"{DOMAINS_URL}/blessing.html", "priority": "0.8", "changefreq": "weekly"},
     {"loc": f"{DOMAINS_URL}/blogs.html", "priority": "0.9", "changefreq": "daily"},
@@ -105,10 +95,8 @@ def generate_article_content(topic):
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
+            messages=[{"role": "system", "content": SYSTEM_PROMPT},
+                      {"role": "user", "content": user_prompt}],
             temperature=0.6,
             response_format={"type": "json_object"}
         )
@@ -119,70 +107,42 @@ def generate_article_content(topic):
 
 def build_article_html(topic, data):
     canonical_url = f"{DOMAINS_URL}/blogs/{topic['slug']}.html"
-    date_published = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    date_published = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # Combined Article + FAQPage Schema
     schema_graph = {
         "@context": "https://schema.org",
         "@graph": [
-            {
-                "@type": "Article",
-                "@id": f"{canonical_url}#article",
-                "isPartOf": {
-                    "@type": "WebSite",
-                    "@id": f"{DOMAINS_URL}/#website",
-                    "name": "You With Jesus",
-                    "url": DOMAINS_URL
-                },
-                "headline": data.get("h1", topic["title"]),
-                "description": data.get("meta_description", topic["meta_desc"]),
-                "mainEntityOfPage": canonical_url,
-                "datePublished": date_published,
-                "dateModified": date_published,
-                "publisher": {
-                    "@type": "Organization",
-                    "name": "You With Jesus",
-                    "url": DOMAINS_URL
-                },
-                "author": {
-                    "@type": "Organization",
-                    "name": "You With Jesus Sanctuary"
-                }
-            },
-            {
-                "@type": "FAQPage",
-                "@id": f"{canonical_url}#faq",
-                "mainEntity": [
-                    {
-                        "@type": "Question",
-                        "name": faq.get("question", ""),
-                        "acceptedAnswer": {"@type": "Answer", "text": faq.get("answer", "")}
-                    } for faq in data.get("faqs", [])
-                ]
-            }
+            {"@type": "Article", "@id": f"{canonical_url}#article",
+             "isPartOf": {"@type": "WebSite", "@id": f"{DOMAINS_URL}/#website",
+                          "name": "You With Jesus", "url": DOMAINS_URL},
+             "headline": data.get("h1", topic["title"]),
+             "description": data.get("meta_description", topic["meta_desc"]),
+             "mainEntityOfPage": canonical_url,
+             "datePublished": date_published, "dateModified": date_published,
+             "publisher": {"@type": "Organization", "name": "You With Jesus", "url": DOMAINS_URL},
+             "author": {"@type": "Organization", "name": "You With Jesus Sanctuary"}},
+            {"@type": "FAQPage", "@id": f"{canonical_url}#faq",
+             "mainEntity": [{"@type": "Question", "name": f.get("question", ""),
+                             "acceptedAnswer": {"@type": "Answer", "text": f.get("answer", "")}}
+                            for f in data.get("faqs", [])]}
         ]
     }
 
-    anchor_verse_text = data.get("anchor_verse_text", "").strip()
-    if not anchor_verse_text or len(anchor_verse_text) < 5:
+    anchor_verse_text = (data.get("anchor_verse_text") or "").strip()
+    if len(anchor_verse_text) < 5:
         anchor_verse_text = "The Lord is near to all who call on him, to all who call on him in truth."
 
     steps_html = "".join([
         f'<div class="step-card"><h3 class="step-h3">{s.get("step_num", "")}: {s.get("title", "")}</h3><p class="step-p">{s.get("desc", "")}</p></div>'
-        for s in data.get("steps", [])
-    ])
-
+        for s in data.get("steps", [])])
     prayers_html = "".join([
         f'<div class="prayer-card"><h3 class="prayer-h3">{p.get("title", "")}</h3><p class="prayer-body">{p.get("body", "")}</p></div>'
-        for p in data.get("prayers", [])
-    ])
-
+        for p in data.get("prayers", [])])
     faqs_html = "".join([
         f'<div class="faq-card"><h3 class="faq-q">{f.get("question", "")}</h3><p class="faq-a">{f.get("answer", "")}</p></div>'
-        for f in data.get("faqs", [])
-    ])
+        for f in data.get("faqs", [])])
 
-    html = f'''<!DOCTYPE html>
+    return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-HZPYCF859M"></script>
@@ -233,75 +193,55 @@ def build_article_html(topic, data):
     <a href="../index.html" class="nav-brand">† YOU WITH JESUS</a>
     <a href="../index.html" class="nav-cta">Open Sanctuary</a>
   </nav>
-
   <main class="content-wrap">
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
     <h1>{data.get("h1", topic["title"])}</h1>
-
     <div class="verse-card">
       <p class="verse-text">“{anchor_verse_text}”</p>
       <span class="verse-ref">— {topic["primary_verse"]}</span>
     </div>
-
     <p class="body-p">{data.get("introduction", "")}</p>
-
     <h2 class="sec-h2">{data.get("exegesis_title", "Biblical Wisdom")}</h2>
     <p class="body-p">{data.get("exegesis_body", "")}</p>
-
     <h2 class="sec-h2">{data.get("steps_title", "Pathway to Peace")}</h2>
     {steps_html}
-
     <h2 class="sec-h2">{data.get("prayers_title", "Prayers of the Heart")}</h2>
     {prayers_html}
-
     <section class="cta-banner">
       <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart Directly to Jesus</h2>
       <p style="font-size: 13.5px; color: #d4d4d8; margin-top: 6px;">Speak your burdens, receive Scripture-guided comfort, and find rest.</p>
       <a href="../index.html" class="cta-btn">Begin Your Prayer Now →</a>
     </section>
-
     <h2 class="sec-h2">Frequently Asked Questions</h2>
     {faqs_html}
   </main>
-
   <script src="../blog-player.js"></script>
 </body>
 </html>
 '''
-    return html
 
 def generate_unified_sitemap(created_slugs):
     urls = list(STATIC_PAGES)
     for slug in created_slugs:
-        urls.append({
-            "loc": f"{DOMAINS_URL}/blogs/{slug}.html",
-            "priority": "0.8",
-            "changefreq": "weekly"
-        })
-
-    sitemap_xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+        urls.append({"loc": f"{DOMAINS_URL}/blogs/{slug}.html", "priority": "0.8", "changefreq": "weekly"})
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for u in urls:
-        sitemap_xml.append(f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>")
-    sitemap_xml.append('</urlset>')
-
-    with open("sitemap.xml", "w", encoding="utf-8") as f:
-        f.write("\n".join(sitemap_xml))
-    print("Unified sitemap.xml generated.")
+        xml.append(f"  <url>\n    <loc>{u['loc']}</loc>\n    <changefreq>{u['changefreq']}</changefreq>\n    <priority>{u['priority']}</priority>\n  </url>")
+    xml.append('</urlset>')
+    with open(os.path.join(DEPLOY_ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
+        f.write("\n".join(xml))
+    print("✓ Unified sitemap.xml generated.")
 
 def generate_blogs_index(topics):
-    cards_html = []
-    for t in topics:
-        cards_html.append(f'''
+    cards = "".join([f'''
         <a href="blogs/{t['slug']}.html" style="text-decoration:none; color:inherit;">
-          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px; transition:transform 0.2s;">
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px;">
             <span style="font-size:10.5px; font-weight:800; color:#e2b764; text-transform:uppercase;">{t['theme']}</span>
             <h3 style="font-family:'Cinzel',serif; font-size:17px; color:#fff; margin:6px 0;">{t['title']}</h3>
             <p style="font-size:13px; color:#a1a1aa;">{t['meta_desc']}</p>
           </div>
-        </a>
-        ''')
-
-    blogs_page = f'''<!DOCTYPE html>
+        </a>''' for t in topics])
+    page = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -309,8 +249,6 @@ def generate_blogs_index(topics):
   <title>Sacred Devotional Guides & Prayers | You With Jesus</title>
   <meta name="description" content="Explore scripture-anchored prayer guides for anxiety, grief, healing, relationships, and financial peace." />
   <link rel="canonical" href="{DOMAINS_URL}/blogs.html" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     body {{ background: #0d1117; color: #fff; font-family: 'Montserrat', sans-serif; padding: 24px 16px; }}
@@ -322,33 +260,44 @@ def generate_blogs_index(topics):
   <div class="wrap">
     <div style="text-align:center; margin-bottom:16px;"><a href="index.html" style="color:#e2b764; text-decoration:none; font-size:12px; font-weight:700;">← Return to Sanctuary</a></div>
     <h1>Sacred Pillar Devotionals</h1>
-    {''.join(cards_html)}
+    {cards}
   </div>
 </body>
-</html>
-'''
-    with open("blogs.html", "w", encoding="utf-8") as f:
-        f.write(blogs_page)
-    print("blogs.html index generated.")
+</html>'''
+    with open(os.path.join(DEPLOY_ROOT, "blogs.html"), "w", encoding="utf-8") as f:
+        f.write(page)
+    print("✓ blogs.html index generated.")
 
 def main():
-    if not os.path.exists("blogs"):
-        os.makedirs("blogs")
+    if not client:
+        print("❌ GROQ_API_KEY not set — cannot generate content.")
+        return
+    os.makedirs(BLOGS_DIR, exist_ok=True)
 
     created = []
     for topic in SEO_TOPICS:
-        file_path = f"blogs/{topic['slug']}.html"
         print(f"Generating pillar guide: {topic['title']}...")
-        content_json = generate_article_content(topic)
-        if content_json:
-            html = build_article_html(topic, content_json)
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(html)
+        data = generate_article_content(topic)
+        if data:
+            with open(os.path.join(BLOGS_DIR, f"{topic['slug']}.html"), "w", encoding="utf-8") as f:
+                f.write(build_article_html(topic, data))
             created.append(topic['slug'])
 
     generate_blogs_index(SEO_TOPICS)
     generate_unified_sitemap(created)
-    print("Pillar SEO generation complete.")
+
+    # ---- POST-RUN VERIFICATION (prevents silent 404s) ----
+    print("\n================ POST-RUN VERIFICATION ================")
+    for slug in created:
+        p = os.path.join(BLOGS_DIR, f"{slug}.html")
+        print(f"  {'✓' if os.path.exists(p) else '❌ MISSING'}  {p}")
+    if not os.path.exists(os.path.join(DEPLOY_ROOT, "blog-player.js")):
+        print("  ⚠ blog-player.js not found in deploy root — articles reference it (non-fatal).")
+    print("--------------------------------------------------------")
+    print("NEXT STEPS:")
+    print("  1. firebase deploy --only hosting")
+    print(f"  2. Visit {DOMAINS_URL}/blogs.html and click each article")
+    print("  3. Submit sitemap.xml in Google Search Console")
 
 if __name__ == "__main__":
     main()
