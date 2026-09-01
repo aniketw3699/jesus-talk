@@ -150,8 +150,10 @@ def normalize_topic(t: dict) -> dict:
     t["meta_desc"] = t.get("meta_desc") or t.get("keyword") or t.get("title", "")
     t["theme"] = t.get("theme") or t.get("category") or "Devotional"
     t["primary_verse"] = t.get("primary_verse") or t.get("scripture") or "Psalm 23:1"
-    if not t.get("slug"):
-        t["slug"] = re.sub(r'[^a-z0-9]+', '-', t["title"].lower()).strip('-')
+    
+    # Always normalize the slug to strict lowercase alphanumeric + hyphens
+    raw_slug = t.get("slug") or t["title"]
+    t["slug"] = re.sub(r'[^a-z0-9]+', '-', raw_slug.lower()).strip('-')
     return t
 
 def generate_article_content(topic):
@@ -203,6 +205,7 @@ Return strictly valid JSON with all 5 fields populated:
             )
             data = json.loads(strip_thinking_tags(res.choices[0].message.content or ""))
             if data and data.get("slug"):
+                data["slug"] = re.sub(r'[^a-z0-9]+', '-', str(data["slug"]).lower()).strip('-')
                 if not data.get("theme"):
                     data["theme"] = "Christian Living & Peace"
                 if not data.get("primary_verse"):
