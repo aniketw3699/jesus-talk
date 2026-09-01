@@ -48,17 +48,6 @@ if not db:
 
 app = FastAPI(title="You With Jesus Sanctuary API", version="3.4.0")
 
-# Vercel Path-Resolution Middleware
-@app.middleware("http")
-async def resolve_vercel_paths(request: Request, call_next):
-    matched_path = request.headers.get("x-matched-path")
-    if matched_path:
-        # Strip out internal file target if present
-        clean_path = matched_path.replace("/api/index.py", "").rstrip("/")
-        request.scope["path"] = clean_path if clean_path else "/"
-    response = await call_next(request)
-    return response
-
 ALLOWED_ORIGINS = [
     "https://jesus-chat-bd89f.web.app",
     "https://jesus-chat-bd89f.firebaseapp.com",
@@ -278,6 +267,7 @@ def health_check():
         "db_connected": db is not None
     }
 
+@app.post("/")
 @app.post("/chat")
 @app.post("/api/chat")
 async def chat_endpoint(payload: ChatRequest, request: Request):
