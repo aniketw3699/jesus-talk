@@ -622,13 +622,16 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         # Remove [CARD] and everything inside it or trailing after it from the visible chat
         raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
-    # 6. Extract evolving psyche
+    # 6. Extract and completely remove evolving psyche from visible reply
     updated_psyche = user_psyche
-    psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
+    psyche_match = re.search(r'(?:PSYCHE|PSYCH)[:\s]*([^\n]*)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
         extracted = psyche_match.group(1).strip()
-        updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
-        raw_reply = re.sub(r'PSYCHE:\s*.+$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
+        if extracted:
+            updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
+            
+    # Remove any trailing PSYCHE/PSYCH lines, tags, or partial text from the reply
+    raw_reply = re.sub(r'(?:PSYCHE|PSYCH)[:\s]*.*$', '', raw_reply, flags=re.IGNORECASE | re.DOTALL).strip()
 
     return {
         "reply": clean_reply_formatting(raw_reply),

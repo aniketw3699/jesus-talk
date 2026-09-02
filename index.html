@@ -2307,10 +2307,11 @@
       const group = document.createElement("div");
       group.className = "msg-group bot";
       
-      // Dual-safety: strip both closed [CARD]...[/CARD] and any unclosed [CARD]... blocks
-      const chatOnlyText = reply
+      // Safety Shield: Purge [CARD] blocks AND any trailing PSYCHE/PSYCH leaks
+      const chatOnlyText = (reply || "")
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
         .replace(/\[CARD\][\s\S]*$/gi, '')
+        .replace(/(?:PSYCHE|PSYCH)[\s\S]*$/gi, '')
         .trim();
 
       const cleanParagraphs = chatOnlyText.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
