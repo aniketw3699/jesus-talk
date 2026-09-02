@@ -76,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.4")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.5")
 
 app.add_middleware(
     CORSMiddleware,
@@ -375,14 +375,18 @@ CORE GUIDELINES:
    Paragraph 1: tenderly acknowledge their specific situation in 2-3 warm, flowing sentences.
    Paragraph 2: provide the Scripture anchor and close with a complete spoken blessing.
    NEVER stop mid-sentence. Every sentence you begin must end with proper closing punctuation.
-3. DIDACTIC & STRUCTURED PRAYER OVERRIDE:
-   If the user asks for a specific prayer text (e.g., Lord's Prayer), a biblical list (e.g., 10 Commandments), or factual scriptural instruction, you MUST actually provide the requested text or pastoral summary clearly within your 2 paragraphs.
-   If the user requests a multi-step prayer or guide (e.g., "5-step prayer for anxiety"):
-   • Provide the first part (Steps 1 to 2 or 1 to 3) completely within your 2 paragraphs.
-   • End with a complete sentence inviting them to continue: "When your spirit is ready, say 'next' or 'go on', and we will walk through the remaining steps together."
-   • When the user replies "next" or "go on", provide the remaining steps completely.
+3. DIDACTIC & MULTI-STEP CONTINUATION OVERRIDE:
+   • If the user asks for a specific prayer text (e.g., Lord's Prayer), a biblical list (e.g., 10 Commandments), or factual scriptural instruction, you MUST provide the requested text clearly within your 2 paragraphs.
+   • If the user requests a multi-step prayer or list (e.g., "5 prayers on love", "5-step prayer for anxiety"):
+     - Provide the first part (Steps 1 to 2 or 1 to 3) completely within your 2 paragraphs.
+     - End with: "When your spirit is ready, say 'next' or 'go on', and we will walk through the remaining steps together."
+   • When the user replies "next", "go on", or asks to continue:
+     - Check the conversation history and pick up seamlessly at the next number (e.g., Steps 3, 4, and 5). NEVER restart from Step 1.
+     - Conclude the final part with a complete, warm pastoral blessing and an accurately cited Scripture anchor.
 4. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse). NEVER double the closing parenthesis or add trailing punctuation after the reference parentheses.
-5. SCRIPTURE ACCURACY: Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Never invent or misattribute references.
+5. SCRIPTURE INTEGRITY & ZERO MISATTRIBUTION:
+   • Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Never invent or guess references.
+   • You MUST ensure quoted words strictly match the cited biblical book and chapter (e.g., never attribute 1 Corinthians 13 passages to 1 Peter, Psalms, or the Gospels).
 6. SHARE CARD GENERATION MANDATE:
    Directly following your 2 sanctuary paragraphs, you MUST append a [CARD]...[/CARD] block formatted as follows:
    • If interceding for a loved one: Inside [CARD]...[/CARD], address them by name in the second person ("you"), acknowledging their exact situation with a Scripture and blessing in 40 to 65 words.
@@ -456,7 +460,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.8.4",
+        "version": "3.8.5",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -555,6 +559,15 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 
     consume_credit(verified_uid, verified_email, decision)
 
+    # 1. Reliably extract Psyche FIRST before card extraction can swallow it
+    updated_psyche = user_psyche
+    psyche_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*([^\n]*)$', raw_reply, re.IGNORECASE | re.MULTILINE)
+    if psyche_match:
+        extracted = psyche_match.group(1).strip()
+        if extracted:
+            updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
+
+    # 2. Extract and sanitize card text cleanly
     card_text = ""
     card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
     if card_match:
@@ -564,13 +577,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         card_text = re.sub(r'\n{3,}', '\n\n', card_text).strip()
         raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
-    updated_psyche = user_psyche
-    psyche_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*([^\n]*)$', raw_reply, re.IGNORECASE | re.MULTILINE)
-    if psyche_match:
-        extracted = psyche_match.group(1).strip()
-        if extracted:
-            updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
-
+    # 3. Purge all trailing metadata variants from final sanctuary chat output
     raw_reply = re.sub(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*.*$', '', raw_reply, flags=re.IGNORECASE | re.DOTALL).strip()
 
     return {
