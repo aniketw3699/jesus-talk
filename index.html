@@ -2349,11 +2349,11 @@
       
       let cardText = "";
 
-      // 1. If Jesus provided an explicit [CARD] block, use it directly!
+      // 1. Use explicit card text if provided by the backend
       if (explicitCardText && explicitCardText.trim().length > 0) {
         cardText = explicitCardText.trim();
       } else {
-        // 2. Otherwise, cleanly extract the core message and verse directly from the chat reply text
+        // 2. Otherwise, dynamically format the exact chat bubble text for the card
         let clean = (chatText || "")
           .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
           .replace(/\[CARD\][\s\S]*$/gi, '')
@@ -2362,14 +2362,12 @@
           .replace(/\\n/g, '\n')
           .trim();
 
-        // Strip out introductory salutations like "Anu, I hear..." to keep the card punchy and universal
+        // Strip out opening greetings so the card starts straight with the comfort and scripture
         clean = clean.replace(/^(?:Anu|My child|My beloved|My dear[^,]*),?\s*/i, '');
-        
-        // Ensure we capture the paragraphs or scripture cleanly
         cardText = clean;
       }
 
-      // GUARANTEE: If a loved one's name was provided, ensure they are addressed directly
+      // If a loved one's name was given, prepend it directly
       if (recipient && recipient.toLowerCase() !== "beloved") {
         const trimmedName = recipient.trim();
         const startsWithName = new RegExp(`^${trimmedName}\\b`, 'i').test(cardText);
