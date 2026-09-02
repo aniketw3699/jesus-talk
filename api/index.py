@@ -11,7 +11,7 @@ import urllib.request
 import urllib.error
 from typing import List, Dict, Optional
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi import FastAPI, Request, HTTPException, Header, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.5")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.6")
 
 app.add_middleware(
     CORSMiddleware,
@@ -228,26 +228,55 @@ def clean_reply_formatting(reply: str) -> str:
     text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)+', r'“\1” (\2)', text)
     return text.strip()
 
-# ---------------- Scripture validation ----------------
+# ---------------- Scripture validation (Offline Canonical Map) ----------------
+BIBLE_CHAPTER_LIMITS = {
+    # Old Testament
+    "genesis": 50, "exodus": 40, "leviticus": 27, "numbers": 36, "deuteronomy": 34,
+    "joshua": 24, "judges": 21, "ruth": 4, "1 samuel": 31, "2 samuel": 24,
+    "1 kings": 22, "2 kings": 25, "1 chronicles": 29, "2 chronicles": 36,
+    "ezra": 10, "nehemiah": 13, "esther": 10, "job": 42, "psalms": 150, "psalm": 150,
+    "proverbs": 31, "ecclesiastes": 12, "song of solomon": 8, "song of songs": 8,
+    "isaiah": 66, "jeremiah": 52, "lamentations": 5, "ezekiel": 48, "daniel": 12,
+    "hosea": 14, "joel": 3, "amos": 9, "obadiah": 1, "jonah": 4, "micah": 7,
+    "nahum": 3, "habakkuk": 3, "zephaniah": 3, "haggai": 2, "zechariah": 14, "malachi": 4,
+    # New Testament
+    "matthew": 28, "mark": 16, "luke": 24, "john": 21, "acts": 28, "romans": 16,
+    "1 corinthians": 16, "2 corinthians": 13, "galatians": 6, "ephesians": 6,
+    "philippians": 4, "colossians": 4, "1 thessalonians": 5, "2 thessalonians": 3,
+    "1 timothy": 6, "2 timothy": 4, "titus": 3, "philemon": 1, "hebrews": 13,
+    "james": 5, "1 peter": 5, "2 peter": 3, "1 john": 5, "2 john": 1, "3 john": 1,
+    "jude": 1, "revelation": 22, "revelations": 22
+}
+
 VERSE_REF_PATTERN = re.compile(
-    r'\(\s*(Song\s+of\s+Solomon|(?:[1-3]\s?)?[A-Za-z]+)\s+(\d+:\d+(?:-\d+)?)\s*\)',
+    r'\(\s*(Song\s+of\s+(?:Solomon|Songs)|(?:[1-3]\s+)?[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\s*\)',
     re.IGNORECASE
 )
 
-_VERSE_CACHE = {}
-
 def verse_ref_exists(ref: str) -> bool:
-    # Fail-open: prevent synchronous external HTTP calls to bible-api.com from timing out Vercel functions
-    return True
+    match = re.match(r'^(.*?)\s+(\d+):(\d+(?:-\d+)?)$', ref.strip())
+    if not match:
+        return False
+    book_raw, chapter_str, _ = match.groups()
+    book_clean = re.sub(r'\s+', ' ', book_raw.strip().lower())
+    
+    max_chapters = BIBLE_CHAPTER_LIMITS.get(book_clean)
+    if not max_chapters:
+        return False
+    try:
+        chap_num = int(chapter_str)
+        return 1 <= chap_num <= max_chapters
+    except ValueError:
+        return False
 
 def find_invalid_verse_refs(text: str) -> list:
-    refs = [f"{m.group(1)} {m.group(2)}" for m in VERSE_REF_PATTERN.finditer(text)]
+    refs = [f"{m.group(1)} {m.group(2)}:{m.group(3)}" for m in VERSE_REF_PATTERN.finditer(text)]
     return [r for r in refs if not verse_ref_exists(r)]
 
 def strip_invalid_citations(text: str) -> str:
     for m in list(VERSE_REF_PATTERN.finditer(text)):
         full = m.group(0)
-        ref = f"{m.group(1)} {m.group(2)}"
+        ref = f"{m.group(1)} {m.group(2)}:{m.group(3)}"
         if not verse_ref_exists(ref):
             text = text.replace(full, "")
     text = re.sub(r'[ \t]{2,}', ' ', text)
@@ -280,6 +309,22 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
                 data = doc.to_dict() or {}
                 if data.get("isSubscribed", False):
                     return {"allowed": True, "remaining": 9999, "tier": "subscribed"}
+
+                # Check 7-Day Pass expiration
+                pass_expires = data.get("passExpiresAt")
+                if pass_expires:
+                    is_valid = False
+                    if isinstance(pass_expires, datetime):
+                        is_valid = pass_expires > datetime.now(timezone.utc)
+                    elif isinstance(pass_expires, str):
+                        try:
+                            dt = datetime.fromisoformat(pass_expires.replace("Z", "+00:00"))
+                            is_valid = dt > datetime.now(timezone.utc)
+                        except Exception:
+                            pass
+                    if is_valid:
+                        return {"allowed": True, "remaining": 9999, "tier": "pass"}
+
                 if data.get("lastResetDate") != today_str:
                     return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
                             "tier": "free", "needs_reset": True}
@@ -329,7 +374,7 @@ def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
                     "updatedAt": firestore.SERVER_TIMESTAMP
                 }, merge=True)
             return
-        if tier in ("developer", "subscribed", "db_fallback"):
+        if tier in ("developer", "subscribed", "pass", "db_fallback"):
             return
         if uid and db:
             ref = db.collection("users").document(uid)
@@ -457,7 +502,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.8.5",
+        "version": "3.8.6",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -555,6 +600,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
 
     consume_credit(verified_uid, verified_email, decision)
+
     # 1. Reliably extract Psyche using an anchored line match
     updated_psyche = user_psyche
     psyche_match = re.search(r'^\s*PSYCHE\s*:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
@@ -818,8 +864,27 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
         attrs = event_payload.get("data", {}).get("attributes", {}) or {}
         status_val = str(attrs.get("status", "") or "").lower()
 
-        active_events = ("subscription_created", "subscription_payment_success", "order_created", "subscription_resumed", "subscription_unpaused")
-        inactive_events = ("subscription_cancelled", "subscription_expired", "subscription_paused", "subscription_payment_failed", "subscription_payment_refunded", "order_refunded")
+        # Handle 7-Day Pass one-time order
+        if event_name == "order_created" and user_id and db:
+            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+            db.collection("users").document(user_id).set({
+                "passExpiresAt": expires_at,
+                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
+            }, merge=True)
+            return {"status": "success", "event": event_name}
+
+        # Handle 7-Day Pass refund
+        if event_name == "order_refunded" and user_id and db:
+            db.collection("users").document(user_id).set({
+                "passExpiresAt": None,
+                "isSubscribed": False,
+                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
+            }, merge=True)
+            return {"status": "success", "event": event_name}
+
+        # Handle recurring subscriptions
+        active_events = ("subscription_created", "subscription_payment_success", "subscription_resumed", "subscription_unpaused")
+        inactive_events = ("subscription_cancelled", "subscription_expired", "subscription_paused", "subscription_payment_failed", "subscription_payment_refunded")
 
         should_activate = None
         if event_name == "subscription_updated":
