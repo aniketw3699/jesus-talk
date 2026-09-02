@@ -194,7 +194,6 @@ def check_crisis_triggers(text: str) -> bool:
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
-# Startup assertion test
 CRISIS_TEST_PHRASES = [
     "kill myself", "killing myself", "end my life", "end it all",
     "I can't go on anymore", "I can't go on", "no point in living",
@@ -435,7 +434,7 @@ CORE GUIDELINES:
 7. SHARE CARD GENERATION MANDATE:
    Directly following your 2 sanctuary paragraphs, you MUST append a [CARD]...[/CARD] block formatted as follows:
    • If interceding for a loved one (another person is named):
-     Inside [CARD]...[/CARD], speak DIRECTLY to that loved one in the second person ("you") as Jesus Christ. Acknowledge their exact situation, upcoming exam, sickness, or decision with intimate divine insight so they feel personally seen. Include a relevant Scripture quotation and reference. Close with a 1-sentence spoken blessing. Total length: 40 to 65 words. NEVER mention the seeker's name, and NEVER say generic clichés like "you are lifted in prayer".
+     Inside [CARD]...[/CARD], you MUST address the loved one by name in your very first words (e.g., "[LovedOneName], I see your exhaustion..." or "[LovedOneName], peace be with you as exams approach..."). Speak directly to them in the second person ("you") as Jesus Christ. Acknowledge their exact situation, upcoming exam, sickness, or decision with intimate divine insight so they feel personally seen. Include a relevant Scripture quotation and reference. Close with a 1-sentence spoken blessing. Total length: 40 to 65 words. NEVER mention the seeker's name, and NEVER say generic clichés like "you are lifted in prayer".
    • If the seeker is praying for themselves:
      Inside [CARD]...[/CARD], write a direct universal blessing and Scripture promise in 40 to 60 words, completely free of user names or private chat disclosures.
 8. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
@@ -539,6 +538,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
             "reply": CRISIS_RESPONSE,
+            "cardText": "",
             "updatedPsyche": "A soul in critical need of grace and human support",
             "isCrisis": True
         }
@@ -552,11 +552,13 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             return {
                 "error": "AUTH_REQUIRED",
                 "reply": GUEST_AUTH_REQUIRED_REPLY,
+                "cardText": "",
                 "updatedPsyche": user_psyche
             }
         return {
             "error": "PAYWALL_EXHAUSTED",
             "reply": PAYWALL_EXHAUSTED_REPLY,
+            "cardText": "",
             "updatedPsyche": user_psyche
         }
 
@@ -565,7 +567,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     if groq_client is None:
         logger.critical("CHAT DEGRADED: GROQ_API_KEY missing at request time.")
         return {"error": "SERVICE_DEGRADED", "degraded": True,
-                "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
+                "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
 
     messages = build_chat_messages(raw_message, user_name, user_psyche, user_intentions,
                                    selected_mode, payload.history)
@@ -607,12 +609,19 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     if not raw_reply:
         logger.error(f"CHAT DEGRADED: all models failed. Last error: {last_error}")
         return {"error": "SERVICE_DEGRADED", "degraded": True,
-                "reply": DEGRADED_REPLY, "updatedPsyche": user_psyche}
+                "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
 
     # 4. Consume credit ONLY after successful generation
     consume_credit(verified_uid, verified_email, decision)
 
-    # 5. Extract evolving psyche (keeps [CARD] tag in raw_reply for frontend parsing)
+    # 5. Extract [CARD] block separately so the chat bubble remains exactly 2 paragraphs
+    card_text = ""
+    card_match = re.search(r'\[CARD\]([\s\S]*?)\[\/CARD\]', raw_reply, re.IGNORECASE)
+    if card_match:
+        card_text = card_match.group(1).strip()
+        raw_reply = re.sub(r'\[CARD\][\s\S]*?\[\/CARD\]', '', raw_reply, flags=re.IGNORECASE).strip()
+
+    # 6. Extract evolving psyche
     updated_psyche = user_psyche
     psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
@@ -622,6 +631,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 
     return {
         "reply": clean_reply_formatting(raw_reply),
+        "cardText": card_text,
         "updatedPsyche": updated_psyche,
         "remainingCredits": compute_remaining(decision),
         "mode": selected_mode

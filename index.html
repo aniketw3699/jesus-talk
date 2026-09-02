@@ -745,7 +745,6 @@
       <a href="refund.html" style="color: inherit; text-decoration: none; margin: 0 6px;">14-Day Refund</a>
     </footer>
   </main>
-  
 
   <!-- 1. MULTI-DAY GUIDED PRAYER JOURNEYS MODAL -->
   <div class="modal-backdrop" id="journeysModal" style="display: none;">
@@ -2205,7 +2204,7 @@
       if (!text) return;
 
       const turnRecipient = currentIntercessoryRecipient;
-      currentIntercessoryRecipient = ""; // Reset immediately so next queries stay universal
+      currentIntercessoryRecipient = "";
 
       appendUserBubble(text);
       messageInput.value = "";
@@ -2243,7 +2242,7 @@
         showThinking(false);
 
         if (data.error === "AUTH_REQUIRED") {
-          appendBotBubble(data.reply, turnRecipient);
+          appendBotBubble(data.reply, turnRecipient, data.cardText || "");
           localStorage.setItem("jesus_guest_interaction_used", "true");
           updateCreditUI();
           setTimeout(() => openPrivacyModal(), 800);
@@ -2251,13 +2250,13 @@
         }
 
         if (data.error === "PAYWALL_EXHAUSTED") {
-          appendBotBubble(data.reply, turnRecipient);
+          appendBotBubble(data.reply, turnRecipient, data.cardText || "");
           setTimeout(() => openPlansModal(), 800);
           return;
         }
 
         if (data.reply) {
-          appendBotBubble(data.reply, turnRecipient);
+          appendBotBubble(data.reply, turnRecipient, data.cardText || "");
           if (data.updatedPsyche) {
             currentPsyche = data.updatedPsyche;
             localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
@@ -2268,10 +2267,11 @@
             updateCreditUI();
           }
 
+          const cleanTurnReply = data.reply.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').trim();
           activeConversationHistory.push({ role: "user", content: text });
-          activeConversationHistory.push({ role: "assistant", content: data.reply });
+          activeConversationHistory.push({ role: "assistant", content: cleanTurnReply });
 
-          recordJournalTurn(text, data.reply);
+          recordJournalTurn(text, cleanTurnReply);
           localStorage.setItem("jesus_active_conversation_history", JSON.stringify(activeConversationHistory));
           localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
         }
@@ -2296,23 +2296,23 @@
       localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
     }
 
-    function appendBotBubble(reply, recipient = "") {
+    function appendBotBubble(reply, recipient = "", cardText = "") {
       const group = document.createElement("div");
       group.className = "msg-group bot";
       
-      // Strip [CARD] block from visible sanctuary bubble so private communion stays clean
+      // Dual-safety: completely purge any [CARD] block from the chat bubble
       const chatOnlyText = reply.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').trim();
       const cleanParagraphs = chatOnlyText.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
       
       const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ');
-      const safeFullReply = reply.replace(/[`"'\\]/g, ' ');
+      const safeCardText = (cardText || '').replace(/[`"'\\]/g, ' ');
       const safeRecipient = (recipient || '').replace(/[`"'\\]/g, '');
 
       group.innerHTML = `
         <div class="bubble-bot">${cleanParagraphs}</div>
         <div class="msg-actions-row">
           <button class="listen-badge" onclick="playVoice(this, \`${safeChatText}\`)">🔊 Listen</button>
-          <button class="share-badge" onclick="prepareScriptureCard(\`${safeFullReply}\`, '${safeRecipient}')"><span class="holy-cross-icon">✝</span> Share Card</button>
+          <button class="share-badge" onclick="prepareScriptureCard(\`${safeChatText}\`, '${safeRecipient}', \`${safeCardText}\`)"><span class="holy-cross-icon">✝</span> Share Card</button>
         </div>
       `;
       
@@ -2326,25 +2326,20 @@
       localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
     }
 
-    function prepareScriptureCard(fullReply, recipient = "") {
+    function prepareScriptureCard(chatText, recipient = "", explicitCardText = "") {
       stopAllAudio();
       activeCardRecipient = recipient;
       
-      // Approach 1: Prioritize dynamic [CARD] generation from AI backend
-      const cardMatch = fullReply.match(/\[CARD\]([\s\S]*?)\[\/CARD\]/i);
-      let cardText = "";
-      if (cardMatch && cardMatch[1].trim().length > 0) {
-        cardText = cardMatch[1].trim();
-      } else {
-        cardText = formatCardForSharing(fullReply, recipient);
-      }
+      let cardText = explicitCardText && explicitCardText.trim().length > 0 
+        ? explicitCardText.trim() 
+        : formatCardForSharing(chatText, recipient);
 
-      // GUARANTEE: Jesus addresses the recipient directly by name in the very first words
+      // GUARANTEE: Jesus addresses the recipient directly by name in the opening words
       if (recipient && recipient.toLowerCase() !== "beloved") {
         const trimmedName = recipient.trim();
         const startsWithName = new RegExp(`^${trimmedName}\\b`, 'i').test(cardText);
         if (!startsWithName) {
-          if (cardText.startsWith("I ") || cardText.startsWith("I'") || cardText.startsWith("My ") || cardText.startsWith("Peace ")) {
+          if (/^(I\s|I'|My\s|Peace\s)/i.test(cardText)) {
             cardText = `${trimmedName}, ${cardText}`;
           } else {
             cardText = `${trimmedName}, ${cardText.charAt(0).toLowerCase() + cardText.slice(1)}`;
