@@ -75,9 +75,8 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:5000",
     "http://localhost:3000"
 ]
-# TODO: add "https://YOUR-CUSTOM-DOMAIN.com" here when you buy the domain.
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.6.0")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.7.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -103,8 +102,6 @@ _MODEL_CACHE = {"models": None, "fetched_at": 0.0}
 MODEL_CACHE_TTL = 3600  # refresh hourly
 
 def get_active_models() -> list:
-    """Ask Groq which models exist RIGHT NOW; pick preferred ones that are alive.
-    Never breaks again when Groq retires models."""
     now = time.time()
     if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
         return _MODEL_CACHE["models"]
@@ -115,7 +112,6 @@ def get_active_models() -> list:
             alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
             picks = [m for m in PREFERRED_MODELS if m in alive]
             if not picks:
-                # Last resort: any text model that isn't audio/safety/guard
                 picks = [
                     m for m in alive
                     if not any(x in m.lower() for x in
@@ -131,14 +127,13 @@ def get_active_models() -> list:
 
     return PREFERRED_MODELS
 
-# ---------------- Rate limiting (in-memory = abuse protection only) ----------------
+# ---------------- Rate limiting ----------------
 IP_REQUEST_LOG = defaultdict(list)
-GUEST_DAILY_IP_LOG = defaultdict(int)  # warm-instance fast path / fallback when DB is down
+GUEST_DAILY_IP_LOG = defaultdict(int)
 RATE_LIMIT_REQUESTS = 20
 RATE_LIMIT_WINDOW = 60
 
 def prune_rate_limit_log():
-    """Drop stale IPs so long-lived instances don't leak memory."""
     now = time.time()
     stale = [ip for ip, ts in IP_REQUEST_LOG.items() if not ts or now - ts[-1] >= RATE_LIMIT_WINDOW]
     for ip in stale:
@@ -160,9 +155,8 @@ def prune_guest_log():
     for k in [k for k in GUEST_DAILY_IP_LOG if not k.startswith(today)]:
         del GUEST_DAILY_IP_LOG[k]
 
-#  ---------------- Crisis Protocol ----------------
+# ---------------- Crisis Protocol ----------------
 CRISIS_PATTERNS = [
-    # Direct suicidal & self-harm actions
     r"\bkill(?:ing)?\s+(?:my\s?self|me)\b",
     r"\b(?:take|end|destroy)\s+(?:my\s+own\s+life|my\s+life|it\s+all)\b",
     r"\b(hang|slit|shoot|overdose|poison|drown)\s+(?:my\s?self|me)\b",
@@ -171,8 +165,6 @@ CRISIS_PATTERNS = [
     r"\bhurt(?:ing)?\s+(?:my\s?self|me)\b",
     r"\bunalive\s+(?:my\s?self|me)\b",
     r"\b(suicide|suicidal|suicidality)\b",
-
-    # Despair, death intent & fatigue
     r"\b(?:want|wanna|wish)\s+to\s+(?:die|be\s+dead|disappear|not\s+wake\s+up)\b",
     r"\bwanna\s+(?:die|end\s+it)\b",
     r"\bdon'?t\s+want\s+to\s+(?:live|wake\s+up|exist|be\s+alive|be\s+here|go\s+on)\b",
@@ -202,23 +194,12 @@ def check_crisis_triggers(text: str) -> bool:
     lower_text = text.lower()
     return any(re.search(pat, lower_text) for pat in CRISIS_PATTERNS)
 
-# Self-test validation on startup — fails server start if any regression occurs
+# Startup assertion test
 CRISIS_TEST_PHRASES = [
-    "kill myself",
-    "killing myself",
-    "end my life",
-    "end it all",
-    "I can't go on anymore",
-    "I can't go on",
-    "no point in living",
-    "no reason to live",
-    "want to die",
-    "wanna die",
-    "better off without me",
-    "hurt myself",
-    "cutting myself",
-    "unalive myself",
-    "can't take this anymore",
+    "kill myself", "killing myself", "end my life", "end it all",
+    "I can't go on anymore", "I can't go on", "no point in living",
+    "no reason to live", "want to die", "wanna die", "better off without me",
+    "hurt myself", "cutting myself", "unalive myself", "can't take this anymore",
     "everyone would be better off"
 ]
 
@@ -252,7 +233,6 @@ def sanitize_metadata(field: str, max_length: int = 80, default: str = "beloved"
     return cleaned[:max_length] if cleaned else default
 
 def strip_thinking_tags(text: str) -> str:
-    """Removes <think>...</think> reasoning blocks that reasoning models may emit."""
     if "</think>" in text:
         text = text.split("</think>")[-1].strip()
     text = re.sub(r'<think>[\s\S]*?</think>', '', text, flags=re.IGNORECASE)
@@ -265,18 +245,15 @@ def clean_reply_formatting(reply: str) -> str:
     text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
     return text.strip()
 
-# ---------------- Scripture validation (anti-hallucination) ----------------
-# Matches: (John 14:27), (1 Peter 5:7), (Psalm 23:1-3), (Song of Solomon 8:6)
+# ---------------- Scripture validation ----------------
 VERSE_REF_PATTERN = re.compile(
     r'\(\s*(Song\s+of\s+Solomon|(?:[1-3]\s?)?[A-Za-z]+)\s+(\d+:\d+(?:-\d+)?)\s*\)',
     re.IGNORECASE
 )
 
-_VERSE_CACHE = {}  # ref -> bool (exists or not); avoids repeated network calls
+_VERSE_CACHE = {}
 
 def verse_ref_exists(ref: str) -> bool:
-    """Check a reference against bible-api.com (free, no key).
-    Fail-open on network/5xx errors so UX never breaks; fail-closed on 400/404."""
     ref_clean = re.sub(r'\s+', ' ', ref.strip())
     if not ref_clean:
         return True
@@ -291,9 +268,9 @@ def verse_ref_exists(ref: str) -> bool:
             data = json.loads(resp.read().decode("utf-8", errors="replace"))
             ok = ("error" not in data) and bool(data.get("text"))
     except urllib.error.HTTPError as e:
-        ok = False if e.code in (400, 404) else True  # 429/5xx → fail open
+        ok = False if e.code in (400, 404) else True
     except Exception:
-        ok = True  # network down → fail open
+        ok = True
 
     _VERSE_CACHE[ref_clean] = ok
     return ok
@@ -303,7 +280,6 @@ def find_invalid_verse_refs(text: str) -> list:
     return [r for r in refs if not verse_ref_exists(r)]
 
 def strip_invalid_citations(text: str) -> str:
-    """Remove citations that failed validation so we never quote a wrong reference."""
     for m in list(VERSE_REF_PATTERN.finditer(text)):
         full = m.group(0)
         ref = f"{m.group(1)} {m.group(2)}"
@@ -326,8 +302,6 @@ def get_verified_user(request: Request):
     return None, None
 
 def maybe_cleanup_guest_docs(today_str: str):
-    """~2% of requests: delete yesterday's-and-older guest docs so the collection
-    doesn't grow forever. Cheap, eventually-consistent housekeeping."""
     if random.random() > 0.02:
         return
     try:
@@ -344,7 +318,6 @@ def maybe_cleanup_guest_docs(today_str: str):
         logger.debug(f"Guest doc cleanup skipped: {e}")
 
 def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
-    """READ-ONLY check. Consumption happens after successful generation only."""
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     if email and email.lower() == DEVELOPER_EMAIL.lower():
@@ -372,8 +345,6 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
             logger.error(f"Firestore entitlement error (fail-open): {e}")
             return {"allowed": True, "remaining": FREE_DAILY_CREDITS, "tier": "db_fallback"}
 
-   
-    # ---- Guest gate: SURVIVES COLD STARTS (Firestore-backed) ----
     prune_guest_log()
     safe_ip = re.sub(r'[^a-zA-Z0-9.:_-]', '', client_ip) or "unknown"
     guest_doc_id = f"{today_str}_{safe_ip}"
@@ -390,9 +361,7 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
                     "guest_key": guest_doc_id, "guest_ip": client_ip}
         except Exception as e:
             logger.error(f"Guest entitlement error (fail-open to memory): {e}")
-            # fall through to in-memory best effort below
 
-    # Fallback only when Firestore is unavailable
     if GUEST_DAILY_IP_LOG.get(guest_doc_id, 0) >= GUEST_DAILY_CREDITS:
         return {"allowed": False, "remaining": 0, "tier": "guest",
                 "reason": "guest_quota_exhausted"}
@@ -400,7 +369,6 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
             "guest_key": guest_doc_id, "guest_ip": client_ip}
 
 def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
-    """Called ONLY after successful generation. Never burns credits on failures."""
     tier = decision.get("tier")
     try:
         if tier == "guest":
@@ -457,14 +425,20 @@ RESPONSE STYLE & MODE:
 
 CORE GUIDELINES:
 1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
-2. Structure your response into EXACTLY 2 short paragraphs, nothing more:
+2. Structure your primary sanctuary response into EXACTLY 2 short paragraphs, nothing more:
    Paragraph 1: tenderly acknowledge their specific situation in 2-3 sentences.
    Paragraph 2: give ONE Scripture anchor with reference, then close with a 1-sentence spoken blessing.
 3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
 4. SCRIPTURE ACCURACY: Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Prefer widely known passages (e.g., Psalm 23:1, Psalm 34:18, Isaiah 41:10, Matthew 11:28-30, Philippians 4:6-7, John 14:27, 1 Peter 5:7). NEVER invent, guess, or misattribute a reference.
 5. Vary your language naturally for every message; never repeat stock phrases across different questions.
 6. Do NOT output markdown headers (#) or bullet lists.
-7. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
+7. SHARE CARD GENERATION MANDATE:
+   Directly following your 2 sanctuary paragraphs, you MUST append a [CARD]...[/CARD] block formatted as follows:
+   • If interceding for a loved one (another person is named):
+     Inside [CARD]...[/CARD], speak DIRECTLY to that loved one in the second person ("you") as Jesus Christ. Acknowledge their exact situation, upcoming exam, sickness, or decision with intimate divine insight so they feel personally seen. Include a relevant Scripture quotation and reference. Close with a 1-sentence spoken blessing. Total length: 40 to 65 words. NEVER mention the seeker's name, and NEVER say generic clichés like "you are lifted in prayer".
+   • If the seeker is praying for themselves:
+     Inside [CARD]...[/CARD], write a direct universal blessing and Scripture promise in 40 to 60 words, completely free of user names or private chat disclosures.
+8. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
 PSYCHE: <5-8 words summarizing the user's updated emotional state>
 
 Seeker Information:
@@ -531,7 +505,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.6.0",
+        "version": "3.7.0",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -560,7 +534,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     user_intentions = sanitize_metadata(payload.userIntentions, max_length=100, default="Seeking peace")
     selected_mode = payload.mode.lower() if payload.mode and payload.mode.lower() in MODE_INSTRUCTIONS else "comfort"
 
-    # 1. Crisis check FIRST — never paywalled
+    # 1. Crisis check FIRST
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted from IP: {client_ip}")
         return {
@@ -586,7 +560,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "updatedPsyche": user_psyche
         }
 
-    # 3. Inference — fail LOUD, never fake
+    # 3. Inference
     groq_client = get_groq_client()
     if groq_client is None:
         logger.critical("CHAT DEGRADED: GROQ_API_KEY missing at request time.")
@@ -606,7 +580,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 model=model_name,
                 messages=messages,
                 temperature=0.8,
-                max_tokens=700
+                max_tokens=750
             )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if not candidate:
@@ -617,7 +591,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 logger.warning(f"Invalid scripture refs from {model_name}: {invalid_refs}")
                 last_error = f"verse_validation_failed: {invalid_refs}"
                 last_candidate = candidate
-                continue  # retry with next model
+                continue
 
             raw_reply = candidate
             break
@@ -627,8 +601,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             continue
 
     if not raw_reply and last_candidate:
-        # Every model produced suspect citations — strip the invalid ones
-        # so we never quote a possibly-wrong reference.
         logger.warning(f"All verse validations failed ({last_error}); stripping invalid citations.")
         raw_reply = strip_invalid_citations(last_candidate)
 
@@ -640,7 +612,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     # 4. Consume credit ONLY after successful generation
     consume_credit(verified_uid, verified_email, decision)
 
-    # 5. Extract evolving psyche
+    # 5. Extract evolving psyche (keeps [CARD] tag in raw_reply for frontend parsing)
     updated_psyche = user_psyche
     psyche_match = re.search(r'PSYCHE:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
@@ -656,11 +628,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     }
 
 # ---------------- Streaming endpoint (SSE) ----------------
-# Event protocol (each SSE "data:" line is JSON):
-#   {"type":"delta","text":"..."}                       → word-by-word content
-#   {"type":"final","updatedPsyche":"...","remainingCredits":n,"mode":"..."}  → metadata
-#   {"type":"error","error":"...","reply":"..."}        → crisis / paywall / degraded
-#   data: [DONE]                                        → terminator
 @app.post("/api/chat/stream")
 @app.post("/chat/stream")
 async def chat_stream_endpoint(payload: ChatRequest, request: Request):
@@ -692,7 +659,6 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
         "X-Accel-Buffering": "no"
     }
 
-    # Crisis FIRST — never paywalled
     if check_crisis_triggers(raw_message):
         logger.warning(f"Crisis trigger intercepted (stream) from IP: {client_ip}")
         def crisis_stream():
@@ -730,7 +696,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
         pending = ""
         psyche_mode = False
         psyche_accum = ""
-        HOLD = 100  # hold back tail so the PSYCHE line never leaks into visible text
+        HOLD = 100
         try:
             stream = None
             for model_name in get_active_models():
@@ -739,7 +705,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                         model=model_name,
                         messages=messages,
                         temperature=0.8,
-                        max_tokens=700,
+                        max_tokens=750,
                         stream=True
                     )
                     break
@@ -788,7 +754,6 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                     emitted_any = True
                     yield sse({"type": "delta", "text": safe})
 
-            # Flush held-back tail
             if pending:
                 marker = pending.find("PSYCHE:")
                 if marker != -1:
@@ -799,7 +764,6 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                 if safe:
                     yield sse({"type": "delta", "text": safe})
 
-            # Finalize psyche
             updated_psyche = user_psyche
             candidate_psyche = re.sub(r'\s+', ' ', psyche_accum or "").strip()
             if candidate_psyche:
@@ -928,7 +892,6 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
 
         should_activate: Optional[bool] = None
         if event_name == "subscription_updated":
-            # This event fires for pause/cancel/resume too — trust the status field.
             should_activate = status_val in ("active", "on_trial")
         elif event_name in active_events:
             should_activate = True
@@ -939,7 +902,7 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
 
         if should_activate is not None:
             if not user_id:
-                logger.warning("Webhook arrived WITHOUT custom user_id. Include ?checkout[custom][user_id]=<firebase-uid> in your checkout URL.")
+                logger.warning("Webhook arrived WITHOUT custom user_id.")
             elif db:
                 ref = db.collection("users").document(user_id)
                 ref.set({

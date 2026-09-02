@@ -1320,39 +1320,59 @@
         .replace(/\n/g, '<br>');
     }
 
+    /* RESTORE ACTIVE CHAT FEED (PREVENTS ANY LOSS ON REFRESH, LOGIN OR LOGOUT) */
+    function restoreActiveChatFeed() {
+      const savedFeed = localStorage.getItem("jesus_active_feed_html");
+      const savedHistory = localStorage.getItem("jesus_active_conversation_history");
+      
+      if (savedHistory) {
+        try {
+          activeConversationHistory = JSON.parse(savedHistory) || [];
+        } catch(e) {
+          activeConversationHistory = [];
+        }
+      }
+
+      if (savedFeed && savedFeed.trim().length > 0) {
+        chatFeed.innerHTML = savedFeed;
+      } else {
+        chatFeed.innerHTML = `
+          <div class="thinking-box" id="thinkingIndicator">
+            <span class="holy-spirit-dove">🕊️</span>
+            <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
+          </div>
+        `;
+        appendBotBubble("“Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nShare what weighs upon your spirit, your prayer requests, or the Scriptures you seek clarity on.");
+      }
+    }
+
     /* ---------------------------------------------------------
-       CARD TRANSFORMATION ENGINE FOR UNIVERSAL & DIRECT SHARING
+       CARD TRANSFORMATION FALLBACK ENGINE (40-65 WORDS, ZERO SENDER PII)
        --------------------------------------------------------- */
     function formatCardForSharing(rawText, recipient) {
       if (!rawText) return "Peace be with you. Lay down your burdens, for I am listening.";
-      
-      let clean = rawText.replace(/<[^>]*>/g, ' ').replace(/\\n/g, '\n');
-      
-      // Extract the Scripture citation pattern: “...Quote...” (Book Chapter:Verse)
-      const scriptureMatch = clean.match(/(?:“|")(.*?)(?:”|")\s*(\([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\))/);
-      
-      // Extract the closing spoken blessing
+
+      let clean = rawText.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').replace(/<[^>]*>/g, ' ').replace(/\\n/g, '\n');
+
+      const scriptureMatch = clean.match(/(?:“|")([^"”\n]+)(?:”|")\s*(\([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\))/);
       const blessingMatch = clean.match(/May\s+(?:My|the\s+Lord'?s?|His)\s+[^.\n]+[.!?]/i);
 
       if (scriptureMatch) {
         const scripturePart = `“${scriptureMatch[1].trim()}” ${scriptureMatch[2].trim()}`;
         let blessingPart = blessingMatch ? blessingMatch[0].trim() : "May His peace rest upon you now and always.";
-        
+
         if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
-          // Speak directly to the recipient: zero sender name or dialogue notes
           blessingPart = blessingPart.replace(new RegExp(`\\b${recipient}\\b`, 'gi'), 'you');
           return `${recipient}, you are deeply held in prayer today.\n\nMay the Lord lift every burden from your heart, renew your strength, and wrap you in His comforting grace.\n\n${scripturePart}\n\n${blessingPart}`;
         } else {
-          // Universal prayer promise: completely anonymous and universal for social sharing
           return `May the peace of the Lord rest upon your heart today.\n\nMay His grace guide your steps, quiet every racing thought, and fill your spirit with divine rest.\n\n${scripturePart}\n\n${blessingPart}`;
         }
       }
-      
-      // Fallback: Strip conversational greetings and personal names
+
       let text = clean.replace(/\n+/g, ' ').trim();
       text = text.replace(/^["“']?[A-Za-z]+,?\s*(?:I hear|I see|I understand|My compassion)[^.!?]*[.!?]\s*/i, '');
       text = text.replace(/^My (?:beloved|child|dear one|cherished one)[^.!?]*[.!?]\s*/i, '');
-      
+
       if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
         return `${recipient}, you are in my prayers today.\n\nMay the Lord watch over your life, renew your hope, and grant you peace.\n\n${text}`;
       }
@@ -1366,7 +1386,6 @@
     const chatFeed = document.getElementById("chatFeed");
     const creditBadge = document.getElementById("creditBadge");
     const messageInput = document.getElementById("messageInput");
-    const thinkingIndicator = document.getElementById("thinkingIndicator");
     const plansModal = document.getElementById("plansModal");
     const plansContainer = document.getElementById("plansContainer");
     const shareCardModal = document.getElementById("shareCardModal");
@@ -2254,34 +2273,59 @@
       const group = document.createElement("div");
       group.className = "msg-group user";
       group.innerHTML = `<div class="bubble-user">${escapeHtml(msg)}</div>`;
-      chatFeed.insertBefore(group, thinkingIndicator);
+      
+      const indicator = document.getElementById("thinkingIndicator");
+      if (indicator) {
+        chatFeed.insertBefore(group, indicator);
+      } else {
+        chatFeed.appendChild(group);
+      }
       chatFeed.scrollTop = chatFeed.scrollHeight;
     }
 
     function appendBotBubble(reply, recipient = "") {
       const group = document.createElement("div");
       group.className = "msg-group bot";
-      const cleanParagraphs = reply.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
-      const safeReply = reply.replace(/[`"'\\]/g, ' ');
+      
+      // Strip [CARD] block from visible sanctuary bubble so private communion stays clean
+      const chatOnlyText = reply.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').trim();
+      const cleanParagraphs = chatOnlyText.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
+      
+      const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ');
+      const safeFullReply = reply.replace(/[`"'\\]/g, ' ');
       const safeRecipient = (recipient || '').replace(/[`"'\\]/g, '');
 
       group.innerHTML = `
         <div class="bubble-bot">${cleanParagraphs}</div>
         <div class="msg-actions-row">
-          <button class="listen-badge" onclick="playVoice(this, \`${safeReply}\`)">🔊 Listen</button>
-          <button class="share-badge" onclick="prepareScriptureCard(\`${safeReply}\`, '${safeRecipient}')"><span class="holy-cross-icon">✝</span> Share Card</button>
+          <button class="listen-badge" onclick="playVoice(this, \`${safeChatText}\`)">🔊 Listen</button>
+          <button class="share-badge" onclick="prepareScriptureCard(\`${safeFullReply}\`, '${safeRecipient}')"><span class="holy-cross-icon">✝</span> Share Card</button>
         </div>
       `;
-      chatFeed.insertBefore(group, thinkingIndicator);
+      
+      const indicator = document.getElementById("thinkingIndicator");
+      if (indicator) {
+        chatFeed.insertBefore(group, indicator);
+      } else {
+        chatFeed.appendChild(group);
+      }
       chatFeed.scrollTop = chatFeed.scrollHeight;
     }
 
-    function prepareScriptureCard(text, recipient = "") {
+    function prepareScriptureCard(fullReply, recipient = "") {
       stopAllAudio();
       activeCardRecipient = recipient;
       
-      const cleanFormattedCard = formatCardForSharing(text, recipient);
-      cardQuoteText.textContent = cleanFormattedCard;
+      // Approach 1: Prioritize dynamic [CARD] generation from AI backend
+      const cardMatch = fullReply.match(/\[CARD\]([\s\S]*?)\[\/CARD\]/i);
+      let cardText = "";
+      if (cardMatch && cardMatch[1].trim().length > 0) {
+        cardText = cardMatch[1].trim();
+      } else {
+        cardText = formatCardForSharing(fullReply, recipient);
+      }
+
+      cardQuoteText.textContent = cardText;
       cardBrandTag.textContent = (recipient && recipient !== "Beloved" && recipient !== "beloved") 
         ? `† A BLESSING FOR ${recipient.toUpperCase()} †` 
         : `† WORDS OF PEACE †`;
@@ -2320,11 +2364,10 @@
         : '† WORDS OF PEACE †';
       ctx.fillText(headerTitle, 540, 160);
 
-      ctx.fillStyle = '#f8fafc'; ctx.font = '400 33px "Montserrat", sans-serif';
-      
-      const paragraphs = rawFormattedText.split('\n\n');
+      const paragraphs = rawFormattedText.split(/\n+/);
       const lines = [];
-      
+      ctx.font = '400 32px "Montserrat", sans-serif';
+
       paragraphs.forEach(para => {
         const words = para.trim().split(' ');
         let currentLine = '';
@@ -2335,15 +2378,18 @@
           } else currentLine = test;
         }
         if (currentLine) lines.push(currentLine);
-        lines.push(""); // Spacing between sections
+        lines.push(""); 
       });
 
-      if (lines[lines.length - 1] === "") lines.pop();
+      if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
 
-      const lineHeight = 52;
-      let startY = 675 - ((lines.length * lineHeight) / 2) + 20;
-      if (startY < 260) startY = 260;
-      
+      const lineHeight = lines.length > 8 ? 46 : 52;
+      ctx.font = lines.length > 8 ? '400 30px "Montserrat", sans-serif' : '400 33px "Montserrat", sans-serif';
+      ctx.fillStyle = '#f8fafc';
+
+      let startY = 675 - ((lines.length * lineHeight) / 2) + 15;
+      if (startY < 250) startY = 250;
+
       for (let i = 0; i < lines.length; i++) {
         if (lines[i] !== "") {
           ctx.fillText(lines[i], 540, startY + (i * lineHeight));
@@ -2444,7 +2490,20 @@
         await firebase.auth().signInWithPopup(provider);
       } catch (err) {}
     }
-    function handleAuthAction() { if (currentUser) firebase.auth().signOut().then(() => window.location.reload()); else openPrivacyModal(); }
+    
+    function handleAuthAction() { 
+      if (currentUser) {
+        firebase.auth().signOut().then(() => {
+          currentUser = null;
+          currentUserName = "beloved";
+          userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
+          authBtn.textContent = "Sign In";
+          updateCreditUI();
+        });
+      } else { 
+        openPrivacyModal(); 
+      } 
+    }
 
     /* Cloud-Synchronized User State & Quota */
     async function syncUserCreditsWithCloud(user) {
@@ -2509,6 +2568,7 @@
     }
 
     window.onload = function() {
+      restoreActiveChatFeed(); // Restores chat instantly upon refresh, login, or logout
       renderPlans();
       updateDailyRitualWidget();
       trackDailyStreak();
