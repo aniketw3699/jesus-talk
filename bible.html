@@ -316,7 +316,7 @@
       if (!rawText) return "";
       let text = rawText.replace(/<[^>]*>/g, ' ');
       text = text.replace(/✝|📿|🕊️|📖|📜|🌅|✨|💔|🤝|💼|🧭|🌿|🛡️/g, '');
-      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\)?/g, (m, b, c, v) => `... ${b.trim()}, chapter ${c}, verse ${v}. ... `);
+      text = text.replace(/\(?\b(\d?\s*[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?\)?/g, (m, b, c, v) => `... ${b.trim()}, chapter ${c}, verse ${v}. ... `);
       text = text.replace(/[—–]/g, ', ').replace(/”|"/g, ' ... ').replace(/“/g, ' ');
       text = text.replace(/\.\s+/g, '. ... ').replace(/;\s+/g, '; ... ').replace(/:\s+/g, ': ... ');
       return text.replace(/\s+/g, ' ').trim();

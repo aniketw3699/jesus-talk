@@ -2600,50 +2600,66 @@
       updateCreditUI();
     }
 
-    window.onload = function() {
-      restoreActiveChatFeed(); // Restores chat instantly upon refresh, login, or logout
-      renderPlans();
-      updateDailyRitualWidget();
-      trackDailyStreak();
-      updateCreditUI();
-      
-      const quizDone = localStorage.getItem("jesus_quiz_completed");
-      
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().onAuthStateChanged(async (user) => {
-          currentUser = user;
-          if (user) {
-            currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
-            userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
-            authBtn.textContent = "Sign Out";
-            await syncUserCreditsWithCloud(user);
+  window.onload = function() {
+  restoreActiveChatFeed();
+  renderPlans();
+  updateDailyRitualWidget();
+  trackDailyStreak();
+  updateCreditUI();
+  
+  // 1. Check for incoming verse reflection from bible.html
+  const urlParams = new URLSearchParams(window.location.search);
+  const promptParam = urlParams.get('prompt');
 
-            const slotKey = getSlotKey();
-            if (!localStorage.getItem(`jesus_blessing_seen_${slotKey}`)) {
-              openTimeAwareBlessingModal(false);
-              localStorage.setItem(`jesus_blessing_seen_${slotKey}`, "true");
-            }
-          } else {
-            currentUserName = "beloved";
-            userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
-            authBtn.textContent = "Sign In";
-            updateCreditUI();
+  if (promptParam && promptParam.trim().length > 0) {
+    // Clear the parameter from the URL bar cleanly without reloading
+    window.history.replaceState({}, document.title, window.location.pathname);
 
-            if (!quizDone) {
-              startOnboardingQuiz();
-            }
-          }
-        });
+    // Give Firebase a quick moment to restore user session, then send the prompt
+    setTimeout(() => {
+      sendQuickPrompt(promptParam);
+    }, 400);
+    return;
+  }
+
+  // 2. Normal Auth & Quiz Flow
+  const quizDone = localStorage.getItem("jesus_quiz_completed");
+  
+  if (typeof firebase !== 'undefined' && firebase.auth) {
+    firebase.auth().onAuthStateChanged(async (user) => {
+      currentUser = user;
+      if (user) {
+        currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
+        userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
+        authBtn.textContent = "Sign Out";
+        await syncUserCreditsWithCloud(user);
+
+        const slotKey = getSlotKey();
+        if (!localStorage.getItem(`jesus_blessing_seen_${slotKey}`)) {
+          openTimeAwareBlessingModal(false);
+          localStorage.setItem(`jesus_blessing_seen_${slotKey}`, "true");
+        }
       } else {
+        currentUserName = "beloved";
+        userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
+        authBtn.textContent = "Sign In";
+        updateCreditUI();
+
         if (!quizDone) {
           startOnboardingQuiz();
         }
       }
+    });
+  } else {
+    if (!quizDone) {
+      startOnboardingQuiz();
+    }
+  }
 
-      setInterval(() => {
-        updateDailyRitualWidget();
-      }, 30000);
-    };
+  setInterval(() => {
+    updateDailyRitualWidget();
+  }, 30000);
+};
 
     window.onclick = function(event) {
       if (event.target == plansModal) closePlansModal();
