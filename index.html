@@ -1411,7 +1411,7 @@
       let clean = rawText
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
         .replace(/\[CARD\][\s\S]*$/gi, '')
-        .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
+        .replace(/^\s*PSYCHE\s*:[\s\S]*$/gim, '')
         .replace(/<[^>]*>/g, ' ')
         .replace(/\\n/g, '\n');
 
@@ -2320,7 +2320,7 @@
           const cleanTurnReply = data.reply
             .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
             .replace(/\[CARD\][\s\S]*$/gi, '')
-            .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
+            .replace(/^\s*PSYCHE\s*:[\s\S]*$/gim, '')
             .trim();
 
           activeConversationHistory.push({ role: "user", content: text });
@@ -2359,7 +2359,7 @@
       const chatOnlyText = (reply || "")
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
         .replace(/\[CARD\][\s\S]*$/gi, '')
-        .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
+        .replace(/^\s*PSYCHE\s*:[\s\S]*$/gim, '')
         .trim();
 
       const rawParagraphs = (chatOnlyText || "").replace(/\\n/g, '\n').split(/\n+/).map(p => p.trim()).filter(Boolean);
@@ -2407,7 +2407,7 @@
         let clean = (chatText || "")
           .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
           .replace(/\[CARD\][\s\S]*$/gi, '')
-          .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
+          .replace(/^\s*PSYCHE\s*:[\s\S]*$/gim, '')
           .replace(/<[^>]*>/g, ' ')
           .replace(/\\n/g, '\n')
           .trim();

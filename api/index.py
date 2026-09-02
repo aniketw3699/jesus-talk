@@ -558,10 +558,9 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
 
     consume_credit(verified_uid, verified_email, decision)
-
-    # 1. Reliably extract Psyche FIRST before card extraction can swallow it
+    # 1. Reliably extract Psyche using an anchored line match
     updated_psyche = user_psyche
-    psyche_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*([^\n]*)$', raw_reply, re.IGNORECASE | re.MULTILINE)
+    psyche_match = re.search(r'^\s*PSYCHE\s*:\s*(.+)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
         extracted = psyche_match.group(1).strip()
         if extracted:
@@ -572,13 +571,13 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
     if card_match:
         card_text = card_match.group(1).strip()
-        card_text = re.sub(r'\b(?:PSYCHE|PSYCH|PSYC|PSY)\s*:[^\n]*', '', card_text, flags=re.IGNORECASE)
+        card_text = re.sub(r'^\s*PSYCHE\s*:.*$', '', card_text, flags=re.IGNORECASE | re.MULTILINE)
         card_text = card_text.replace('[/CARD]', '').replace('[CARD]', '')
         card_text = re.sub(r'\n{3,}', '\n\n', card_text).strip()
         raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
-    # 3. Purge all trailing metadata variants from final sanctuary chat output
-    raw_reply = re.sub(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*.*$', '', raw_reply, flags=re.IGNORECASE | re.DOTALL).strip()
+    # 3. Purge ONLY the PSYCHE line, leaving real words like "psychologist" intact
+    raw_reply = re.sub(r'^\s*PSYCHE\s*:.*$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
 
     return {
         "reply": clean_reply_formatting(raw_reply),
@@ -696,7 +695,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                 delta = delta.replace("\\n", "\n")
                 pending += delta
 
-                psyche_marker_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*', pending, re.IGNORECASE)
+                psyche_marker_match = re.search(r'(?:\n|^)\s*PSYCHE\s*:', pending, re.IGNORECASE)
                 if psyche_marker_match:
                     psyche_mode = True
                     psyche_accum = pending[psyche_marker_match.start():]
@@ -713,7 +712,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                     yield sse({"type": "delta", "text": safe})
 
             if pending:
-                psyche_marker_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*', pending, re.IGNORECASE)
+                psyche_marker_match = re.search(r'(?:\n|^)\s*PSYCHE\s*:', pending, re.IGNORECASE)
                 if psyche_marker_match:
                     safe = pending[:psyche_marker_match.start()]
                     psyche_accum += pending[psyche_marker_match.start():]
@@ -723,7 +722,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                     yield sse({"type": "delta", "text": safe})
 
             updated_psyche = user_psyche
-            candidate_psyche = re.sub(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*', '', psyche_accum or "", flags=re.IGNORECASE).strip()
+            candidate_psyche = re.sub(r'^\s*PSYCHE\s*:\s*', '', psyche_accum or "", flags=re.IGNORECASE | re.MULTILINE).strip()
             if candidate_psyche:
                 updated_psyche = sanitize_metadata(candidate_psyche, max_length=80, default=user_psyche)
 
