@@ -70,7 +70,7 @@
         <ul>
           <li><strong>Local Device Storage:</strong> Your full conversational feed, journal archives, and intake selections remain stored directly within your device's browser (<code>localStorage</code>). You retain complete authority to wipe this history anytime with one click.</li>
           <li><strong>Ephemeral Sanctuary & Confessions:</strong> Prayers submitted in the chat and burdens released in the Gethsemane Surrender tool are processed ephemerally over encrypted TLS connections. They dissolve immediately upon output and are never logged, inspected, or used to train artificial intelligence models.</li>
-          <li><strong>Anonymous Quotas & Abuse Prevention:</strong> To enforce daily prayer limits for guests and shield our sanctuary against automated abuse, transient client IP addresses are temporarily recorded in a rate-limiting registry (<code>guest_usage</code>) and purged routinely.</li>
+          <li><strong>Anonymous Quotas & Abuse Prevention:</strong> To enforce daily prayer limits for guests and shield our sanctuary against automated abuse, transient client IP addresses are temporarily recorded in a rate-limiting registry (<code>guest_usage</code>) keyed to each calendar day, after which past daily entries remain inert.</li>
           <li><strong>Account & Spiritual Walk Metrics:</strong> If you sign in via Google Authentication, we securely sync high-level non-confessional journey attributes—such as your prayer habit streak, persistent prayer intentions, an AI-derived spiritual state summary (e.g., "seeking peace"), and active subscription status—strictly to maintain continuity across your devices.</li>
         </ul>
       </section>
