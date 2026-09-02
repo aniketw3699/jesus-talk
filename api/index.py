@@ -157,24 +157,21 @@ def prune_guest_log():
 
 # ---------------- Crisis Protocol ----------------
 CRISIS_PATTERNS = [
-    r"\bkill(?:ing)?\s+(?:my\s?self|me)\b",
+    r"\bkill(?:ing)?\s+my\s?self\b",
     r"\b(?:take|end|destroy)\s+(?:my\s+own\s+life|my\s+life|it\s+all)\b",
-    r"\b(hang|slit|shoot|overdose|poison|drown)\s+(?:my\s?self|me)\b",
+    r"\b(hang|slit|shoot|overdose|poison|drown)\s+my\s?self\b",
     r"\bself[- ]?harm(?:ing)?\b",
-    r"\bcut(?:ting)?\s+(?:my\s?self|me)\b",
-    r"\bhurt(?:ing)?\s+(?:my\s?self|me)\b",
-    r"\bunalive\s+(?:my\s?self|me)\b",
+    r"\bcut(?:ting)?\s+my\s?self\b",
+    r"\bhurt(?:ing)?\s+my\s?self\b",
+    r"\bunalive\s+my\s?self\b",
     r"\b(suicide|suicidal|suicidality)\b",
     r"\b(?:want|wanna|wish)\s+to\s+(?:die|be\s+dead|disappear|not\s+wake\s+up)\b",
     r"\bwanna\s+(?:die|end\s+it)\b",
     r"\bdon'?t\s+want\s+to\s+(?:live|wake\s+up|exist|be\s+alive|be\s+here|go\s+on)\b",
     r"\bcan'?t\s+go\s+on(?:\s+anymore)?\b",
-    r"\bcan'?t\s+(?:take|bear|survive|handle|stand)\s+(?:this|it|life|anymore)\b",
     r"\bbetter\s+off\s+(?:dead|without\s+me|gone)\b",
     r"\bno\s+(?:reason|point|will|purpose)\s+(?:to\s+live|in\s+living|to\s+go\s+on|to\s+stay\s+alive|to\s+keep\s+going)\b",
     r"\bnot\s+worth\s+living\b",
-    r"\bwant\s+this\s+pain\s+to\s+end\b",
-    r"\beveryone\s+(?:would\s+be\s+)?better\s+off\b",
     r"\bready\s+to\s+(?:die|give\s+up\s+on\s+everything|end\s+it\s+all)\b"
 ]
 
