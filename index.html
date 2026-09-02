@@ -1098,6 +1098,7 @@
       "“Do not be anxious about anything, but in every situation, by prayer and petition, with thanksgiving, present your requests to God.” (Philippians 4:6)\n\nShare what weighs upon your spirit, your prayer requests, or the Scriptures you seek clarity on.",
       "“The Lord is my shepherd; I shall not want. He makes me lie down in green pastures. He leads me beside still waters.” (Psalm 23:1-2)\n\nShare what weighs upon your spirit, your prayer requests, or the Scriptures you seek clarity on."
     ];
+
     const WORDLESS_PRAYER_POOL = [
       "Lord Jesus, I have no words right now — only this heavy silence in my spirit. You know what I cannot put into speech. Speak Your stillness over my heart. (Romans 8:26)",
       "Holy Spirit, intercede for me with groanings too deep for words. Breathe Your comfort into my soul and quiet every racing thought. (Romans 8:26)",
@@ -1176,7 +1177,6 @@
         : `jesus_blessing_seen_guest_${slotKey}`;
 
       if (!localStorage.getItem(storageKey) || force) {
-        // Prevent interrupting if user is in confessional or viewing share card
         const isBusy = (shareCardModal && shareCardModal.style.display === "flex") ||
                        (confessionalModal && confessionalModal.style.display === "flex");
         if (!isBusy) {
@@ -1672,7 +1672,7 @@
       let totalScriptures = 0;
 
       sessions.forEach(s => {
-        s.turns.forEach(t => {
+        (s.turns || []).forEach(t => {
           if (t.user) totalPrayers++;
           if (t.bot) {
             const matches = t.bot.match(/\([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\)/g);
@@ -1723,7 +1723,7 @@
         journalEntriesList.innerHTML = sessions.map((session) => `
           ${session.showDivider ? `<div class="journal-date-divider"><span class="journal-date-pill">${escapeHtml(session.sessionTime)}</span></div>` : ''}
           <div class="journal-card">
-            ${session.turns.map(turn => `
+            ${(session.turns || []).map(turn => `
               <div class="journal-entry-block">
                 <span class="journal-entry-label user-label">You</span>
                 <p class="journal-entry-text">${escapeHtml(turn.user)}</p>
@@ -1882,6 +1882,7 @@
       surrenderedPeaceCard.style.display = "none";
       surrenderBtn.style.display = "flex";
       surrenderBtn.disabled = false;
+      surrenderBtn.onclick = executeSacredSurrender;
       surrenderBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Surrender to the Cross`;
       confessionalModal.style.display = "flex";
       setTimeout(() => confessionInput.focus(), 150);
@@ -2291,6 +2292,12 @@
         const data = await res.json();
         showThinking(false);
 
+        if (!res.ok) {
+          const errDetail = (data && (data.detail || data.reply || data.error)) || "A momentary pause occurred. Please take a breath and try again.";
+          appendBotBubble(errDetail, turnRecipient);
+          return;
+        }
+
         if (data.error === "AUTH_REQUIRED") {
           appendBotBubble(data.reply, turnRecipient, data.cardText || "");
           localStorage.setItem("jesus_guest_interaction_used", "true");
@@ -2355,7 +2362,6 @@
       const group = document.createElement("div");
       group.className = "msg-group bot";
       
-      // Dual-safety: completely purge any [CARD] blocks or truncated PSYCH/PSYC leaks
       const chatOnlyText = (reply || "")
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
         .replace(/\[CARD\][\s\S]*$/gi, '')
@@ -2365,8 +2371,8 @@
       const rawParagraphs = (chatOnlyText || "").replace(/\\n/g, '\n').split(/\n+/).map(p => p.trim()).filter(Boolean);
       const cleanParagraphs = rawParagraphs.map(p => `<p>${formatMarkdown(p)}</p>`).join("");
       
-      const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ');
-      const safeCardText = (cardText || '').replace(/[`"'\\]/g, ' ');
+      const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ').replace(/\$/g, '&#36;');
+      const safeCardText = (cardText || '').replace(/[`"'\\]/g, ' ').replace(/\$/g, '&#36;');
       const safeRecipient = (recipient || '').replace(/[`"'\\]/g, '');
 
       group.innerHTML = `
@@ -2394,11 +2400,8 @@
       let cardText = "";
 
       if (explicitCardText && explicitCardText.trim().length > 0) {
-        // FIX (PSYCHE card leak): server cardText was rendered verbatim, so leaked internal
-        // state tags (e.g. "PSYCHE: Anu feels anchored...") appeared on the share card.
-        // Sanitize the same way the chat path is sanitized — never trust model output.
         cardText = explicitCardText
-          .replace(/\b(?:PSYCHE|PSYCH|PSYC|PSY)\s*:[^\n]*/gi, '')
+          .replace(/^\s*PSYCHE\s*:.*$/gim, '')
           .replace(/\[\/?CARD\]/gi, '')
           .replace(/<[^>]*>/g, ' ')
           .replace(/\n{3,}/g, '\n\n')
@@ -2457,8 +2460,6 @@
       ctx.strokeStyle = 'rgba(212, 175, 55, 0.28)'; ctx.lineWidth = 1.5;
       ctx.strokeRect(58, 58, 964, 1234);
 
-      // 1. Header Font Size (up from 28px)
-      // 1. Header Styling
       ctx.fillStyle = '#dfb455'; 
       ctx.font = '700 32px "Cinzel", serif'; 
       ctx.textAlign = 'center';
@@ -2467,7 +2468,6 @@
         : '† WORDS OF PEACE †';
       ctx.fillText(headerTitle, 540, 160);
 
-      // 2. Dynamic Sizing Matching the Reference Post
       const totalChars = rawFormattedText.length;
       const targetFontSize = totalChars > 280 ? 44 : 48;
       const lineHeight = totalChars > 280 ? 68 : 74;
@@ -2495,7 +2495,6 @@
 
       if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
 
-      // 3. Perfect Vertical Centering
       ctx.fillStyle = '#f8fafc';
       const totalBlockHeight = lines.length * lineHeight;
       let startY = 675 - (totalBlockHeight / 2) + (lineHeight / 2);
@@ -2507,7 +2506,6 @@
         }
       }
 
-      // 4. Footer Watermark
       ctx.fillStyle = '#dfb455'; 
       ctx.font = '600 21px "Cinzel", serif';
       ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
@@ -2608,6 +2606,8 @@
       if (currentUser) {
         firebase.auth().signOut().then(() => {
           currentUser = null;
+          isSubscribed = false;
+          userCredits = 5;
           currentUserName = "beloved";
           userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
           authBtn.textContent = "Sign In";
@@ -2634,6 +2634,17 @@
             const data = doc.data();
             userCredits = data.credits !== undefined ? data.credits : 5;
             isSubscribed = data.isSubscribed || false;
+
+            if (!isSubscribed && data.passExpiresAt) {
+              try {
+                const expDate = data.passExpiresAt.toDate 
+                  ? data.passExpiresAt.toDate() 
+                  : new Date(data.passExpiresAt);
+                if (expDate > new Date()) {
+                  isSubscribed = true;
+                }
+              } catch (e) {}
+            }
 
             if (data.psyche) {
               currentPsyche = data.psyche;
@@ -2715,6 +2726,9 @@
               checkAndTriggerTimeSlotBlessing(false);
             }
           } else {
+            currentUser = null;
+            isSubscribed = false;
+            userCredits = 5;
             currentUserName = "beloved";
             userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
@@ -2758,7 +2772,7 @@
         updateDailyRitualWidget();
         checkTimeSlotTransition();
       }, 30000);
-    }; // <-- Closes window.onload
+    };
 
     window.onclick = function(event) {
       if (event.target == plansModal) closePlansModal();
