@@ -2600,66 +2600,87 @@
       updateCreditUI();
     }
 
-  window.onload = function() {
-  restoreActiveChatFeed();
-  renderPlans();
-  updateDailyRitualWidget();
-  trackDailyStreak();
-  updateCreditUI();
-  
-  // 1. Check for incoming verse reflection from bible.html
-  const urlParams = new URLSearchParams(window.location.search);
-  const promptParam = urlParams.get('prompt');
+  let pendingBiblePrompt = null;
+    let authHasResolved = false;
 
-  if (promptParam && promptParam.trim().length > 0) {
-    // Clear the parameter from the URL bar cleanly without reloading
-    window.history.replaceState({}, document.title, window.location.pathname);
+      window.onload = function() {
+      restoreActiveChatFeed();
+      renderPlans();
+      updateDailyRitualWidget();
+      trackDailyStreak();
+      updateCreditUI();
+      
+      // 1. Capture incoming verse reflection parameter and clean the URL immediately
+      const urlParams = new URLSearchParams(window.location.search);
+      const promptParam = urlParams.get('prompt');
 
-    // Give Firebase a quick moment to restore user session, then send the prompt
-    setTimeout(() => {
-      sendQuickPrompt(promptParam);
-    }, 400);
-    return;
-  }
+      if (promptParam && promptParam.trim().length > 0) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        pendingBiblePrompt = promptParam;
+      }
 
-  // 2. Normal Auth & Quiz Flow
-  const quizDone = localStorage.getItem("jesus_quiz_completed");
-  
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    firebase.auth().onAuthStateChanged(async (user) => {
-      currentUser = user;
-      if (user) {
-        currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
-        userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
-        authBtn.textContent = "Sign Out";
-        await syncUserCreditsWithCloud(user);
+      const quizDone = localStorage.getItem("jesus_quiz_completed");
+      
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().onAuthStateChanged(async (user) => {
+          currentUser = user;
+          authHasResolved = true;
 
-        const slotKey = getSlotKey();
-        if (!localStorage.getItem(`jesus_blessing_seen_${slotKey}`)) {
-          openTimeAwareBlessingModal(false);
-          localStorage.setItem(`jesus_blessing_seen_${slotKey}`, "true");
-        }
+          if (user) {
+            currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
+            userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
+            authBtn.textContent = "Sign Out";
+            await syncUserCreditsWithCloud(user);
+
+            const slotKey = getSlotKey();
+            if (!localStorage.getItem(`jesus_blessing_seen_${slotKey}`) && !pendingBiblePrompt) {
+              openTimeAwareBlessingModal(false);
+              localStorage.setItem(`jesus_blessing_seen_${slotKey}`, "true");
+            }
+          } else {
+            currentUserName = "beloved";
+            userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
+            authBtn.textContent = "Sign In";
+            updateCreditUI();
+
+            if (!quizDone && !pendingBiblePrompt) {
+              startOnboardingQuiz();
+            }
+          }
+
+          // 2. Safely execute pending Bible prompt AFTER auth state has fully resolved
+          if (pendingBiblePrompt) {
+            const promptToSent = pendingBiblePrompt;
+            pendingBiblePrompt = null;
+            setTimeout(() => {
+              sendQuickPrompt(promptToSent);
+            }, 200);
+          }
+        });
       } else {
-        currentUserName = "beloved";
-        userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
-        authBtn.textContent = "Sign In";
-        updateCreditUI();
-
-        if (!quizDone) {
+        authHasResolved = true;
+        if (pendingBiblePrompt) {
+          const promptToSent = pendingBiblePrompt;
+          pendingBiblePrompt = null;
+          sendQuickPrompt(promptToSent);
+        } else if (!quizDone) {
           startOnboardingQuiz();
         }
       }
-    });
-  } else {
-    if (!quizDone) {
-      startOnboardingQuiz();
-    }
-  }
 
-  setInterval(() => {
-    updateDailyRitualWidget();
-  }, 30000);
-};
+      // Safety fallback: if Firebase auth takes longer than 1.5s, send prompt anyway
+      setTimeout(() => {
+        if (pendingBiblePrompt && !authHasResolved) {
+          const promptToSent = pendingBiblePrompt;
+          pendingBiblePrompt = null;
+          sendQuickPrompt(promptToSent);
+        }
+      }, 1500);
+
+      setInterval(() => {
+        updateDailyRitualWidget();
+      }, 30000);
+    };
 
     window.onclick = function(event) {
       if (event.target == plansModal) closePlansModal();
