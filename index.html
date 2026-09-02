@@ -197,7 +197,7 @@
       box-shadow: 0 6px 22px rgba(90, 65, 20, 0.12); border: 1px solid rgba(184, 134, 40, 0.3);
       border-left: 4px solid var(--gold-vivid); word-break: break-word;
     }
-    .bubble-bot p + p { margin-top: 10px; }
+    .bubble-bot p + p { margin-top: 14px; }
 
     .msg-actions-row { margin-top: 7px; display: flex; align-items: center; gap: 8px; }
     .listen-badge, .share-badge {
@@ -2318,7 +2318,8 @@
         .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
         .trim();
 
-      const cleanParagraphs = chatOnlyText.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
+      const rawParagraphs = (chatOnlyText || "").replace(/\\n/g, '\n').split(/\n+/).map(p => p.trim()).filter(Boolean);
+      const cleanParagraphs = rawParagraphs.map(p => `<p>${formatMarkdown(p)}</p>`).join("");
       
       const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ');
       const safeCardText = (cardText || '').replace(/[`"'\\]/g, ' ');
