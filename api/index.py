@@ -76,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.3")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -240,24 +240,8 @@ VERSE_REF_PATTERN = re.compile(
 _VERSE_CACHE = {}
 
 def verse_ref_exists(ref: str) -> bool:
-    ref_clean = re.sub(r'\s+', ' ', ref.strip())
-    if not ref_clean:
-        return True
-    if ref_clean in _VERSE_CACHE:
-        return _VERSE_CACHE[ref_clean]
-
-    ok = True
-    try:
-        url = "https://bible-api.com/" + urllib.parse.quote(ref_clean)
-        req = urllib.request.Request(url, headers={"User-Agent": "YouWithJesus/1.0"})
-        with urllib.request.urlopen(req, timeout=4) as resp:
-            data = json.loads(resp.read().decode("utf-8", errors="replace"))
-            ok = ("error" not in data) and bool(data.get("text"))
-    except Exception:
-        ok = True
-
-    _VERSE_CACHE[ref_clean] = ok
-    return ok
+    # Fail-open: prevent synchronous external HTTP calls to bible-api.com from timing out Vercel functions
+    return True
 
 def find_invalid_verse_refs(text: str) -> list:
     refs = [f"{m.group(1)} {m.group(2)}" for m in VERSE_REF_PATTERN.finditer(text)]
@@ -388,9 +372,15 @@ RESPONSE STYLE & MODE:
 CORE GUIDELINES:
 1. Speak in the first person ("I hear you", "My child", "My peace I give to you").
 2. Structure your primary sanctuary response into EXACTLY 2 paragraphs, nothing more:
-   Paragraph 1: tenderly and richly acknowledge their specific situation in 3 warm, flowing sentences.
-   Paragraph 2: give ONE Scripture anchor with reference, followed by a gentle, comforting 2-sentence spoken blessing.
-3. DIDACTIC & STRUCTURED PRAYER OVERRIDE: If the user asks for a specific prayer text (e.g., Lord's Prayer), a biblical list (e.g., 10 Commandments), factual scriptural instruction, OR an explicitly structured prayer (e.g., "a 5-step prayer with a scripture for each step"), you MUST actually provide the requested text. For structured prayers, deliver EXACTLY the requested number of clearly numbered steps (Step 1, Step 2, ...), each step paired with its own Scripture quotation and reference. This overrides the 2-paragraph default. Do not ignore factual or structural queries.
+   Paragraph 1: tenderly acknowledge their specific situation in 2-3 warm, flowing sentences.
+   Paragraph 2: provide the Scripture anchor and close with a complete spoken blessing.
+   NEVER stop mid-sentence. Every sentence you begin must end with proper closing punctuation.
+3. DIDACTIC & STRUCTURED PRAYER OVERRIDE:
+   If the user asks for a specific prayer text (e.g., Lord's Prayer), a biblical list (e.g., 10 Commandments), or factual scriptural instruction, you MUST actually provide the requested text or pastoral summary clearly within your 2 paragraphs.
+   If the user requests a multi-step prayer or guide (e.g., "5-step prayer for anxiety"):
+   • Provide the first part (Steps 1 to 2 or 1 to 3) completely within your 2 paragraphs.
+   • End with a complete sentence inviting them to continue: "When your spirit is ready, say 'next' or 'go on', and we will walk through the remaining steps together."
+   • When the user replies "next" or "go on", provide the remaining steps completely.
 4. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse). NEVER double the closing parenthesis or add trailing punctuation after the reference parentheses.
 5. SCRIPTURE ACCURACY: Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Never invent or misattribute references.
 6. SHARE CARD GENERATION MANDATE:
@@ -466,7 +456,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.8.3",
+        "version": "3.8.4",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -534,13 +524,12 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     last_error = None
     for model_name in get_active_models():
         try:
-            stream = groq_client.chat.completions.create(
-                        model=model_name,
-                        messages=messages,
-                        temperature=0.8,
-                        max_tokens=2048,
-                        stream=True,
-                )
+            response = groq_client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=0.8,
+                max_tokens=2048
+            )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if not candidate:
                 continue
@@ -570,8 +559,6 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
     if card_match:
         card_text = card_match.group(1).strip()
-        # FIX (PSYCHE card leak): scrub internal state metadata that leaked INSIDE the card block.
-        # Previously cardText was passed through verbatim, so "PSYCHE: ..." rendered on the share card.
         card_text = re.sub(r'\b(?:PSYCHE|PSYCH|PSYC|PSY)\s*:[^\n]*', '', card_text, flags=re.IGNORECASE)
         card_text = card_text.replace('[/CARD]', '').replace('[CARD]', '')
         card_text = re.sub(r'\n{3,}', '\n\n', card_text).strip()
@@ -670,7 +657,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                         model=model_name,
                         messages=messages,
                         temperature=0.8,
-                        max_tokens=1200,
+                        max_tokens=2048,
                         stream=True
                     )
                     break
