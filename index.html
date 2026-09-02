@@ -1363,7 +1363,11 @@
     function formatCardForSharing(rawText, recipient) {
       if (!rawText) return "Peace be with you. Lay down your burdens, for I am listening.";
 
-      let clean = rawText.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').replace(/<[^>]*>/g, ' ').replace(/\\n/g, '\n');
+      let clean = rawText
+        .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
+        .replace(/\[CARD\][\s\S]*$/gi, '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\\n/g, '\n');
 
       const scriptureMatch = clean.match(/(?:“|")([^"”\n]+)(?:”|")\s*(\([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\))/);
       const blessingMatch = clean.match(/May\s+(?:My|the\s+Lord'?s?|His)\s+[^.\n]+[.!?]/i);
@@ -2267,7 +2271,10 @@
             updateCreditUI();
           }
 
-          const cleanTurnReply = data.reply.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').trim();
+          const cleanTurnReply = data.reply
+            .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
+            .replace(/\[CARD\][\s\S]*$/gi, '')
+            .trim();
           activeConversationHistory.push({ role: "user", content: text });
           activeConversationHistory.push({ role: "assistant", content: cleanTurnReply });
 
@@ -2300,8 +2307,12 @@
       const group = document.createElement("div");
       group.className = "msg-group bot";
       
-      // Dual-safety: completely purge any [CARD] block from the chat bubble
-      const chatOnlyText = reply.replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '').trim();
+      // Dual-safety: strip both closed [CARD]...[/CARD] and any unclosed [CARD]... blocks
+      const chatOnlyText = reply
+        .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
+        .replace(/\[CARD\][\s\S]*$/gi, '')
+        .trim();
+
       const cleanParagraphs = chatOnlyText.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
       
       const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ');

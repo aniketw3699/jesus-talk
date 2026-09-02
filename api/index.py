@@ -582,7 +582,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 model=model_name,
                 messages=messages,
                 temperature=0.8,
-                max_tokens=750
+                max_tokens=900
             )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if not candidate:
@@ -614,12 +614,13 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     # 4. Consume credit ONLY after successful generation
     consume_credit(verified_uid, verified_email, decision)
 
-    # 5. Extract [CARD] block separately so the chat bubble remains exactly 2 paragraphs
+   # 5. Extract [CARD] block separately (handles both closed and unclosed/truncated tags)
     card_text = ""
-    card_match = re.search(r'\[CARD\]([\s\S]*?)\[\/CARD\]', raw_reply, re.IGNORECASE)
+    card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
     if card_match:
         card_text = card_match.group(1).strip()
-        raw_reply = re.sub(r'\[CARD\][\s\S]*?\[\/CARD\]', '', raw_reply, flags=re.IGNORECASE).strip()
+        # Remove [CARD] and everything inside it or trailing after it from the visible chat
+        raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
     # 6. Extract evolving psyche
     updated_psyche = user_psyche
