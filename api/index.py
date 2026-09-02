@@ -76,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.0")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -241,7 +241,8 @@ def strip_thinking_tags(text: str) -> str:
 def clean_reply_formatting(reply: str) -> str:
     text = reply.replace('\\n', '\n')
     text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\))', r'“\1” (\2)', text)
+    # Prevent duplicated closing parentheses or bad citation endings
+    text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)+', r'“\1” (\2)', text)
     return text.strip()
 
 # ---------------- Scripture validation ----------------
@@ -427,7 +428,7 @@ CORE GUIDELINES:
 2. Structure your primary sanctuary response into EXACTLY 2 short paragraphs, nothing more:
    Paragraph 1: tenderly acknowledge their specific situation in 2-3 sentences.
    Paragraph 2: give ONE Scripture anchor with reference, then close with a 1-sentence spoken blessing.
-3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse).
+3. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse). NEVER double the closing parenthesis or add trailing punctuation after the reference parentheses.
 4. SCRIPTURE ACCURACY: Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Prefer widely known passages (e.g., Psalm 23:1, Psalm 34:18, Isaiah 41:10, Matthew 11:28-30, Philippians 4:6-7, John 14:27, 1 Peter 5:7). NEVER invent, guess, or misattribute a reference.
 5. Vary your language naturally for every message; never repeat stock phrases across different questions.
 6. Do NOT output markdown headers (#) or bullet lists.
@@ -504,7 +505,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.8.0",
+        "version": "3.8.1",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -582,7 +583,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
                 model=model_name,
                 messages=messages,
                 temperature=0.8,
-                max_tokens=900
+                max_tokens=1000
             )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if not candidate:
@@ -717,7 +718,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                         model=model_name,
                         messages=messages,
                         temperature=0.8,
-                        max_tokens=900,
+                        max_tokens=1000,
                         stream=True
                     )
                     break

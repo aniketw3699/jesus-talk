@@ -745,6 +745,7 @@
       <a href="refund.html" style="color: inherit; text-decoration: none; margin: 0 6px;">14-Day Refund</a>
     </footer>
   </main>
+  
 
   <!-- 1. MULTI-DAY GUIDED PRAYER JOURNEYS MODAL -->
   <div class="modal-backdrop" id="journeysModal" style="display: none;">
@@ -1366,6 +1367,7 @@
       let clean = rawText
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
         .replace(/\[CARD\][\s\S]*$/gi, '')
+        .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
         .replace(/<[^>]*>/g, ' ')
         .replace(/\\n/g, '\n');
 
@@ -2274,7 +2276,9 @@
           const cleanTurnReply = data.reply
             .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
             .replace(/\[CARD\][\s\S]*$/gi, '')
+            .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
             .trim();
+
           activeConversationHistory.push({ role: "user", content: text });
           activeConversationHistory.push({ role: "assistant", content: cleanTurnReply });
 
@@ -2307,11 +2311,11 @@
       const group = document.createElement("div");
       group.className = "msg-group bot";
       
-      // Safety Shield: Purge [CARD] blocks AND any trailing PSYCHE/PSYCH leaks
+      // Dual-safety: completely purge any [CARD] blocks or truncated PSYCH/PSYC leaks
       const chatOnlyText = (reply || "")
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
         .replace(/\[CARD\][\s\S]*$/gi, '')
-        .replace(/(?:PSYCHE|PSYCH)[\s\S]*$/gi, '')
+        .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
         .trim();
 
       const cleanParagraphs = chatOnlyText.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
@@ -2601,17 +2605,16 @@
       updateCreditUI();
     }
 
-  let pendingBiblePrompt = null;
+    let pendingBiblePrompt = null;
     let authHasResolved = false;
 
-      window.onload = function() {
+    window.onload = function() {
       restoreActiveChatFeed();
       renderPlans();
       updateDailyRitualWidget();
       trackDailyStreak();
       updateCreditUI();
       
-      // 1. Capture incoming verse reflection parameter and clean the URL immediately
       const urlParams = new URLSearchParams(window.location.search);
       const promptParam = urlParams.get('prompt');
 
@@ -2649,7 +2652,6 @@
             }
           }
 
-          // 2. Safely execute pending Bible prompt AFTER auth state has fully resolved
           if (pendingBiblePrompt) {
             const promptToSent = pendingBiblePrompt;
             pendingBiblePrompt = null;
@@ -2669,7 +2671,6 @@
         }
       }
 
-      // Safety fallback: if Firebase auth takes longer than 1.5s, send prompt anyway
       setTimeout(() => {
         if (pendingBiblePrompt && !authHasResolved) {
           const promptToSent = pendingBiblePrompt;
