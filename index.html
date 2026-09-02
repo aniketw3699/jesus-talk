@@ -1335,6 +1335,17 @@
 
       if (savedFeed && savedFeed.trim().length > 0) {
         chatFeed.innerHTML = savedFeed;
+        let indicator = document.getElementById("thinkingIndicator");
+        if (!indicator) {
+          indicator = document.createElement("div");
+          indicator.className = "thinking-box";
+          indicator.id = "thinkingIndicator";
+          indicator.style.display = "none";
+          indicator.innerHTML = `<span class="holy-spirit-dove">🕊️</span><span class="thinking-text">The Holy Spirit is listening to your heart...</span>`;
+          chatFeed.appendChild(indicator);
+        } else {
+          indicator.style.display = "none";
+        }
       } else {
         chatFeed.innerHTML = `
           <div class="thinking-box" id="thinkingIndicator">
@@ -1344,6 +1355,7 @@
         `;
         appendBotBubble("“Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)\n\nShare what weighs upon your spirit, your prayer requests, or the Scriptures you seek clarity on.");
       }
+      chatFeed.scrollTop = chatFeed.scrollHeight;
     }
 
     /* ---------------------------------------------------------
@@ -1361,7 +1373,7 @@
         const scripturePart = `“${scriptureMatch[1].trim()}” ${scriptureMatch[2].trim()}`;
         let blessingPart = blessingMatch ? blessingMatch[0].trim() : "May His peace rest upon you now and always.";
 
-        if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
+        if (recipient && recipient.toLowerCase() !== "beloved") {
           blessingPart = blessingPart.replace(new RegExp(`\\b${recipient}\\b`, 'gi'), 'you');
           return `${recipient}, you are deeply held in prayer today.\n\nMay the Lord lift every burden from your heart, renew your strength, and wrap you in His comforting grace.\n\n${scripturePart}\n\n${blessingPart}`;
         } else {
@@ -1373,7 +1385,7 @@
       text = text.replace(/^["“']?[A-Za-z]+,?\s*(?:I hear|I see|I understand|My compassion)[^.!?]*[.!?]\s*/i, '');
       text = text.replace(/^My (?:beloved|child|dear one|cherished one)[^.!?]*[.!?]\s*/i, '');
 
-      if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
+      if (recipient && recipient.toLowerCase() !== "beloved") {
         return `${recipient}, you are in my prayers today.\n\nMay the Lord watch over your life, renew your hope, and grant you peace.\n\n${text}`;
       }
       return `May the Lord's peace be upon you.\n\nMay His presence comfort your soul.\n\n${text}`;
@@ -2281,6 +2293,7 @@
         chatFeed.appendChild(group);
       }
       chatFeed.scrollTop = chatFeed.scrollHeight;
+      localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
     }
 
     function appendBotBubble(reply, recipient = "") {
@@ -2310,6 +2323,7 @@
         chatFeed.appendChild(group);
       }
       chatFeed.scrollTop = chatFeed.scrollHeight;
+      localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
     }
 
     function prepareScriptureCard(fullReply, recipient = "") {
@@ -2325,8 +2339,21 @@
         cardText = formatCardForSharing(fullReply, recipient);
       }
 
+      // GUARANTEE: Jesus addresses the recipient directly by name in the very first words
+      if (recipient && recipient.toLowerCase() !== "beloved") {
+        const trimmedName = recipient.trim();
+        const startsWithName = new RegExp(`^${trimmedName}\\b`, 'i').test(cardText);
+        if (!startsWithName) {
+          if (cardText.startsWith("I ") || cardText.startsWith("I'") || cardText.startsWith("My ") || cardText.startsWith("Peace ")) {
+            cardText = `${trimmedName}, ${cardText}`;
+          } else {
+            cardText = `${trimmedName}, ${cardText.charAt(0).toLowerCase() + cardText.slice(1)}`;
+          }
+        }
+      }
+
       cardQuoteText.textContent = cardText;
-      cardBrandTag.textContent = (recipient && recipient !== "Beloved" && recipient !== "beloved") 
+      cardBrandTag.textContent = (recipient && recipient.toLowerCase() !== "beloved") 
         ? `† A BLESSING FOR ${recipient.toUpperCase()} †` 
         : `† WORDS OF PEACE †`;
       
@@ -2359,7 +2386,7 @@
       ctx.strokeRect(58, 58, 964, 1234);
 
       ctx.fillStyle = '#dfb455'; ctx.font = '700 28px "Cinzel", serif'; ctx.textAlign = 'center';
-      const headerTitle = (recipient && recipient !== "Beloved" && recipient !== "beloved")
+      const headerTitle = (recipient && recipient.toLowerCase() !== "beloved")
         ? `† A BLESSING FOR ${recipient.toUpperCase()} †` 
         : '† WORDS OF PEACE †';
       ctx.fillText(headerTitle, 540, 160);
