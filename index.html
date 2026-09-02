@@ -1312,6 +1312,14 @@
       return text.replace(/\s+/g, ' ').trim();
     }
 
+    /* FORMAT MARKDOWN (BOLD, BULLETS, BREAKS) FOR CLEAN BUBBLE PRESENTATION */
+    function formatMarkdown(text) {
+      return escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^[•\-\*]\s+/gm, '<span style="color:var(--gold-deep); font-weight:800;">•</span> ')
+        .replace(/\n/g, '<br>');
+    }
+
     /* ---------------------------------------------------------
        CARD TRANSFORMATION ENGINE FOR UNIVERSAL & DIRECT SHARING
        --------------------------------------------------------- */
@@ -1333,10 +1341,10 @@
         if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
           // Speak directly to the recipient: zero sender name or dialogue notes
           blessingPart = blessingPart.replace(new RegExp(`\\b${recipient}\\b`, 'gi'), 'you');
-          return `${recipient}, may the Lord's peace and strength surround you today.\n\n${scripturePart}\n\n${blessingPart}`;
+          return `${recipient}, you are deeply held in prayer today.\n\nMay the Lord lift every burden from your heart, renew your strength, and wrap you in His comforting grace.\n\n${scripturePart}\n\n${blessingPart}`;
         } else {
           // Universal prayer promise: completely anonymous and universal for social sharing
-          return `May the peace of the Lord rest upon your heart today.\n\n${scripturePart}\n\n${blessingPart}`;
+          return `May the peace of the Lord rest upon your heart today.\n\nMay His grace guide your steps, quiet every racing thought, and fill your spirit with divine rest.\n\n${scripturePart}\n\n${blessingPart}`;
         }
       }
       
@@ -1346,9 +1354,9 @@
       text = text.replace(/^My (?:beloved|child|dear one|cherished one)[^.!?]*[.!?]\s*/i, '');
       
       if (recipient && recipient !== "Beloved" && recipient !== "beloved") {
-        return `${recipient}, may the Lord bless you and keep you.\n\n${text}`;
+        return `${recipient}, you are in my prayers today.\n\nMay the Lord watch over your life, renew your hope, and grant you peace.\n\n${text}`;
       }
-      return `May the Lord's peace be upon you.\n\n${text}`;
+      return `May the Lord's peace be upon you.\n\nMay His presence comfort your soul.\n\n${text}`;
     }
 
     const preloadedJesusImg = new Image();
@@ -2253,7 +2261,7 @@
     function appendBotBubble(reply, recipient = "") {
       const group = document.createElement("div");
       group.className = "msg-group bot";
-      const cleanParagraphs = reply.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${escapeHtml(p.trim())}</p>`).join("");
+      const cleanParagraphs = reply.replace(/\\n/g, '\n').split(/\n\s*\n/).map(p => `<p>${formatMarkdown(p.trim())}</p>`).join("");
       const safeReply = reply.replace(/[`"'\\]/g, ' ');
       const safeRecipient = (recipient || '').replace(/[`"'\\]/g, '');
 
@@ -2528,7 +2536,6 @@
             authBtn.textContent = "Sign In";
             updateCreditUI();
 
-            // Auto-trigger 3-step quiz for new visitors
             if (!quizDone) {
               startOnboardingQuiz();
             }

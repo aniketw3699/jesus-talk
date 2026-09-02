@@ -1,7 +1,8 @@
-/* WORD-BY-WORD AUDIOBOOK ENGINE WITH SCREEN WAKE-LOCK */
+/* WORD-BY-WORD AUDIOBOOK ENGINE WITH SCREEN WAKE-LOCK & HARDENED MOBILE TTS */
 (function() {
   let cachedVoices = [];
   let wakeLock = null;
+  let keepAliveTimer = null;
 
   async function requestScreenLock() {
     try {
@@ -16,6 +17,23 @@
   function releaseScreenLock() {
     if (wakeLock !== null) {
       wakeLock.release().then(() => { wakeLock = null; }).catch(() => {});
+    }
+  }
+
+  function startKeepAlive() {
+    stopKeepAlive();
+    keepAliveTimer = setInterval(() => {
+      if (isPlaying && !isPaused && 'speechSynthesis' in window && speechSynthesis.speaking) {
+        speechSynthesis.pause();
+        speechSynthesis.resume();
+      }
+    }, 9000);
+  }
+
+  function stopKeepAlive() {
+    if (keepAliveTimer) {
+      clearInterval(keepAliveTimer);
+      keepAliveTimer = null;
     }
   }
 
@@ -103,7 +121,6 @@
 
   let isPlaying = false;
   let isPaused = false;
-  let activeUtterance = null;
   let wordElements = [];
   let currentWordIndex = 0;
   let fullArticleText = "";
@@ -112,18 +129,45 @@
   function cleanScriptureSpokenText(raw) {
     if (!raw) return "";
     let text = raw.replace(/\\n/g, ' ');
-    text = text.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D—–]/g, '-');
+
+    // Normalize curly apostrophes to straight single quote
+    text = text.replace(/[\u2018\u2019\u201B\u2032']/g, "'");
+
+    // Prevent TTS from pronouncing possessive 's' as letter "S"
+    text = text.replace(/\bGod's\b/gi, 'Gods');
+    text = text.replace(/\bLord's\b/gi, 'Lords');
+    text = text.replace(/\bChrist's\b/gi, 'Christs');
+    text = text.replace(/\bJesus'\b/gi, 'Jesus');
+
+    // Strip quotation marks without breaking inner word apostrophes
+    text = text.replace(/["“”«»]/g, '');
+    text = text.replace(/^'+|'+$/g, '');
+
+    // Prevent words from merging over dashes and hyphens
+    text = text.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D—–]/g, ', ');
+
+    // Colons and semicolons: give natural breathing pauses so sentences do not collide
+    text = text.replace(/[:;]/g, ', ');
+
+    // Strip non-standard parenthesis content
     text = text.replace(/\([^\x00-\x7F]+\)/g, '');
+
+    // Book numbers
     text = text.replace(/\b1\s+([A-Za-z]+)/g, 'First $1');
     text = text.replace(/\b2\s+([A-Za-z]+)/g, 'Second $1');
     text = text.replace(/\b3\s+([A-Za-z]+)/g, 'Third $1');
+
+    // Chapter & verse format
     text = text.replace(/(\d+)[:\.](\d+)\s*-\s*(\d+)/g, 'chapter $1, verses $2 to $3');
     text = text.replace(/(\d+)[:\.](\d+)/g, 'chapter $1, verse $2');
-    text = text.replace(/["“”‘’'«»]/g, ' ');
+
+    // Structural braces to natural pauses
     text = text.replace(/[\(\)\[\]\{\}]/g, ', ');
+
+    // Consolidate redundant punctuation marks
     text = text.replace(/\.{2,}/g, '. ');
     text = text.replace(/,{2,}/g, ', ');
-    text = text.replace(/^[.,;:\s]+/, '');
+
     return text.replace(/\s+/g, ' ').trim();
   }
 
@@ -143,7 +187,8 @@
         const endIndex = fullArticleText.length;
         wordCharMap.push({ startIndex, endIndex, element: el, index: wordCharMap.length });
       });
-      if (blockWords.length > 0) fullArticleText = fullArticleText.trimEnd() + ". ";
+      // Add a deliberate pause between major paragraph sections
+      if (blockWords.length > 0) fullArticleText = fullArticleText.trimEnd() + ".  ";
     });
     wordElements = wordCharMap.map(m => m.element);
   }
@@ -168,6 +213,7 @@
       blogMusicAudio.pause();
       isPlaying = false;
       isPaused = true;
+      stopKeepAlive();
       releaseScreenLock();
       if (btn) btn.innerHTML = "▶ Resume";
       if (status) status.textContent = "Paused";
@@ -179,6 +225,7 @@
       try { blogMusicAudio.play().catch(() => {}); } catch(e) {}
       isPlaying = true;
       isPaused = false;
+      startKeepAlive();
       requestScreenLock();
       if (btn) btn.innerHTML = "⏸ Pause";
       if (status) status.textContent = "Narrating devotional...";
@@ -191,6 +238,7 @@
   window.jumpToWord = function(wordIdx) {
     if ('speechSynthesis' in window) speechSynthesis.cancel();
     blogMusicAudio.pause();
+    stopKeepAlive();
     currentWordIndex = wordIdx;
     isPaused = false;
     startNarrationFrom(currentWordIndex);
@@ -204,13 +252,22 @@
     const target = wordCharMap[currentWordIndex];
     if (!target) return;
 
-    activeUtterance = new SpeechSynthesisUtterance(fullArticleText.substring(target.startIndex));
-    const voice = getSacredVoice();
-    if (voice) activeUtterance.voice = voice;
-    activeUtterance.rate = 0.80;
-    activeUtterance.pitch = 0.80;
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+    }
 
-    activeUtterance.onboundary = (event) => {
+    // Bind utterance to window to protect against mobile GC cleanup
+    window._sacredUtterance = new SpeechSynthesisUtterance(fullArticleText.substring(target.startIndex));
+    const utterance = window._sacredUtterance;
+    
+    const voice = getSacredVoice();
+    if (voice) utterance.voice = voice;
+    
+    // Slow, soothing pastoral rate with deliberate pauses
+    utterance.rate = 0.77;
+    utterance.pitch = 0.84;
+
+    utterance.onboundary = (event) => {
       if (event.name === 'word') {
         const absolute = target.startIndex + event.charIndex;
         const matched = wordCharMap.find(m => absolute >= m.startIndex && absolute < m.endIndex);
@@ -221,22 +278,37 @@
       }
     };
 
-    activeUtterance.onstart = () => {
+    utterance.onstart = () => {
       isPlaying = true;
       isPaused = false;
       requestScreenLock();
+      startKeepAlive();
       const btn = document.getElementById("podPlayBtn");
       const status = document.getElementById("podStatus");
       if (btn) btn.innerHTML = "⏸ Pause";
       if (status) status.textContent = "Narrating devotional...";
-      try { blogMusicAudio.currentTime = 0; blogMusicAudio.play().catch(() => {}); } catch(e) {}
+      try { 
+        blogMusicAudio.currentTime = 0; 
+        blogMusicAudio.play().catch(() => {}); 
+      } catch(e) {}
     };
 
-    const cleanup = () => { stopAudiobook(); };
-    activeUtterance.onend = cleanup;
-    activeUtterance.onerror = cleanup;
+    utterance.onend = () => {
+      stopAudiobook();
+    };
 
-    speechSynthesis.speak(activeUtterance);
+    utterance.onerror = (e) => {
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        return;
+      }
+      console.warn("Audiobook speech note:", e);
+      stopAudiobook();
+    };
+
+    // Small delay ensures mobile speech synthesis engine initializes cleanly
+    setTimeout(() => {
+      speechSynthesis.speak(utterance);
+    }, 40);
   }
 
   function highlightWord(idx) {
@@ -249,6 +321,7 @@
   }
 
   function stopAudiobook() {
+    stopKeepAlive();
     if ('speechSynthesis' in window) speechSynthesis.cancel();
     blogMusicAudio.pause();
     releaseScreenLock();
