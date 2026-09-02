@@ -432,7 +432,7 @@
     }
     .card-content-wrap { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 14px; text-align: center; width: 100%; }
     .card-brand-tag { font-family: 'Cinzel', serif; font-size: 11.5px; letter-spacing: 3px; color: #dfb455; text-transform: uppercase; }
-    .card-verse-quote { font-family: 'Montserrat', sans-serif; font-size: 13.5px; line-height: 1.65; color: #f8fafc; }
+    .card-verse-quote { font-family: 'Montserrat', sans-serif; font-size: 15.5px; line-height: 1.68; color: #f8fafc; }
     .card-footer-watermark { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 600; color: #dfb455; border-top: 1px solid rgba(212, 175, 55, 0.25); padding-top: 10px; margin-top: 4px; letter-spacing: 2px; }
 
     /* Plans Deck & Popular Shimmer Effect */
@@ -2423,24 +2423,32 @@
       ctx.strokeStyle = 'rgba(212, 175, 55, 0.28)'; ctx.lineWidth = 1.5;
       ctx.strokeRect(58, 58, 964, 1234);
 
-      ctx.fillStyle = '#dfb455'; ctx.font = '700 28px "Cinzel", serif'; ctx.textAlign = 'center';
+      // 1. Header Font Size (up from 28px)
+      ctx.fillStyle = '#dfb455'; 
+      ctx.font = '700 32px "Cinzel", serif'; 
+      ctx.textAlign = 'center';
       const headerTitle = (recipient && recipient.toLowerCase() !== "beloved")
         ? `† A BLESSING FOR ${recipient.toUpperCase()} †` 
         : '† WORDS OF PEACE †';
-      ctx.fillText(headerTitle, 540, 160);
+      ctx.fillText(headerTitle, 540, 155);
 
+      // 2. Wrap Width (widened from 830 to 870 to fill the card horizontally)
       const paragraphs = rawFormattedText.split(/\n+/);
       const lines = [];
-      ctx.font = '400 32px "Montserrat", sans-serif';
+      const targetFontSize = paragraphs.join(' ').length > 260 ? 36 : 40;
+      ctx.font = `400 ${targetFontSize}px "Montserrat", sans-serif`;
 
       paragraphs.forEach(para => {
         const words = para.trim().split(' ');
         let currentLine = '';
         for (let i = 0; i < words.length; i++) {
           const test = currentLine ? currentLine + ' ' + words[i] : words[i];
-          if (ctx.measureText(test).width > 830 && i > 0) {
-            lines.push(currentLine); currentLine = words[i];
-          } else currentLine = test;
+          if (ctx.measureText(test).width > 870 && i > 0) {
+            lines.push(currentLine); 
+            currentLine = words[i];
+          } else {
+            currentLine = test;
+          }
         }
         if (currentLine) lines.push(currentLine);
         lines.push(""); 
@@ -2448,19 +2456,21 @@
 
       if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
 
-      const lineHeight = lines.length > 8 ? 46 : 52;
-      ctx.font = lines.length > 8 ? '400 30px "Montserrat", sans-serif' : '400 33px "Montserrat", sans-serif';
+      // 3. Dynamic Font Size & Line Height (Increased by +8px to +10px)
+      const isLong = lines.length > 8;
+      const fontSize = isLong ? 38 : 42;
+      const lineHeight = isLong ? 58 : 66;
+      ctx.font = `400 ${fontSize}px "Montserrat", sans-serif`;
       ctx.fillStyle = '#f8fafc';
 
       let startY = 675 - ((lines.length * lineHeight) / 2) + 15;
-      if (startY < 250) startY = 250;
+      if (startY < 240) startY = 240;
 
       for (let i = 0; i < lines.length; i++) {
         if (lines[i] !== "") {
           ctx.fillText(lines[i], 540, startY + (i * lineHeight));
         }
       }
-
       ctx.fillStyle = '#dfb455'; ctx.font = '600 21px "Cinzel", serif';
       ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
       return canvas;
@@ -2724,4 +2734,4 @@
     };
   </script>
 </body>
-</html>
+</html> 
