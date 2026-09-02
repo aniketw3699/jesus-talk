@@ -21,7 +21,7 @@ service cloud.firestore {
       // Restrict client updates to safe non-billing fields
       allow update: if isOwner(userId)
         && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['isSubscribed', 'credits', 'subscriptionStatus', 'lastPlanUpdate', 'lastResetDate']);
+             .hasAny(['isSubscribed', 'credits', 'passExpiresAt', 'subscriptionStatus', 'lastPlanUpdate', 'lastResetDate']);
 
       allow delete: if false;
 

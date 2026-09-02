@@ -1423,7 +1423,7 @@
         let blessingPart = blessingMatch ? blessingMatch[0].trim() : "May His peace rest upon you now and always.";
 
         if (recipient && recipient.toLowerCase() !== "beloved") {
-          blessingPart = blessingPart.replace(new RegExp(`\\b${recipient}\\b`, 'gi'), 'you');
+          blessingPart = blessingPart.replace(new RegExp(`\\b${escapeRegex(recipient)}\\b`, 'gi'), 'you');
           return `${recipient}, you are deeply held in prayer today.\n\nMay the Lord lift every burden from your heart, renew your strength, and wrap you in His comforting grace.\n\n${scripturePart}\n\n${blessingPart}`;
         } else {
           return `May the peace of the Lord rest upon your heart today.\n\nMay His grace guide your steps, quiet every racing thought, and fill your spirit with divine rest.\n\n${scripturePart}\n\n${blessingPart}`;
@@ -2371,8 +2371,8 @@
       const rawParagraphs = (chatOnlyText || "").replace(/\\n/g, '\n').split(/\n+/).map(p => p.trim()).filter(Boolean);
       const cleanParagraphs = rawParagraphs.map(p => `<p>${formatMarkdown(p)}</p>`).join("");
       
-      const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ').replace(/\$/g, '&#36;');
-      const safeCardText = (cardText || '').replace(/[`"'\\]/g, ' ').replace(/\$/g, '&#36;');
+      const safeChatText = chatOnlyText.replace(/[`"'\\]/g, ' ').replace(/\$\{/g, '{');
+      const safeCardText = (cardText || '').replace(/[`"'\\]/g, ' ').replace(/\$\{/g, '{');
       const safeRecipient = (recipient || '').replace(/[`"'\\]/g, '');
 
       group.innerHTML = `
@@ -2421,7 +2421,7 @@
 
       if (recipient && recipient.toLowerCase() !== "beloved") {
         const trimmedName = recipient.trim();
-        const startsWithName = new RegExp(`^${trimmedName}\\b`, 'i').test(cardText);
+        const startsWithName = new RegExp(`^${escapeRegex(trimmedName)}\\b`, 'i').test(cardText);
         if (!startsWithName) {
           cardText = `${trimmedName}, ${cardText}`;
         }
@@ -2591,7 +2591,9 @@
       if (show) chatFeed.scrollTop = chatFeed.scrollHeight;
     }
 
-    function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    
+    function escapeRegex(s) { return (s || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+    function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
     function openPrivacyModal() { privacyModal.style.display = "flex"; }
     function closePrivacyModal() { privacyModal.style.display = "none"; }
     async function proceedToGoogleAuth() {
