@@ -534,12 +534,13 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     last_error = None
     for model_name in get_active_models():
         try:
-            response = groq_client.chat.completions.create(
-                model=model_name,
-                messages=messages,
-                temperature=0.8,
-                max_tokens=1200
-            )
+            stream = groq_client.chat.completions.create(
+                        model=model_name,
+                        messages=messages,
+                        temperature=0.8,
+                        max_tokens=2048,
+                        stream=True,
+                )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if not candidate:
                 continue
