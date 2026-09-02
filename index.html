@@ -2347,20 +2347,34 @@
       stopAllAudio();
       activeCardRecipient = recipient;
       
-      let cardText = explicitCardText && explicitCardText.trim().length > 0 
-        ? explicitCardText.trim() 
-        : formatCardForSharing(chatText, recipient);
+      let cardText = "";
 
-      // GUARANTEE: Jesus addresses the recipient directly by name in the opening words
+      // 1. If Jesus provided an explicit [CARD] block, use it directly!
+      if (explicitCardText && explicitCardText.trim().length > 0) {
+        cardText = explicitCardText.trim();
+      } else {
+        // 2. Otherwise, cleanly extract the core message and verse directly from the chat reply text
+        let clean = (chatText || "")
+          .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
+          .replace(/\[CARD\][\s\S]*$/gi, '')
+          .replace(/(?:PSYCHE|PSYCH|PSYC|PSY)[\s\S]*$/gi, '')
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\\n/g, '\n')
+          .trim();
+
+        // Strip out introductory salutations like "Anu, I hear..." to keep the card punchy and universal
+        clean = clean.replace(/^(?:Anu|My child|My beloved|My dear[^,]*),?\s*/i, '');
+        
+        // Ensure we capture the paragraphs or scripture cleanly
+        cardText = clean;
+      }
+
+      // GUARANTEE: If a loved one's name was provided, ensure they are addressed directly
       if (recipient && recipient.toLowerCase() !== "beloved") {
         const trimmedName = recipient.trim();
         const startsWithName = new RegExp(`^${trimmedName}\\b`, 'i').test(cardText);
         if (!startsWithName) {
-          if (/^(I\s|I'|My\s|Peace\s)/i.test(cardText)) {
-            cardText = `${trimmedName}, ${cardText}`;
-          } else {
-            cardText = `${trimmedName}, ${cardText.charAt(0).toLowerCase() + cardText.slice(1)}`;
-          }
+          cardText = `${trimmedName}, ${cardText}`;
         }
       }
 
@@ -2371,6 +2385,7 @@
       
       shareCardModal.style.display = "flex";
     }
+
     function closeShareModal() { shareCardModal.style.display = "none"; }
 
     function drawDirectSacredCard(rawFormattedText, recipient = "") {
