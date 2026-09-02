@@ -76,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.2")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.3")
 
 app.add_middleware(
     CORSMiddleware,
@@ -390,15 +390,17 @@ CORE GUIDELINES:
 2. Structure your primary sanctuary response into EXACTLY 2 paragraphs, nothing more:
    Paragraph 1: tenderly and richly acknowledge their specific situation in 3 warm, flowing sentences.
    Paragraph 2: give ONE Scripture anchor with reference, followed by a gentle, comforting 2-sentence spoken blessing.
-3. DIDACTIC TEACHING OVERRIDE: If the user asks for a specific prayer text (e.g., Lord's Prayer), a biblical list (e.g., 10 Commandments), or factual scriptural instruction, you MUST actually provide the requested text or pastoral summary clearly within your 2 paragraphs. Do not ignore factual queries.
+3. DIDACTIC & STRUCTURED PRAYER OVERRIDE: If the user asks for a specific prayer text (e.g., Lord's Prayer), a biblical list (e.g., 10 Commandments), factual scriptural instruction, OR an explicitly structured prayer (e.g., "a 5-step prayer with a scripture for each step"), you MUST actually provide the requested text. For structured prayers, deliver EXACTLY the requested number of clearly numbered steps (Step 1, Step 2, ...), each step paired with its own Scripture quotation and reference. This overrides the 2-paragraph default. Do not ignore factual or structural queries.
 4. Include at least one relevant Scripture quotation formatted cleanly: “Quote text” (Book Chapter:Verse). NEVER double the closing parenthesis or add trailing punctuation after the reference parentheses.
 5. SCRIPTURE ACCURACY: Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Never invent or misattribute references.
 6. SHARE CARD GENERATION MANDATE:
    Directly following your 2 sanctuary paragraphs, you MUST append a [CARD]...[/CARD] block formatted as follows:
    • If interceding for a loved one: Inside [CARD]...[/CARD], address them by name in the second person ("you"), acknowledging their exact situation with a Scripture and blessing in 40 to 65 words.
    • If the user asks a didactic question or prays for themselves: Inside [CARD]...[/CARD], write a concise, beautiful 40 to 60 word universal blessing and scripture promise related to the topic, completely free of user names or multi-item lists.
-7. EVOLVING PSYCHE REQUIREMENT: At the very end, on a clean new line, output:
+   • The [CARD] block must contain ONLY the blessing text and Scripture. NEVER place the PSYCHE line, labels, tags, or metadata inside the [CARD] block.
+7. EVOLVING PSYCHE REQUIREMENT: At the very end, AFTER and OUTSIDE the [CARD] block, on its own clean new line, output:
 PSYCHE: <5-8 words summarizing the user's updated emotional state>
+The PSYCHE line must NEVER appear inside the [CARD] block or inside the sanctuary paragraphs.
 
 Seeker Information:
 • Name: {user_name}
@@ -464,7 +466,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.8.2",
+        "version": "3.8.3",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -567,6 +569,11 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
     if card_match:
         card_text = card_match.group(1).strip()
+        # FIX (PSYCHE card leak): scrub internal state metadata that leaked INSIDE the card block.
+        # Previously cardText was passed through verbatim, so "PSYCHE: ..." rendered on the share card.
+        card_text = re.sub(r'\b(?:PSYCHE|PSYCH|PSYC|PSY)\s*:[^\n]*', '', card_text, flags=re.IGNORECASE)
+        card_text = card_text.replace('[/CARD]', '').replace('[CARD]', '')
+        card_text = re.sub(r'\n{3,}', '\n\n', card_text).strip()
         raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
     updated_psyche = user_psyche
@@ -575,7 +582,7 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         extracted = psyche_match.group(1).strip()
         if extracted:
             updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
-            
+
     raw_reply = re.sub(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*.*$', '', raw_reply, flags=re.IGNORECASE | re.DOTALL).strip()
 
     return {

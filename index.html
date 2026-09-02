@@ -2360,7 +2360,15 @@
       let cardText = "";
 
       if (explicitCardText && explicitCardText.trim().length > 0) {
-        cardText = explicitCardText.trim();
+        // FIX (PSYCHE card leak): server cardText was rendered verbatim, so leaked internal
+        // state tags (e.g. "PSYCHE: Anu feels anchored...") appeared on the share card.
+        // Sanitize the same way the chat path is sanitized — never trust model output.
+        cardText = explicitCardText
+          .replace(/\b(?:PSYCHE|PSYCH|PSYC|PSY)\s*:[^\n]*/gi, '')
+          .replace(/\[\/?CARD\]/gi, '')
+          .replace(/<[^>]*>/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
       } else {
         let clean = (chatText || "")
           .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
