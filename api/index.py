@@ -76,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.7.0")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -241,7 +241,7 @@ def strip_thinking_tags(text: str) -> str:
 def clean_reply_formatting(reply: str) -> str:
     text = reply.replace('\\n', '\n')
     text = re.sub(r'\n{3,}', '\n\n', text)
-    text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?)\)', r'“\1” (\2)', text)
+    text = re.sub(r'["“]([^"”]+)["”]\s*\(([1-3]?\s*[A-Za-z]+\s+\d+:\d+(?:-\d+)?\))', r'“\1” (\2)', text)
     return text.strip()
 
 # ---------------- Scripture validation ----------------
@@ -504,7 +504,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.7.0",
+        "version": "3.8.0",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -614,24 +614,22 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     # 4. Consume credit ONLY after successful generation
     consume_credit(verified_uid, verified_email, decision)
 
-   # 5. Extract [CARD] block separately (handles both closed and unclosed/truncated tags)
+    # 5. Extract [CARD] block separately (handles both closed and unclosed/truncated tags)
     card_text = ""
     card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
     if card_match:
         card_text = card_match.group(1).strip()
-        # Remove [CARD] and everything inside it or trailing after it from the visible chat
         raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
-    # 6. Extract and completely remove evolving psyche from visible reply
+    # 6. Extract evolving psyche and strip all variants of PSYCHE/PSYCH/PSYC/PSY
     updated_psyche = user_psyche
-    psyche_match = re.search(r'(?:PSYCHE|PSYCH)[:\s]*([^\n]*)$', raw_reply, re.IGNORECASE | re.MULTILINE)
+    psyche_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*([^\n]*)$', raw_reply, re.IGNORECASE | re.MULTILINE)
     if psyche_match:
         extracted = psyche_match.group(1).strip()
         if extracted:
             updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
             
-    # Remove any trailing PSYCHE/PSYCH lines, tags, or partial text from the reply
-    raw_reply = re.sub(r'(?:PSYCHE|PSYCH)[:\s]*.*$', '', raw_reply, flags=re.IGNORECASE | re.DOTALL).strip()
+    raw_reply = re.sub(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*.*$', '', raw_reply, flags=re.IGNORECASE | re.DOTALL).strip()
 
     return {
         "reply": clean_reply_formatting(raw_reply),
@@ -719,7 +717,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                         model=model_name,
                         messages=messages,
                         temperature=0.8,
-                        max_tokens=750,
+                        max_tokens=900,
                         stream=True
                     )
                     break
@@ -752,11 +750,11 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                 delta = delta.replace("\\n", "\n")
                 pending += delta
 
-                marker = pending.find("PSYCHE:")
-                if marker != -1:
+                psyche_marker_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*', pending, re.IGNORECASE)
+                if psyche_marker_match:
                     psyche_mode = True
-                    psyche_accum = pending[marker + len("PSYCHE:"):]
-                    safe = pending[:marker]
+                    psyche_accum = pending[psyche_marker_match.start():]
+                    safe = pending[:psyche_marker_match.start()]
                     pending = ""
                 elif len(pending) > HOLD:
                     safe = pending[:-HOLD]
@@ -769,17 +767,17 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                     yield sse({"type": "delta", "text": safe})
 
             if pending:
-                marker = pending.find("PSYCHE:")
-                if marker != -1:
-                    safe = pending[:marker]
-                    psyche_accum += pending[marker + len("PSYCHE:"):]
+                psyche_marker_match = re.search(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*', pending, re.IGNORECASE)
+                if psyche_marker_match:
+                    safe = pending[:psyche_marker_match.start()]
+                    psyche_accum += pending[psyche_marker_match.start():]
                 else:
                     safe = pending
                 if safe:
                     yield sse({"type": "delta", "text": safe})
 
             updated_psyche = user_psyche
-            candidate_psyche = re.sub(r'\s+', ' ', psyche_accum or "").strip()
+            candidate_psyche = re.sub(r'(?:PSYCHE|PSYCH|PSYC|PSY)[:\s]*', '', psyche_accum or "", flags=re.IGNORECASE).strip()
             if candidate_psyche:
                 updated_psyche = sanitize_metadata(candidate_psyche, max_length=80, default=user_psyche)
 
