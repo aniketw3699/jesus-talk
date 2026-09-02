@@ -1160,6 +1160,34 @@
     function getSlotKey() {
       return `${new Date().toISOString().slice(0, 10)}_${getCurrentTimeSlot()}`;
     }
+    let lastTrackedSlot = getCurrentTimeSlot();
+
+    function checkAndTriggerTimeSlotBlessing(force = false) {
+      const slot = getCurrentTimeSlot();
+      const slotKey = getSlotKey();
+      const storageKey = currentUser 
+        ? `jesus_blessing_seen_${currentUser.uid}_${slotKey}` 
+        : `jesus_blessing_seen_guest_${slotKey}`;
+
+      if (!localStorage.getItem(storageKey) || force) {
+        // Prevent interrupting if user is in confessional or viewing share card
+        const isBusy = (shareCardModal && shareCardModal.style.display === "flex") ||
+                       (confessionalModal && confessionalModal.style.display === "flex");
+        if (!isBusy) {
+          openTimeAwareBlessingModal(false);
+          localStorage.setItem(storageKey, "true");
+        }
+      }
+    }
+
+    function checkTimeSlotTransition() {
+      const currentSlot = getCurrentTimeSlot();
+      if (currentSlot !== lastTrackedSlot) {
+        lastTrackedSlot = currentSlot;
+        updateDailyRitualWidget();
+        checkAndTriggerTimeSlotBlessing(false);
+      }
+    }
 
     /* BANNER LIFECYCLE & VANISH LOGIC */
     function updateDailyRitualWidget() {
@@ -2673,10 +2701,8 @@
             authBtn.textContent = "Sign Out";
             await syncUserCreditsWithCloud(user);
 
-            const slotKey = getSlotKey();
-            if (!localStorage.getItem(`jesus_blessing_seen_${slotKey}`) && !pendingBiblePrompt) {
-              openTimeAwareBlessingModal(false);
-              localStorage.setItem(`jesus_blessing_seen_${slotKey}`, "true");
+            if (!pendingBiblePrompt) {
+              checkAndTriggerTimeSlotBlessing(false);
             }
           } else {
             currentUserName = "beloved";
@@ -2686,6 +2712,8 @@
 
             if (!quizDone && !pendingBiblePrompt) {
               startOnboardingQuiz();
+            } else if (!pendingBiblePrompt) {
+              checkAndTriggerTimeSlotBlessing(false);
             }
           }
 
@@ -2718,8 +2746,8 @@
 
       setInterval(() => {
         updateDailyRitualWidget();
+        checkTimeSlotTransition();
       }, 30000);
-    };
 
     window.onclick = function(event) {
       if (event.target == plansModal) closePlansModal();
