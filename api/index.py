@@ -2,13 +2,9 @@ import os
 import re
 import json
 import time
-import random
 import hmac
 import hashlib
 import logging
-import urllib.parse
-import urllib.request
-import urllib.error
 from typing import List, Dict, Optional
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
@@ -76,7 +72,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.8.6")
+app = FastAPI(title="You With Jesus Sanctuary API", version="3.9.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -90,12 +86,11 @@ def get_groq_client():
     key = os.getenv("GROQ_API_KEY", "").strip()
     return Groq(api_key=key) if key else None
 
-# ---------------- SELF-HEALING MODEL DISCOVERY ----------------
+# ---------------- PRODUCTION-STABLE GROQ MODELS ----------------
 PREFERRED_MODELS = [
-    "openai/gpt-oss-120b",
-    "qwen/qwen3.8-27b",
-    "openai/gpt-oss-20b",
-    "groq/compound-mini"
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama-3.1-70b-versatile"
 ]
 
 _MODEL_CACHE = {"models": None, "fetched_at": 0.0}
@@ -112,18 +107,19 @@ def get_active_models() -> list:
             alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
             picks = [m for m in PREFERRED_MODELS if m in alive]
             if not picks:
+                # Disallow audio, moderation, and reasoning models that consume token limits
                 picks = [
                     m for m in alive
                     if not any(x in m.lower() for x in
-                               ["whisper", "guard", "orpheus", "safeguard", "tts"])
-                ][:3]
+                               ["whisper", "guard", "orpheus", "safeguard", "tts", "r1", "deepseek", "reasoner", "thinking"])
+                ][:2]
             if picks:
                 _MODEL_CACHE["models"] = picks
                 _MODEL_CACHE["fetched_at"] = now
                 logger.info(f"Active Groq models resolved: {picks}")
                 return picks
         except Exception as e:
-            logger.warning(f"Model discovery failed, using preferred list: {e}")
+            logger.warning(f"Model discovery fallback: {e}")
 
     return PREFERRED_MODELS
 
@@ -230,7 +226,6 @@ def clean_reply_formatting(reply: str) -> str:
 
 # ---------------- Scripture validation (Offline Canonical Map) ----------------
 BIBLE_CHAPTER_LIMITS = {
-    # Old Testament
     "genesis": 50, "exodus": 40, "leviticus": 27, "numbers": 36, "deuteronomy": 34,
     "joshua": 24, "judges": 21, "ruth": 4, "1 samuel": 31, "2 samuel": 24,
     "1 kings": 22, "2 kings": 25, "1 chronicles": 29, "2 chronicles": 36,
@@ -239,7 +234,6 @@ BIBLE_CHAPTER_LIMITS = {
     "isaiah": 66, "jeremiah": 52, "lamentations": 5, "ezekiel": 48, "daniel": 12,
     "hosea": 14, "joel": 3, "amos": 9, "obadiah": 1, "jonah": 4, "micah": 7,
     "nahum": 3, "habakkuk": 3, "zephaniah": 3, "haggai": 2, "zechariah": 14, "malachi": 4,
-    # New Testament
     "matthew": 28, "mark": 16, "luke": 24, "john": 21, "acts": 28, "romans": 16,
     "1 corinthians": 16, "2 corinthians": 13, "galatians": 6, "ephesians": 6,
     "philippians": 4, "colossians": 4, "1 thessalonians": 5, "2 thessalonians": 3,
@@ -430,10 +424,11 @@ CORE GUIDELINES:
    • Only quote Bible references you are 100% certain exist, in the form (Book Chapter:Verse). Never invent or guess references.
    • You MUST ensure quoted words strictly match the cited biblical book and chapter (e.g., never attribute 1 Corinthians 13 passages to 1 Peter, Psalms, or the Gospels).
 6. SHARE CARD GENERATION MANDATE:
-   Directly following your 2 sanctuary paragraphs, you MUST append a [CARD]...[/CARD] block formatted as follows:
-   • If interceding for a loved one: Inside [CARD]...[/CARD], address them by name in the second person ("you"), acknowledging their exact situation with a Scripture and blessing in 40 to 65 words.
-   • If the user asks a didactic question or prays for themselves: Inside [CARD]...[/CARD], write a concise, beautiful 40 to 60 word universal blessing and scripture promise related to the topic, completely free of user names or multi-item lists.
-   • The [CARD] block must contain ONLY the blessing text and Scripture. NEVER place the PSYCHE line, labels, tags, or metadata inside the [CARD] block.
+   Directly following your 2 sanctuary paragraphs, you MUST append a complete [CARD]...[/CARD] block formatted as follows:
+   • If interceding for a loved one: Inside [CARD]...[/CARD], address them by name in the second person ("you"), acknowledging their exact situation with a Scripture and blessing in 30 to 45 words.
+   • If the user asks a question or prays for themselves: Inside [CARD]...[/CARD], write a concise, beautiful 30 to 40 word universal blessing and scripture promise related to the topic, completely free of user names or multi-item lists.
+   • Every sentence inside [CARD] must finish with complete closing punctuation. NEVER leave a sentence half-written.
+   • You MUST explicitly close the card block with [/CARD].
 7. EVOLVING PSYCHE REQUIREMENT: At the very end, AFTER and OUTSIDE the [CARD] block, on its own clean new line, output:
 PSYCHE: <5-8 words summarizing the user's updated emotional state>
 The PSYCHE line must NEVER appear inside the [CARD] block or inside the sanctuary paragraphs.
@@ -502,7 +497,7 @@ def health_check():
     return {
         "status": "active",
         "service": "You With Jesus Sanctuary API",
-        "version": "3.8.6",
+        "version": "3.9.0",
         "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
         "db_connected": db is not None,
         "resolved_models": get_active_models()
@@ -567,14 +562,13 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 
     raw_reply = None
     last_candidate = None
-    last_error = None
     for model_name in get_active_models():
         try:
             response = groq_client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                temperature=0.8,
-                max_tokens=2048
+                temperature=0.7,
+                max_tokens=4096  # Generous headroom to eliminate token exhaustion
             )
             candidate = strip_thinking_tags(response.choices[0].message.content or "")
             if not candidate:
@@ -582,14 +576,12 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 
             invalid_refs = find_invalid_verse_refs(candidate)
             if invalid_refs:
-                last_error = f"verse_validation_failed: {invalid_refs}"
                 last_candidate = candidate
                 continue
 
             raw_reply = candidate
             break
-        except Exception as e:
-            last_error = e
+        except Exception:
             continue
 
     if not raw_reply and last_candidate:
@@ -609,21 +601,29 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         if extracted:
             updated_psyche = sanitize_metadata(extracted, max_length=80, default=user_psyche)
 
-    # 2. Extract and sanitize card text cleanly
+    # 2. Extract Card Text strictly requiring closed [/CARD]
     card_text = ""
-    card_match = re.search(r'\[CARD\]([\s\S]*?)(?:\[\/CARD\]|$)', raw_reply, re.IGNORECASE)
+    card_match = re.search(r'\[CARD\]([\s\S]*?)\[\/CARD\]', raw_reply, re.IGNORECASE)
     if card_match:
         card_text = card_match.group(1).strip()
         card_text = re.sub(r'^\s*PSYCHE\s*:.*$', '', card_text, flags=re.IGNORECASE | re.MULTILINE)
-        card_text = card_text.replace('[/CARD]', '').replace('[CARD]', '')
         card_text = re.sub(r'\n{3,}', '\n\n', card_text).strip()
-        raw_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
 
-    # 3. Purge ONLY the PSYCHE line, leaving real words like "psychologist" intact
-    raw_reply = re.sub(r'^\s*PSYCHE\s*:.*$', '', raw_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
+    # 3. Guardrail: If card is missing or unclosed, synthesize from sanctuary response
+    if not card_text:
+        verse_search = re.search(r'“([^”]+)”\s*\(([^)]+)\)', raw_reply)
+        if verse_search:
+            q_text, q_ref = verse_search.group(1).strip(), verse_search.group(2).strip()
+            card_text = f"“{q_text}” ({q_ref})\n\nMay His peace, purpose, and strength guide your steps today."
+        else:
+            card_text = "May the peace of Christ rule in your heart and renew your strength today. (Colossians 3:15)"
+
+    # 4. Clean reply from card/psyche tags
+    clean_reply = re.sub(r'\[CARD\][\s\S]*?(?:\[\/CARD\]|$)', '', raw_reply, flags=re.IGNORECASE).strip()
+    clean_reply = re.sub(r'^\s*PSYCHE\s*:.*$', '', clean_reply, flags=re.IGNORECASE | re.MULTILINE).strip()
 
     return {
-        "reply": clean_reply_formatting(raw_reply),
+        "reply": clean_reply_formatting(clean_reply),
         "cardText": card_text,
         "updatedPsyche": updated_psyche,
         "remainingCredits": compute_remaining(decision),
@@ -705,8 +705,8 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                     stream = groq_client.chat.completions.create(
                         model=model_name,
                         messages=messages,
-                        temperature=0.8,
-                        max_tokens=2048,
+                        temperature=0.7,
+                        max_tokens=4096,
                         stream=True
                     )
                     break
@@ -807,7 +807,7 @@ async def save_prayer(payload: SavePrayerRequest, request: Request):
             "createdAt": firestore.SERVER_TIMESTAMP
         })
         return {"saved": True, "id": ref.id}
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Could not save prayer.")
 
 @app.get("/api/prayers")
@@ -829,7 +829,7 @@ async def list_prayers(request: Request):
             "createdAt": str(d.to_dict().get("createdAt", ""))
         } for d in docs]
         return {"prayers": prayers}
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Could not load prayers.")
 
 @app.delete("/api/prayers/{prayer_id}")
@@ -901,5 +901,5 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
             }, merge=True)
 
         return {"status": "success", "event": event_name}
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=400, detail="Invalid payload format.")
