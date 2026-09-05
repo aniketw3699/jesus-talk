@@ -177,5 +177,19 @@
     "meta_desc": "Discover how daily devotion renews the soul, offering fresh strength and hope in every season.",
     "primary_verse": "Psalm 119:105",
     "theme": "Spiritual Renewal"
+  },
+  {
+    "slug": "stewardship-honoring-god-everyday",
+    "title": "Stewardship: Honoring God in Everyday Choices",
+    "meta_desc": "Discover how biblical stewardship transforms daily decisions into worship of God.",
+    "primary_verse": "1 Peter 4:10",
+    "theme": "Stewardship"
+  },
+  {
+    "slug": "trust-in-uncertainty",
+    "title": "Trusting God in Uncertainty: Anchored in His Promises",
+    "meta_desc": "Discover how to rely on God's steadfast love when life's future feels unclear, with biblical truth and practical steps.",
+    "primary_verse": "Isaiah 41:10",
+    "theme": "Trust in God's Sovereignty"
   }
 ]
