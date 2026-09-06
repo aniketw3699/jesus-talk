@@ -205,5 +205,19 @@
     "meta_desc": "Discover how quiet times with God renew your strength and deepen faith in daily life.",
     "primary_verse": "Psalm 46:10",
     "theme": "Quiet Strength"
+  },
+  {
+    "slug": "faithful-service-in-the-community",
+    "title": "Serving Others: Faith in Action",
+    "meta_desc": "Explore how serving your community reflects Christ's love, with practical steps to live out your faith daily.",
+    "primary_verse": "Galatians 5:13",
+    "theme": "Service"
+  },
+  {
+    "slug": "faithful-perseverance-in-parenting",
+    "title": "Faithful Perseverance: Trusting God Through Parenting Challenges",
+    "meta_desc": "Discover how God's promises guide parents through trials, fostering hope and strength in everyday family life.",
+    "primary_verse": "Proverbs 22:6",
+    "theme": "Parenting"
   }
 ]
