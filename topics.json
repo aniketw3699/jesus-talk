@@ -219,5 +219,19 @@
     "meta_desc": "Discover how God's promises guide parents through trials, fostering hope and strength in everyday family life.",
     "primary_verse": "Proverbs 22:6",
     "theme": "Parenting"
+  },
+  {
+    "slug": "hope-during-isolation",
+    "title": "Hope in Isolation: Finding God's Presence When Alone",
+    "meta_desc": "Discover how God's promises bring hope and comfort during times of isolation and loneliness.",
+    "primary_verse": "Psalm 46:1",
+    "theme": "Hope in Isolation"
+  },
+  {
+    "slug": "faith-in-the-midnight",
+    "title": "Finding Light: Faith in the Midnight Hours",
+    "meta_desc": "Discover how God's presence shines brightest in our darkest nights, offering hope and comfort.",
+    "primary_verse": "Psalm 119:105",
+    "theme": "Midnight Faith"
   }
 ]
