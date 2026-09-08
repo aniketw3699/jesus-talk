@@ -247,5 +247,19 @@
     "meta_desc": "Discover how God's Word illuminates our path in life's darkest moments.",
     "primary_verse": "Psalm 119:105",
     "theme": "Guidance"
+  },
+  {
+    "slug": "courage-in-temptation",
+    "title": "Courage in Temptation: Trusting God's Strength",
+    "meta_desc": "Discover how God's Word empowers us to face temptation with courage and steadfast faith.",
+    "primary_verse": "1 Corinthians 10:13",
+    "theme": "Courage"
+  },
+  {
+    "slug": "faith-in-digital-age",
+    "title": "Anchored Faith in a Digital World: Finding God Amid Screens",
+    "meta_desc": "Discover how to keep Christ at the center of your life in today's digital age.",
+    "primary_verse": "Psalm 119:105",
+    "theme": "Digital Discipleship"
   }
 ]
