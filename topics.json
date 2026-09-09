@@ -289,5 +289,19 @@
     "meta_desc": "Discover how God's promises give us hope during life's transitions and seasons of change.",
     "primary_verse": "Jeremiah 29:11",
     "theme": "Hope in Change"
+  },
+  {
+    "slug": "rest-in-sabbath",
+    "title": "Rest in the Sabbath: Finding Divine Refreshment",
+    "meta_desc": "Discover how honoring the Sabbath brings spiritual renewal and peace in a busy world.",
+    "primary_verse": "Exodus 20:8-10",
+    "theme": "Sabbath Rest"
+  },
+  {
+    "slug": "trust-in-provision",
+    "title": "Trusting God's Provision: Lessons from Matthew 6:31-33",
+    "meta_desc": "Discover how to rely on God's provision daily, finding peace beyond worry.",
+    "primary_verse": "Matthew 6:31-33",
+    "theme": "Provision"
   }
 ]
