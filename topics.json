@@ -275,5 +275,19 @@
     "meta_desc": "Discover how daily gratitude for God's creation deepens faith and reveals His presence in every sunrise.",
     "primary_verse": "Psalm 19:1",
     "theme": "Gratitude"
+  },
+  {
+    "slug": "grace-in-weakness",
+    "title": "Grace in Weakness: Finding Strength in 2 Corinthians 12:9",
+    "meta_desc": "Discover how God's grace empowers us in our weaknesses, drawing on 2 Corinthians 12:9 for daily encouragement.",
+    "primary_verse": "2 Corinthians 12:9",
+    "theme": "Grace"
+  },
+  {
+    "slug": "hope-in-seasons-of-change",
+    "title": "Anchored Hope in Seasons of Change: Trusting God's Promise",
+    "meta_desc": "Discover how God's promises give us hope during life's transitions and seasons of change.",
+    "primary_verse": "Jeremiah 29:11",
+    "theme": "Hope in Change"
   }
 ]
