@@ -303,5 +303,19 @@
     "meta_desc": "Discover how to rely on God's provision daily, finding peace beyond worry.",
     "primary_verse": "Matthew 6:31-33",
     "theme": "Provision"
+  },
+  {
+    "slug": "joy-in-suffering",
+    "title": "Finding Joy in Suffering: A Scripture Journey",
+    "meta_desc": "Discover how to experience true joy amid trials, guided by biblical truth and hope.",
+    "primary_verse": "James 1:2-3",
+    "theme": "Joy"
+  },
+  {
+    "slug": "hope-in-uncertainty",
+    "title": "Anchored Hope in Uncertainty: Trusting God's Plan",
+    "meta_desc": "Discover how to find steadfast hope amid life's uncertainties, trusting God's promises for the future.",
+    "primary_verse": "Jeremiah 29:11",
+    "theme": "Hope"
   }
 ]
