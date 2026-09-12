@@ -359,5 +359,19 @@
     "meta_desc": "Explore how Christ's compassion transforms our neighborhoods and relationships, fostering love and service.",
     "primary_verse": "John 13:34",
     "theme": "Compassion"
+  },
+  {
+    "slug": "courage-in-fear",
+    "title": "Courage in Fear: Trusting God When the Unknown Looms",
+    "meta_desc": "Discover how biblical courage empowers believers to face fear with faith, anchored in God's promises.",
+    "primary_verse": "Joshua 1:9",
+    "theme": "Courage"
+  },
+  {
+    "slug": "strength-in-trials",
+    "title": "Strength in Trials: Finding God's Power in Difficult Times",
+    "meta_desc": "Discover how God's strength sustains us through life's trials, turning hardship into hope and perseverance.",
+    "primary_verse": "Isaiah 40:31",
+    "theme": "Strength"
   }
 ]
