@@ -373,5 +373,19 @@
     "meta_desc": "Discover how God's strength sustains us through life's trials, turning hardship into hope and perseverance.",
     "primary_verse": "Isaiah 40:31",
     "theme": "Strength"
+  },
+  {
+    "slug": "light-in-darkness",
+    "title": "Shining Light in Darkness: Finding God's Radiance",
+    "meta_desc": "Discover how God's light pierces life's darkest moments, bringing hope and direction.",
+    "primary_verse": "John 1:5",
+    "theme": "Light in Darkness"
+  },
+  {
+    "slug": "gratitude-in-provision",
+    "title": "Gratitude in God's Provision",
+    "meta_desc": "Discover how gratitude transforms our view of God's provision in daily life.",
+    "primary_verse": "Philippians 4:19",
+    "theme": "Gratitude"
   }
 ]
