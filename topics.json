@@ -387,5 +387,19 @@
     "meta_desc": "Discover how gratitude transforms our view of God's provision in daily life.",
     "primary_verse": "Philippians 4:19",
     "theme": "Gratitude"
+  },
+  {
+    "slug": "grace-in-failure",
+    "title": "Grace in Failure: Finding God's Unmerited Favor When We Fall",
+    "meta_desc": "Discover how God's grace transforms our failures into growth, with Scripture guidance for daily renewal.",
+    "primary_verse": "2 Corinthians 12:9",
+    "theme": "Grace"
+  },
+  {
+    "slug": "humility-in-success",
+    "title": "Humility in Success: Learning from Christ\u2019s Example",
+    "meta_desc": "Discover how humility transforms achievements, guided by Christ\u2019s teaching in Philippians 2:3-4.",
+    "primary_verse": "Philippians 2:3-4",
+    "theme": "Humility"
   }
 ]
