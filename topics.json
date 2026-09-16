@@ -457,5 +457,19 @@
     "meta_desc": "Discover how surrendering control brings peace and aligns us with God's perfect plan.",
     "primary_verse": "Proverbs 3:5-6",
     "theme": "Surrender"
+  },
+  {
+    "slug": "peace-in-anxiety",
+    "title": "Peace in the Midst of Anxiety: Trusting God's Calm",
+    "meta_desc": "Discover how God's promise brings peace amid anxiety and worry.",
+    "primary_verse": "Philippians 4:6-7",
+    "theme": "Peace"
+  },
+  {
+    "slug": "patience-in-pain",
+    "title": "Patience in Pain: Trusting God's Timing",
+    "meta_desc": "Discover how God's promises bring patience during life's pain and trials.",
+    "primary_verse": "James 1:2-3",
+    "theme": "Patience"
   }
 ]
