@@ -471,5 +471,19 @@
     "meta_desc": "Discover how God's promises bring patience during life's pain and trials.",
     "primary_verse": "James 1:2-3",
     "theme": "Patience"
+  },
+  {
+    "slug": "courage-in-doubt",
+    "title": "Courage in Doubt: Trusting God When Questions Arise",
+    "meta_desc": "Discover how to find divine courage amid doubt, anchored in Scripture, and strengthen your faith.",
+    "primary_verse": "Joshua 1:9",
+    "theme": "Courage"
+  },
+  {
+    "slug": "compassion-in-competition",
+    "title": "Compassion in Competition: Reflecting Christ's Heart",
+    "meta_desc": "Discover how to show Christ-like compassion even in competitive arenas.",
+    "primary_verse": "Philippians 2:3",
+    "theme": "Compassion"
   }
 ]
