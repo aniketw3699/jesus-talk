@@ -499,5 +499,19 @@
     "meta_desc": "Discover how daily gratitude honors God, using Psalm 107:1 to transform routine moments into worship.",
     "primary_verse": "Psalm 107:1",
     "theme": "Gratitude"
+  },
+  {
+    "slug": "faithfulness-in-temptation",
+    "title": "Faithfulness in Temptation: Holding Fast to God's Word",
+    "meta_desc": "Discover how God's faithfulness empowers us to resist temptation and stay steadfast.",
+    "primary_verse": "1 Corinthians 10:13",
+    "theme": "Faithfulness"
+  },
+  {
+    "slug": "hope-in-despair",
+    "title": "Hope in Despair: Finding Light in Dark Times",
+    "meta_desc": "Discover how God's promises bring hope when you feel hopeless, with practical steps to trust His light in dark moments.",
+    "primary_verse": "Psalm 42:11",
+    "theme": "Hope"
   }
 ]
