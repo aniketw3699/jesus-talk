@@ -72,6 +72,7 @@ PLUS_DAILY_FAIR_USE_LIMIT = max(20, int(os.getenv("PLUS_DAILY_FAIR_USE_LIMIT", "
 ALLOWED_ORIGINS = [
     "https://www.1into1.com",
     "https://1into1.com",
+    "https://oneintoone-jesus.aniketw3699.workers.dev",
     "https://jesus-chat-bd89f.firebaseapp.com",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
