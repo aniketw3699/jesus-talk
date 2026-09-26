@@ -542,7 +542,7 @@
       handleBookChange(3);
     }
 
-    function handleBookChange(targetChapter = 1) {
+    async function handleBookChange(targetChapter = 1) {
       const bookObj = BIBLE_BOOKS.find(b => b.name === bookSelect.value);
       chapterSelect.innerHTML = "";
       chapterPills.innerHTML = "";
@@ -564,90 +564,174 @@
       }
 
       chapterSelect.value = targetChapter;
-      loadCurrentChapter();
+      await loadCurrentChapter();
     }
 
-    function bibleCacheKey(book, chapter, translation) {
-      return `oneintoone_bible_${translation}_${book}_${chapter}`;
-    }
 
-    function renderLoadedVerses(verses, cached = false) {
+    function renderLoadedVerses(verses, sourceLabel) {
       currentLoadedVerses = Array.isArray(verses) ? verses : [];
-      versesContainer.innerHTML = currentLoadedVerses.map((v, index) => `
-        <div class="verse-row" id="verseRow_${index}">
-          <span class="verse-num">${v.verse}</span>
-          <span class="verse-text">${escapeHtml((v.text || "").trim())}</span>
-          <div class="actions-wrap">
-            <button class="verse-listen-btn" id="verseBtn_${index}" onclick="narrateSingleVerse(${index})">🔊</button>
-            <button class="reflect-btn" onclick="triggerReflectByIndex(${index})">✝ Reflect</button>
-          </div>
-        </div>
-      `).join("");
+      versesContainer.innerHTML = currentLoadedVerses.map(function(v, index) {
+        return '<div class="verse-row" id="verseRow_' + index + '" data-verse="' + Number(v.verse) + '">' +
+          '<span class="verse-num">' + Number(v.verse) + '</span>' +
+          '<span class="verse-text">' + escapeHtml((v.text || "").trim()) + '</span>' +
+          '<div class="actions-wrap">' +
+            '<button class="verse-listen-btn" id="verseBtn_' + index + '" onclick="narrateSingleVerse(' + index + ')">🔊</button>' +
+            '<button class="reflect-btn" onclick="triggerReflectByIndex(' + index + ')">✝ Reflect</button>' +
+            '<button class="reflect-btn" onclick="prayVerseByIndex(' + index + ')">🙏 Pray</button>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+
       const status = document.getElementById("offlineBibleStatus");
-      if (status) status.textContent = cached
-        ? "Offline · showing a chapter saved on this device"
-        : "Saved on this device for offline reading";
+      if (status && sourceLabel) status.textContent = sourceLabel;
     }
 
     async function loadCurrentChapter() {
       stopAllBibleAudio();
       const book = bookSelect.value;
-      const chapter = chapterSelect.value;
-      const translation = translationSelect.value;
-      const cacheKey = bibleCacheKey(book, chapter, translation);
+      const chapter = Number(chapterSelect.value);
 
-      document.querySelectorAll(".chap-pill").forEach(p => {
-        p.classList.toggle("active", p.textContent === chapter);
+      document.querySelectorAll(".chap-pill").forEach(function(p) {
+        p.classList.toggle("active", Number(p.textContent) === chapter);
       });
 
-      passageHeader.textContent = `${book} ${chapter}`;
-      versesContainer.innerHTML = `<div class="loading-spinner">🕊️ Gathering sacred verses...</div>`;
+      passageHeader.textContent = book + " " + chapter;
+      versesContainer.innerHTML = '<div class="loading-spinner">🕊️ Opening local Scripture...</div>';
 
-      const localRecord = localStorage.getItem(cacheKey);
-      if (!navigator.onLine && localRecord) {
-        try {
-          const parsed = JSON.parse(localRecord);
-          if (parsed.verses && parsed.verses.length) {
-            renderLoadedVerses(parsed.verses, true);
-            return;
-          }
-        } catch (_) {}
+      const engine = window.ONEINTOONE_BIBLE;
+      if (!engine) {
+        versesContainer.innerHTML = '<p style="text-align:center;color:#e07a5f;">Local Bible engine is unavailable. Please reload once while online.</p>';
+        return;
       }
 
       try {
-        const formattedQuery = encodeURIComponent(`${book} ${chapter}`);
-        const res = await fetch(`https://bible-api.com/${formattedQuery}?translation=${translation}`);
-        if (!res.ok) throw new Error(`Bible request failed: ${res.status}`);
-        const data = await res.json();
-
-        if (data.verses && data.verses.length > 0) {
-          try {
-            localStorage.setItem(cacheKey, JSON.stringify({ verses: data.verses, savedAt: Date.now() }));
-          } catch (_) {}
-          renderLoadedVerses(data.verses, false);
-        } else {
-          throw new Error("No verses returned");
-        }
+        const verses = await engine.getChapter(book, chapter);
+        if (!verses.length) throw new Error("No verses found");
+        renderLoadedVerses(
+          verses,
+          navigator.onLine ? "World English Bible · preparing full offline library" : "Offline · World English Bible"
+        );
       } catch (err) {
-        if (localRecord) {
-          try {
-            const parsed = JSON.parse(localRecord);
-            if (parsed.verses && parsed.verses.length) {
-              renderLoadedVerses(parsed.verses, true);
-              return;
-            }
-          } catch (_) {}
-        }
         currentLoadedVerses = [];
-        versesContainer.innerHTML = `<p style="text-align:center; color:#e07a5f;">This chapter has not been saved on this device yet. Reconnect once, open it, and it will remain available offline.</p>`;
-        const status = document.getElementById("offlineBibleStatus");
-        if (status) status.textContent = "Offline · previously opened chapters remain available";
+        versesContainer.innerHTML = '<p style="text-align:center;color:#e07a5f;">This Bible book has not finished preparing on this device yet. Reconnect once and keep 1into1 open briefly while the offline Bible completes.</p>';
+      }
+    }
+
+    function renderBibleSearchResults(results, title) {
+      const box = document.getElementById("bibleSearchResults");
+      if (!box) return;
+      box.className = "bible-search-results visible";
+
+      if (!results || !results.length) {
+        box.innerHTML = '<p style="font-size:12px;color:var(--text-secondary);margin:0;">No matching verses found on this device yet.</p>';
+        return;
+      }
+
+      const heading = title
+        ? '<div style="font-size:11px;font-weight:800;color:var(--gold);">' + escapeHtml(title) + '</div>'
+        : "";
+
+      box.innerHTML = heading + results.map(function(result, index) {
+        return '<button class="bible-search-result" type="button" data-search-index="' + index + '">' +
+          '<strong>' + escapeHtml(result.reference) + '</strong>' +
+          '<span>' + escapeHtml(result.text) + '</span>' +
+        '</button>';
+      }).join("");
+
+      box.querySelectorAll("[data-search-index]").forEach(function(button) {
+        button.addEventListener("click", function() {
+          const result = results[Number(button.dataset.searchIndex)];
+          if (result) openBibleSearchResult(result.book, result.chapter, result.startVerse);
+        });
+      });
+    }
+
+    async function runBibleSearch() {
+      const input = document.getElementById("bibleSearchInput");
+      const box = document.getElementById("bibleSearchResults");
+      const query = input ? input.value.trim() : "";
+      if (!query || !window.ONEINTOONE_BIBLE) return;
+
+      if (box) {
+        box.className = "bible-search-results visible";
+        box.innerHTML = '<div class="loading-spinner" style="padding:16px 0;">Searching local Scripture…</div>';
+      }
+
+      try {
+        const results = await window.ONEINTOONE_BIBLE.search(query, {
+          limit:24,
+          onProgress:function(progress) {
+            if (!box || progress.done >= progress.total) return;
+            box.innerHTML = '<div style="font-size:11px;color:var(--text-secondary);">Searching ' +
+              escapeHtml(progress.book || "Scripture") + " · " + progress.done + "/" + progress.total + "</div>";
+          }
+        });
+        renderBibleSearchResults(results, 'Results for “' + query + '”');
+      } catch (err) {
+        if (box) {
+          box.innerHTML = '<p style="font-size:12px;color:#e07a5f;margin:0;">Search could not finish. If this is the first visit, reconnect briefly while the offline Bible prepares.</p>';
+        }
+      }
+    }
+
+    async function showBibleTopic(topicId) {
+      const box = document.getElementById("bibleSearchResults");
+      if (!window.ONEINTOONE_BIBLE) return;
+
+      if (box) {
+        box.className = "bible-search-results visible";
+        box.innerHTML = '<div class="loading-spinner" style="padding:16px 0;">Gathering Scripture…</div>';
+      }
+
+      const results = await window.ONEINTOONE_BIBLE.topic(topicId);
+      const title = topicId.charAt(0).toUpperCase() + topicId.slice(1) + " · Scripture anchors";
+      renderBibleSearchResults(results, title);
+    }
+
+    async function openBibleSearchResult(book, chapter, verse) {
+      bookSelect.value = book;
+      await handleBookChange(Number(chapter));
+
+      requestAnimationFrame(function() {
+        const row = document.querySelector('.verse-row[data-verse="' + Number(verse) + '"]');
+        if (!row) return;
+        row.classList.add("search-hit");
+        row.scrollIntoView({ behavior:"smooth", block:"center" });
+        window.setTimeout(function() { row.classList.remove("search-hit"); }, 3200);
+      });
+    }
+
+    function initBibleSearchUI() {
+      const searchButton = document.getElementById("bibleSearchBtn");
+      const searchInput = document.getElementById("bibleSearchInput");
+      const topicStrip = document.getElementById("bibleTopicStrip");
+
+      if (searchButton) searchButton.addEventListener("click", runBibleSearch);
+      if (searchInput) {
+        searchInput.addEventListener("keydown", function(event) {
+          if (event.key === "Enter") runBibleSearch();
+        });
+      }
+
+      if (topicStrip && window.ONEINTOONE_BIBLE_MANIFEST) {
+        const labels = {
+          anxiety:"Anxiety", grief:"Grief", money:"Money", relationships:"Relationships",
+          forgiveness:"Forgiveness", sleep:"Sleep", guidance:"Guidance", health:"Health",
+          loneliness:"Loneliness", anger:"Anger"
+        };
+        topicStrip.innerHTML = Object.keys(window.ONEINTOONE_BIBLE_MANIFEST.topics).map(function(topicId) {
+          return '<button class="topic-chip" type="button" data-topic="' + topicId + '">' + labels[topicId] + '</button>';
+        }).join("");
+        topicStrip.querySelectorAll("[data-topic]").forEach(function(button) {
+          button.addEventListener("click", function() { showBibleTopic(button.dataset.topic); });
+        });
       }
     }
 
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
+
 
     function triggerReflectByIndex(index) {
       const v = currentLoadedVerses[index];
@@ -656,12 +740,25 @@
       const book = bookSelect.value;
       const chapter = chapterSelect.value;
       const cleanVerseText = v.text.trim().replace(/\r?\n|\r/g, " ");
-      
-      const prompt = `Lord Jesus, help me understand and reflect upon ${book} ${chapter}:${v.verse} — "${cleanVerseText}". What does this mean for my walk of faith today?`;
-      
-      // Navigate to root path with prompt parameter
-      window.location.href = `/?prompt=${encodeURIComponent(prompt)}&_cb=${Date.now()}`;
+      const prompt = 'Help me understand and reflect on ' + book + " " + chapter + ":" + v.verse +
+        ': "' + cleanVerseText + '". Explain the context and what I should notice in this passage.';
+
+      window.location.href = "/?prompt=" + encodeURIComponent(prompt) + "&mode=study&_cb=" + Date.now();
     }
+
+    function prayVerseByIndex(index) {
+      const v = currentLoadedVerses[index];
+      if (!v) return;
+
+      const book = bookSelect.value;
+      const chapter = chapterSelect.value;
+      const cleanVerseText = v.text.trim().replace(/\r?\n|\r/g, " ");
+      const prompt = 'Help me pray ' + book + " " + chapter + ":" + v.verse +
+        ' into my life today: "' + cleanVerseText + '". Keep the prayer grounded in this Scripture and give me one practical next step.';
+
+      window.location.href = "/?prompt=" + encodeURIComponent(prompt) + "&mode=prayer&_cb=" + Date.now();
+    }
+
 
     document.addEventListener("visibilitychange", () => { if (document.hidden) stopAllBibleAudio(); });
     async function initBibleOfflineMode() {
@@ -687,6 +784,7 @@
 
     window.onload = () => {
       initBibleOfflineMode();
+      initBibleSearchUI();
       updateBibleMusicUI();
       initBookDropdown();
     };
