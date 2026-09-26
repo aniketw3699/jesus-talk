@@ -772,7 +772,7 @@
     
     <header class="sacred-header">
       <div class="nav-scroll-strip">
-        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()">✨ 5 Deep AI Replies</button>
+        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()">✨ 5 Ask Deeper today</button>
         <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn" onclick="openStillnessModal()">🕊️ Can't Pray?</button>
         <button class="action-btn" onclick="openJourneysModal()">📜 Journeys</button>
@@ -1190,8 +1190,8 @@
     <div class="modal-card">
       <button class="modal-close" onclick="closeShareModal()">✕</button>
       <div class="modal-header">
-        <h3 class="modal-title">SHARE SACRED BLESSING</h3>
-        <p class="modal-desc">Share this divine word on Instagram, WhatsApp, or with family.</p>
+        <h3 class="modal-title">SHARE PRAYER & BLESSING</h3>
+        <p class="modal-desc">Share this prayer or Scripture-grounded blessing with someone you care about.</p>
       </div>
 
       <div class="scripture-card-canvas" id="scriptureCardToExport">
@@ -1993,7 +1993,7 @@
 
       const sessions = JSON.parse(localStorage.getItem("jesus_journal_sessions") || "[]");
       if (sessions.length === 0) {
-        journalEntriesList.innerHTML = `<p style="text-align:center; color:#888; font-size:13px; padding:20px 0;">No past conversations yet. Speak your heart to Jesus to begin your journal.</p>`;
+        journalEntriesList.innerHTML = `<p style="text-align:center; color:#888; font-size:13px; padding:20px 0;">No journal entries yet. Begin a prayer or reflection to start your local journal.</p>`;
       } else {
         journalEntriesList.innerHTML = sessions.map((session) => `
           ${session.showDivider ? `<div class="journal-date-divider"><span class="journal-date-pill">${escapeHtml(session.sessionTime)}</span></div>` : ''}
