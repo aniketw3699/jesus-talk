@@ -17,6 +17,7 @@ for (const file of [
   "local-experiences.js",
   "local-bible-engine.js",
   "bible-manifest.js",
+  "launch-config.js",
   "billing-config.js",
   "private-sync.js",
   "blog-player.js"
