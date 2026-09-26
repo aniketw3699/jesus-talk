@@ -238,6 +238,14 @@ def main():
         failures.append(".github/workflows/seo_cron.yml: scheduled bulk SEO publishing must remain disabled")
     if "workflow_dispatch" not in editorial_workflow:
         failures.append(".github/workflows/seo_cron.yml: manual workflow_dispatch trigger missing")
+    if "git push origin main" in editorial_workflow:
+        failures.append(".github/workflows/seo_cron.yml: generated SEO content must not push directly to main")
+    if "firebase deploy" in editorial_workflow:
+        failures.append(".github/workflows/seo_cron.yml: generated SEO content must not auto-deploy before editorial review")
+    if "gh pr create" not in editorial_workflow:
+        failures.append(".github/workflows/seo_cron.yml: generated SEO content must open a review PR")
+    if "pull-requests: write" not in editorial_workflow:
+        failures.append(".github/workflows/seo_cron.yml: missing permission required to open editorial PRs")
 
     generator = read("auto_seo_engine.py")
     if "anchor_verse_text" in generator:
