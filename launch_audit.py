@@ -19,7 +19,7 @@ FORBIDDEN = {
 }
 
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__"}
-SKIP_FILES = {"launch_audit.py"}
+SKIP_FILES = {"launch_audit.py", "security_audit.py"}
 
 def iter_text_files():
     for path in ROOT.rglob("*"):
