@@ -37,7 +37,7 @@ jobs:
       - name: Run SEO Engine (Generate 2 Articles)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          DOMAINS_URL: https://jesus-chat-bd89f.web.app
+          DOMAINS_URL: https://www.1into1.com
         run: |
           python auto_seo_engine.py --batch 2
 
