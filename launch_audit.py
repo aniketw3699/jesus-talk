@@ -62,6 +62,7 @@ def main():
         "local-bible-engine.js",
         "local-scripture-data.js",
         "local-experiences.js",
+        "DISRUPTION_CHECKPOINT.md",
     ]
     for name in required:
         if not (ROOT / name).exists():
@@ -95,9 +96,22 @@ def main():
         "FREE FOREVER · $0",
         "Local-first by default",
         "private-sync.js",
+        "Unlimited local prayer",
+        "No app install required",
+        "Ask Deeper · Cloud",
     ]:
         if marker not in index:
             failures.append(f"index.html: required launch marker missing -> {marker!r}")
+
+    api = (ROOT / "api" / "index.py").read_text(encoding="utf-8")
+    if "PLUS_DAILY_FAIR_USE_LIMIT" not in api:
+        failures.append("api/index.py: Plus cloud fair-use ceiling is missing")
+    if "plus_fair_use_exhausted" not in api:
+        failures.append("api/index.py: Plus fair-use denial path is missing")
+
+    terms = (ROOT / "terms.html").read_text(encoding="utf-8")
+    if "fair-use" not in terms.lower():
+        failures.append("terms.html: Ask Deeper fair-use disclosure is missing")
 
     privacy = (ROOT / "privacy.html").read_text(encoding="utf-8")
     for marker in ["Ask Deeper Cloud Processing", "Optional Plus Encrypted Backup", "Google Analytics"]:
