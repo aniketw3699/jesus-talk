@@ -1,6 +1,6 @@
-const CACHE_VERSION = "1into1-shell-v8";
-const PAGE_CACHE = "1into1-pages-v8";
-const STATIC_CACHE = "1into1-static-v8";
+const CACHE_VERSION = "1into1-shell-v9";
+const PAGE_CACHE = "1into1-pages-v9";
+const STATIC_CACHE = "1into1-static-v9";
 const BIBLE_CACHE = "1into1-bible-web-v1";
 
 const BIBLE_SOURCE_BASE = "https://raw.githubusercontent.com/TehShrike/world-english-bible/master/json/";
@@ -39,6 +39,7 @@ const APP_SHELL = [
   "/offline-core.js",
   "/local-experiences.js",
   "/private-sync.js",
+  "/launch-config.js",
   "/billing-config.js",
   "/bible-manifest.js",
   "/local-bible-engine.js",

@@ -64,12 +64,13 @@ if not db:
 
 # ---------------- Config ----------------
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
-DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
+DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "").strip()
 FREE_DAILY_CREDITS = 5  # Ask Deeper cloud questions per signed-in free user/day
 GUEST_DAILY_CREDITS = 1  # Ask Deeper cloud question per guest IP/day
 
 ALLOWED_ORIGINS = [
     "https://www.1into1.com",
+    "https://1into1.com",
     "https://jesus-chat-bd89f.firebaseapp.com",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
@@ -267,7 +268,7 @@ def get_verified_user(request: Request):
 def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    if email and email.lower() == DEVELOPER_EMAIL.lower():
+    if DEVELOPER_EMAIL and email and email.lower() == DEVELOPER_EMAIL.lower():
         return {"allowed": True, "remaining": 9999, "tier": "developer"}
 
     if uid and db:
@@ -477,6 +478,25 @@ def health_check():
         "cloud_configured": cloud.get("configured", False),
         "resolved_models": cloud.get("models", []),
         "db_connected": db is not None
+    }
+
+@app.get("/readiness")
+@app.get("/api/readiness")
+def readiness_check():
+    cloud = get_cloud_status()
+    checks = {
+        "database": db is not None,
+        "cloud_ai": bool(cloud.get("configured", False)),
+        "lemon_webhook_secret": bool(LEMON_WEBHOOK_SECRET),
+        "production_www_origin": "https://www.1into1.com" in ALLOWED_ORIGINS,
+        "production_apex_origin": "https://1into1.com" in ALLOWED_ORIGINS,
+    }
+    return {
+        "status": "ready" if all(checks.values()) else "degraded",
+        "checks": checks,
+        "cloud_provider": cloud.get("provider"),
+        "service": "1into1 with Jesus Sanctuary API",
+        "version": "4.0.0"
     }
 
 @app.post("/")

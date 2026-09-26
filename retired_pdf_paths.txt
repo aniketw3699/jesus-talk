@@ -1,0 +1,18 @@
+# Representative retired 1into1 PDF URLs.
+# After the domain cutover these must return HTTP 404 or 410, never redirect
+# to unrelated prayer/Bible pages.
+/pdf-to-word
+/bank-statement-to-excel
+/document-data-extractor
+/private-pii-secrets-auto-redactor
+/sanitize-pdf
+/ocr-pdf
+/compress-pdf-to-100kb
+/booklet-pdf
+/pdf-to-markdown
+/redact-pdf
+/compress-pdf
+/sign-pdf
+/text-to-pdf
+/pdf-to-powerpoint
+/blog/pdf-privacy-comparison-2026
