@@ -29,6 +29,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
+  <script defer src="/local-scripture-data.js"></script>
   <script defer src="/offline-core.js"></script>
 
   <!-- Firebase SDKs with Firestore Cloud Sync -->
@@ -738,7 +739,7 @@
     
     <header class="sacred-header">
       <div class="nav-scroll-strip">
-        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()">🕊️ 5 Replies Left</button>
+        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()">✨ 5 Deep AI Replies</button>
         <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn" onclick="openStillnessModal()">🕊️ Can't Pray?</button>
         <button class="action-btn" onclick="openJourneysModal()">📜 Journeys</button>
@@ -1362,11 +1363,11 @@
 
       if (!currentUser) {
         const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
-        badge.textContent = guestUsed ? "📿 Sign In for 5 Free Replies" : "🕊️ 1 Free Blessing Ready";
+        badge.textContent = guestUsed ? "✨ Sign In for Deep AI" : "✨ 1 Deep AI Reply Ready";
       } else if (isSubscribed) {
-        badge.textContent = "✨ Unlimited Sanctuary";
+        badge.textContent = "✨ Deep AI Unlimited";
       } else {
-        badge.textContent = `🕊️ ${userCredits} Replies Left`;
+        badge.textContent = `✨ ${userCredits} Deep AI Replies`;
       }
     }
 
@@ -2452,17 +2453,41 @@
       localStorage.setItem('jesus_active_feed_html', chatFeed.innerHTML);
     }
 
+    function pulsePrivateLocalStatus() {
+      setConnectionStatus('Private local · no API used', navigator.onLine ? 'ready' : 'offline');
+      window.clearTimeout(window.__oneIntoOneLocalStatusTimer);
+      window.__oneIntoOneLocalStatusTimer = window.setTimeout(() => {
+        updateOnlineState();
+      }, 2600);
+    }
+
     function answerWithPrivateLocalMode(text, recipient = '', reason = 'offline') {
       const engine = window.OneIntoOneOffline;
-      let reply = engine && typeof engine.buildResponse === 'function'
+      let experience = null;
+      if (engine && typeof engine.buildExperience === 'function') {
+        experience = engine.buildExperience(text, currentPastoralMode);
+      }
+      let reply = experience && experience.reply
+        ? experience.reply
+        : engine && typeof engine.buildResponse === 'function'
         ? engine.buildResponse(text, currentPastoralMode)
         : 'You are offline. Your journal, prayer history, surrender space and cached pages are still available. Reconnect once for deeper cloud guidance.';
+
       if (reason === 'network-fallback') {
         reply = 'Cloud guidance is unavailable right now, so 1into1 is using private local mode.\n\n' + reply;
       }
+
       showThinking(false);
       appendBotBubble(reply, recipient);
       saveConversationTurnLocally(text, reply);
+      pulsePrivateLocalStatus();
+
+      if (navigator.onLine) {
+        trackSanctuaryEvent('local_guidance_used', {
+          mode: currentPastoralMode,
+          topic: experience && experience.analysis ? (experience.analysis.topic || 'general') : 'general'
+        });
+      }
     }
 
     window.addEventListener('online', updateOnlineState);
@@ -2489,6 +2514,16 @@
       showThinking(true);
 
       trackSanctuaryEvent('prayer_submitted', { mode: currentPastoralMode });
+
+      const localEngine = window.OneIntoOneOffline;
+      if (localEngine && typeof localEngine.decideRoute === 'function') {
+        const routeDecision = localEngine.decideRoute(text, currentPastoralMode, navigator.onLine);
+        if (routeDecision.route === 'local') {
+          const reason = navigator.onLine ? 'local-first' : 'offline';
+          setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason), 140);
+          return;
+        }
+      }
 
       if (!navigator.onLine) {
         setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline'), 180);
