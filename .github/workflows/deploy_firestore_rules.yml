@@ -1,0 +1,49 @@
+name: Deploy Firestore Rules
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DEPLOY_RULES to deploy production Firestore rules"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require explicit confirmation
+        shell: bash
+        run: |
+          if [ "${{ inputs.confirmation }}" != "DEPLOY_RULES" ]; then
+            echo "Confirmation did not match DEPLOY_RULES."
+            exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - name: Validate rules are present
+        run: |
+          test -f firestore.rules
+          grep -q 'match /encrypted_backups/{backupId}' firestore.rules
+          grep -q 'match /chunks/{chunkId}' firestore.rules
+      - name: Deploy Firestore rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+        shell: bash
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "FIREBASE_SERVICE_ACCOUNT secret is missing."
+            exit 1
+          fi
+          echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/firebase-service-account.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/firebase-service-account.json
+          firebase deploy --only firestore:rules --project jesus-chat-bd89f --non-interactive
+          rm -f /tmp/firebase-service-account.json

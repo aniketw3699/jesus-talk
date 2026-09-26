@@ -1,0 +1,36 @@
+name: Launch Hardening Audit
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "release/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  launch-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run launch audit
+        run: python launch_audit.py
+      - name: Compile Python launch files
+        run: python -m py_compile api/index.py api/ai_provider.py auto_seo_engine.py launch_audit.py seo_audit.py production_readiness.py production_smoke.py release_candidate_audit.py
+      - name: Run SEO architecture audit
+        run: python seo_audit.py
+      - name: Run production readiness audit
+        run: python production_readiness.py
+      - name: Run release candidate audit
+        run: python release_candidate_audit.py
+      - name: Run release product-flow QA
+        run: node release_flow_qa.mjs
+      - name: Parse JavaScript and PWA files
+        run: node launch_js_audit.mjs
