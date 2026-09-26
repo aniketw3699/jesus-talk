@@ -92,7 +92,7 @@ def main():
     for marker in [
         "Unlimited local prayer",
         "No account",
-        "No app",
+        "app-store install",
         "fair-use",
     ]:
         if marker.lower() not in disruption.lower():
