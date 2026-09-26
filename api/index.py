@@ -65,8 +65,8 @@ if not db:
 # ---------------- Config ----------------
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
-FREE_DAILY_CREDITS = 5
-GUEST_DAILY_CREDITS = 1  # 1 free prayer per guest IP per day
+FREE_DAILY_CREDITS = 5  # Ask Deeper cloud questions per signed-in free user/day
+GUEST_DAILY_CREDITS = 1  # Ask Deeper cloud question per guest IP/day
 
 ALLOWED_ORIGINS = [
     "https://jesus-chat-bd89f.web.app",
@@ -432,12 +432,12 @@ DEGRADED_REPLY = (
 )
 
 GUEST_AUTH_REQUIRED_REPLY = (
-    "Please sign in to receive your 5 free daily scripture reflections "
-    "and continue your prayer communion."
+    "You have used today's guest Ask Deeper question. Sign in for 5 free Ask Deeper questions per day. "
+    "Your local prayer tools, Bible, journeys, and Lay It Down remain available without using cloud AI."
 )
 PAYWALL_EXHAUSTED_REPLY = (
-    "You have completed your 5 daily reflections. They renew tomorrow, "
-    "or you may choose a sacred pathway for unlimited communion today."
+    "You have used today's 5 free Ask Deeper questions. They renew tomorrow. "
+    "Your local prayer tools, Bible, journeys, and Lay It Down remain available."
 )
 
 def build_chat_messages(raw_message, user_name, user_psyche, user_intentions, selected_mode, history):
