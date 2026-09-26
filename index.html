@@ -1500,16 +1500,10 @@
 
     function saveUserIntentions() {
       const input = document.getElementById("userIntentionsInput");
-      if (input) {
-        userIntentions = input.value.trim() || "Seeking divine direction and peace";
-        localStorage.setItem("jesus_user_intentions", userIntentions);
-        if (currentUser && typeof firebase !== 'undefined' && firebase.firestore) {
-          firebase.firestore().collection('users').doc(currentUser.uid).set({
-            intentions: userIntentions,
-            lastActive: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true }).catch(() => {});
-        }
-      }
+      if (!input) return;
+      userIntentions = input.value.trim() || "Seeking divine direction and peace";
+      localStorage.setItem("jesus_user_intentions", userIntentions);
+      pulsePrivateLocalStatus();
     }
 
     /* CLEAN SCRIPTURE SPEECH PREPROCESSOR */
@@ -1962,7 +1956,6 @@
     }
 
     function openJournalModal() {
-      if (!currentUser) { openPrivacyModal(); return; }
       stopAllAudio();
       journalPsycheDisplay.textContent = `Spiritual State: ${currentPsyche}`;
       updateSpiritualActivityDashboard();
@@ -1980,7 +1973,7 @@
                 <p class="journal-entry-text">${escapeHtml(turn.user)}</p>
               </div>
               <div class="journal-entry-block">
-                <span class="journal-entry-label bot-label">Jesus</span>
+                <span class="journal-entry-label bot-label">1into1</span>
                 <p class="journal-entry-text">${escapeHtml(turn.bot)}</p>
               </div>
             `).join('<div style="height: 6px;"></div>')}
@@ -2004,6 +1997,202 @@
         isNewSessionCreated = true;
         closeJournalModal();
         startNewPrayer(true);
+      }
+    }
+
+    function setPrivateSyncStatus(message, isError) {
+      const statusEl = document.getElementById("privateSyncStatus");
+      if (!statusEl) return;
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? "#a34141" : "var(--text-muted)";
+    }
+
+    function setPrivateSyncBusy(isBusy) {
+      ["privateSyncBackupBtn","privateSyncRestoreBtn","privateSyncDeleteBtn"].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = Boolean(isBusy);
+      });
+    }
+
+    function openPrivateSyncModal() {
+      if (!currentUser) {
+        closeJournalModal();
+        openPrivacyModal();
+        return;
+      }
+      if (!isSubscribed) {
+        closeJournalModal();
+        openPlansModal();
+        return;
+      }
+
+      closeJournalModal();
+      const pass = document.getElementById("privateSyncPassphrase");
+      const confirmPass = document.getElementById("privateSyncPassphraseConfirm");
+      if (pass) pass.value = "";
+      if (confirmPass) confirmPass.value = "";
+
+      const lastBackup = localStorage.getItem("oneintoone_backup_last_at");
+      setPrivateSyncStatus(lastBackup
+        ? "Last encrypted backup from this device: " + new Date(lastBackup).toLocaleString()
+        : "No automatic sync. You decide when to back up or restore."
+      );
+
+      document.getElementById("privateSyncModal").style.display = "flex";
+    }
+
+    function closePrivateSyncModal() {
+      const modal = document.getElementById("privateSyncModal");
+      if (modal) modal.style.display = "none";
+      const pass = document.getElementById("privateSyncPassphrase");
+      const confirmPass = document.getElementById("privateSyncPassphraseConfirm");
+      if (pass) pass.value = "";
+      if (confirmPass) confirmPass.value = "";
+    }
+
+    function requirePrivateSyncAccess() {
+      if (!currentUser) throw new Error("Sign in before using encrypted backup.");
+      if (!isSubscribed) throw new Error("Encrypted cross-device backup is a Plus feature.");
+      if (!navigator.onLine) throw new Error("An internet connection is required to reach your encrypted cloud backup.");
+      if (!window.ONEINTOONE_PRIVATE_SYNC) throw new Error("Private backup engine is unavailable.");
+      if (typeof firebase === "undefined" || !firebase.firestore) throw new Error("Secure cloud storage is unavailable.");
+    }
+
+    async function backupPrivateData() {
+      setPrivateSyncBusy(true);
+      try {
+        requirePrivateSyncAccess();
+        const passphrase = document.getElementById("privateSyncPassphrase").value;
+        const confirmPassphrase = document.getElementById("privateSyncPassphraseConfirm").value;
+        if (passphrase.length < 10) throw new Error("Use a backup passphrase of at least 10 characters.");
+        if (passphrase !== confirmPassphrase) throw new Error("The two backup passphrases do not match.");
+
+        setPrivateSyncStatus("Encrypting locally on this device…");
+        const engine = window.ONEINTOONE_PRIVATE_SYNC;
+        const snapshot = engine.buildSnapshot();
+        const encrypted = await engine.encryptSnapshot(snapshot, passphrase);
+        const chunks = engine.splitCiphertext(encrypted.ciphertext, 240000);
+        if (!chunks.length) throw new Error("Nothing was produced for backup.");
+
+        setPrivateSyncStatus("Uploading encrypted chunks…");
+        const db = firebase.firestore();
+        const backupRef = db.collection("users").doc(currentUser.uid)
+          .collection("encrypted_backups").doc("current");
+        const oldChunks = await backupRef.collection("chunks").get();
+        const batch = db.batch();
+
+        oldChunks.forEach(function(doc) { batch.delete(doc.ref); });
+        chunks.forEach(function(chunk, index) {
+          const chunkId = String(index).padStart(4, "0");
+          batch.set(backupRef.collection("chunks").doc(chunkId), { data:chunk });
+        });
+
+        batch.set(backupRef, {
+          version:encrypted.version,
+          algorithm:encrypted.algorithm,
+          kdf:encrypted.kdf,
+          iterations:encrypted.iterations,
+          salt:encrypted.salt,
+          iv:encrypted.iv,
+          chunkCount:chunks.length,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await batch.commit();
+        const now = new Date().toISOString();
+        localStorage.setItem("oneintoone_backup_last_at", now);
+        setPrivateSyncStatus("Encrypted backup completed. Your passphrase was not uploaded.");
+        trackSanctuaryEvent("encrypted_backup_created", { chunks:chunks.length });
+      } catch (err) {
+        setPrivateSyncStatus(err && err.message ? err.message : "Encrypted backup failed.", true);
+      } finally {
+        setPrivateSyncBusy(false);
+      }
+    }
+
+    async function restorePrivateData() {
+      setPrivateSyncBusy(true);
+      try {
+        requirePrivateSyncAccess();
+        const passphrase = document.getElementById("privateSyncPassphrase").value;
+        if (passphrase.length < 10) throw new Error("Enter the backup passphrase used when this backup was created.");
+
+        setPrivateSyncStatus("Downloading encrypted backup…");
+        const db = firebase.firestore();
+        const backupRef = db.collection("users").doc(currentUser.uid)
+          .collection("encrypted_backups").doc("current");
+        const backupDoc = await backupRef.get();
+        if (!backupDoc.exists) throw new Error("No encrypted backup was found for this account.");
+
+        const meta = backupDoc.data() || {};
+        const chunkSnap = await backupRef.collection("chunks").get();
+        const docs = chunkSnap.docs.slice().sort(function(a,b) { return a.id.localeCompare(b.id); });
+        if (!docs.length || docs.length !== Number(meta.chunkCount || 0)) {
+          throw new Error("The encrypted backup is incomplete. Please create a fresh backup from the source device.");
+        }
+
+        const payload = {
+          version:meta.version,
+          algorithm:meta.algorithm,
+          kdf:meta.kdf,
+          iterations:meta.iterations,
+          salt:meta.salt,
+          iv:meta.iv,
+          ciphertext:docs.map(function(doc) { return String((doc.data() || {}).data || ""); }).join("")
+        };
+
+        setPrivateSyncStatus("Decrypting locally on this device…");
+        const engine = window.ONEINTOONE_PRIVATE_SYNC;
+        const snapshot = await engine.decryptBackup(payload, passphrase);
+        const stats = engine.snapshotStats(snapshot);
+        const ok = confirm(
+          "Restore this encrypted backup to this device?\n\n" +
+          stats.journalSessions + " journal session(s), " +
+          stats.journalTurns + " journal turn(s), and " +
+          stats.journeyTracks + " journey track(s) are included.\n\n" +
+          "Backed-up fields will replace the matching local fields."
+        );
+        if (!ok) {
+          setPrivateSyncStatus("Restore cancelled. No local data was changed.");
+          return;
+        }
+
+        engine.applySnapshot(snapshot);
+        localStorage.setItem("oneintoone_restore_last_at", new Date().toISOString());
+        setPrivateSyncStatus("Restore complete. Reloading your local sanctuary…");
+        trackSanctuaryEvent("encrypted_backup_restored");
+        window.setTimeout(function() { window.location.reload(); }, 900);
+      } catch (err) {
+        setPrivateSyncStatus(err && err.message ? err.message : "Restore failed.", true);
+      } finally {
+        setPrivateSyncBusy(false);
+      }
+    }
+
+    async function deletePrivateBackup() {
+      setPrivateSyncBusy(true);
+      try {
+        requirePrivateSyncAccess();
+        if (!confirm("Delete the encrypted cloud backup for this account? Local data on this device will not be deleted.")) {
+          return;
+        }
+
+        const db = firebase.firestore();
+        const backupRef = db.collection("users").doc(currentUser.uid)
+          .collection("encrypted_backups").doc("current");
+        const chunkSnap = await backupRef.collection("chunks").get();
+        const batch = db.batch();
+        chunkSnap.forEach(function(doc) { batch.delete(doc.ref); });
+        batch.delete(backupRef);
+        await batch.commit();
+
+        localStorage.removeItem("oneintoone_backup_last_at");
+        setPrivateSyncStatus("Encrypted cloud backup deleted. Local data remains on this device.");
+        trackSanctuaryEvent("encrypted_backup_deleted");
+      } catch (err) {
+        setPrivateSyncStatus(err && err.message ? err.message : "Backup deletion failed.", true);
+      } finally {
+        setPrivateSyncBusy(false);
       }
     }
 
