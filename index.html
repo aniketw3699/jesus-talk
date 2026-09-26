@@ -32,6 +32,7 @@
   <script defer src="/local-scripture-data.js"></script>
   <script defer src="/offline-core.js"></script>
   <script defer src="/local-experiences.js"></script>
+  <script defer src="/private-sync.js"></script>
 
   <!-- Firebase SDKs with Firestore Cloud Sync -->
   <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
@@ -1019,12 +1020,14 @@
       <button class="modal-close" onclick="closePrivacyModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">YOUR PRIVACY COMES FIRST</h3>
-        <p class="modal-desc">A sacred sanctuary of complete trust and zero data tracking.</p>
+        <p class="modal-desc">Local-first by default, with cloud features only when you choose them.</p>
       </div>
 
       <div class="privacy-notice-box">
-        <p><strong>Ephemeral Sanctuary:</strong> 100% of your active conversation feed and private surrender confessions are stored locally on your device only. We never sell, read, or maintain logs of your personal prayer conversations.</p>
-        <p>To enable continuous spiritual guidance across sessions, only your high-level prayer intentions, habit streaks, and anonymous anti-abuse quotas are securely synced to your private account.</p>
+        <p><strong>Local prayer:</strong> Your local prayer conversations, journal, journeys, and Lay It Down experience stay on this device by default. Lay It Down text is never saved.</p>
+        <p><strong>Ask Deeper:</strong> When you choose Ask Deeper, your question and limited recent context are sent to the configured cloud AI provider so it can answer.</p>
+        <p><strong>Account:</strong> Signing in syncs only account/entitlement information by default. Plus encrypted backup is optional and must be started by you; backup content is encrypted in your browser before upload.</p>
+        <p><strong>Analytics:</strong> We may collect product-usage events such as feature opens or mode changes. Prayer text is not deliberately included in those analytics events.</p>
       </div>
 
       <button class="primary-gold-btn" onclick="proceedToGoogleAuth()">
@@ -1114,8 +1117,40 @@
       <div class="journal-psyche-box" id="journalPsycheDisplay">Spiritual State: A soul seeking peace</div>
       <div class="journal-list" id="journalEntriesList"></div>
 
+      <button class="secondary-soft-btn" id="encryptedBackupBtn" onclick="openPrivateSyncModal()">🔐 Encrypted Backup · Plus</button>
       <button class="secondary-soft-btn" onclick="clearJournalHistory()">🗑️ Clear Journal History</button>
       <button class="primary-gold-btn" onclick="closeJournalModal()">Return to Sanctuary</button>
+    </div>
+  </div>
+
+  <!-- 7B. OPTIONAL PLUS ENCRYPTED BACKUP -->
+  <div class="modal-backdrop" id="privateSyncModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closePrivateSyncModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">ENCRYPTED BACKUP</h3>
+        <p class="modal-desc">Optional Plus backup for moving selected local data between your devices.</p>
+      </div>
+
+      <div class="privacy-notice-box" style="margin-bottom:12px;">
+        <p><strong>Off by default.</strong> Nothing uploads until you press “Back Up This Device.”</p>
+        <p>Your journal, intentions, journey progress, and selected preferences are encrypted on this device with AES-256-GCM before upload. Your passphrase is never stored by 1into1.</p>
+        <p><strong>Important:</strong> If you lose the passphrase, we cannot decrypt or recover this backup. Lay It Down confessions are never included.</p>
+      </div>
+
+      <label style="display:block;font-size:11px;font-weight:800;color:var(--gold-deep);margin-bottom:5px;">Backup passphrase</label>
+      <input id="privateSyncPassphrase" class="intentions-input" type="password" autocomplete="new-password" minlength="10" placeholder="At least 10 characters" />
+
+      <label style="display:block;font-size:11px;font-weight:800;color:var(--gold-deep);margin:10px 0 5px;">Confirm passphrase for new backup</label>
+      <input id="privateSyncPassphraseConfirm" class="intentions-input" type="password" autocomplete="new-password" minlength="10" placeholder="Re-enter for backup" />
+
+      <div id="privateSyncStatus" style="min-height:38px;margin:10px 0;font-size:11.5px;line-height:1.5;color:var(--text-muted);">
+        No automatic sync. You decide when to back up or restore.
+      </div>
+
+      <button class="primary-gold-btn" id="privateSyncBackupBtn" onclick="backupPrivateData()">🔐 Back Up This Device</button>
+      <button class="secondary-soft-btn" id="privateSyncRestoreBtn" onclick="restorePrivateData()">↙ Restore to This Device</button>
+      <button class="secondary-soft-btn" id="privateSyncDeleteBtn" onclick="deletePrivateBackup()" style="color:#a34141;">Delete Cloud Backup</button>
     </div>
   </div>
 
@@ -1465,16 +1500,10 @@
 
     function saveUserIntentions() {
       const input = document.getElementById("userIntentionsInput");
-      if (input) {
-        userIntentions = input.value.trim() || "Seeking divine direction and peace";
-        localStorage.setItem("jesus_user_intentions", userIntentions);
-        if (currentUser && typeof firebase !== 'undefined' && firebase.firestore) {
-          firebase.firestore().collection('users').doc(currentUser.uid).set({
-            intentions: userIntentions,
-            lastActive: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true }).catch(() => {});
-        }
-      }
+      if (!input) return;
+      userIntentions = input.value.trim() || "Seeking divine direction and peace";
+      localStorage.setItem("jesus_user_intentions", userIntentions);
+      pulsePrivateLocalStatus();
     }
 
     /* CLEAN SCRIPTURE SPEECH PREPROCESSOR */
@@ -1927,7 +1956,6 @@
     }
 
     function openJournalModal() {
-      if (!currentUser) { openPrivacyModal(); return; }
       stopAllAudio();
       journalPsycheDisplay.textContent = `Spiritual State: ${currentPsyche}`;
       updateSpiritualActivityDashboard();
@@ -1945,7 +1973,7 @@
                 <p class="journal-entry-text">${escapeHtml(turn.user)}</p>
               </div>
               <div class="journal-entry-block">
-                <span class="journal-entry-label bot-label">Jesus</span>
+                <span class="journal-entry-label bot-label">1into1</span>
                 <p class="journal-entry-text">${escapeHtml(turn.bot)}</p>
               </div>
             `).join('<div style="height: 6px;"></div>')}
@@ -1969,6 +1997,202 @@
         isNewSessionCreated = true;
         closeJournalModal();
         startNewPrayer(true);
+      }
+    }
+
+    function setPrivateSyncStatus(message, isError) {
+      const statusEl = document.getElementById("privateSyncStatus");
+      if (!statusEl) return;
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? "#a34141" : "var(--text-muted)";
+    }
+
+    function setPrivateSyncBusy(isBusy) {
+      ["privateSyncBackupBtn","privateSyncRestoreBtn","privateSyncDeleteBtn"].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = Boolean(isBusy);
+      });
+    }
+
+    function openPrivateSyncModal() {
+      if (!currentUser) {
+        closeJournalModal();
+        openPrivacyModal();
+        return;
+      }
+      if (!isSubscribed) {
+        closeJournalModal();
+        openPlansModal();
+        return;
+      }
+
+      closeJournalModal();
+      const pass = document.getElementById("privateSyncPassphrase");
+      const confirmPass = document.getElementById("privateSyncPassphraseConfirm");
+      if (pass) pass.value = "";
+      if (confirmPass) confirmPass.value = "";
+
+      const lastBackup = localStorage.getItem("oneintoone_backup_last_at");
+      setPrivateSyncStatus(lastBackup
+        ? "Last encrypted backup from this device: " + new Date(lastBackup).toLocaleString()
+        : "No automatic sync. You decide when to back up or restore."
+      );
+
+      document.getElementById("privateSyncModal").style.display = "flex";
+    }
+
+    function closePrivateSyncModal() {
+      const modal = document.getElementById("privateSyncModal");
+      if (modal) modal.style.display = "none";
+      const pass = document.getElementById("privateSyncPassphrase");
+      const confirmPass = document.getElementById("privateSyncPassphraseConfirm");
+      if (pass) pass.value = "";
+      if (confirmPass) confirmPass.value = "";
+    }
+
+    function requirePrivateSyncAccess() {
+      if (!currentUser) throw new Error("Sign in before using encrypted backup.");
+      if (!isSubscribed) throw new Error("Encrypted cross-device backup is a Plus feature.");
+      if (!navigator.onLine) throw new Error("An internet connection is required to reach your encrypted cloud backup.");
+      if (!window.ONEINTOONE_PRIVATE_SYNC) throw new Error("Private backup engine is unavailable.");
+      if (typeof firebase === "undefined" || !firebase.firestore) throw new Error("Secure cloud storage is unavailable.");
+    }
+
+    async function backupPrivateData() {
+      setPrivateSyncBusy(true);
+      try {
+        requirePrivateSyncAccess();
+        const passphrase = document.getElementById("privateSyncPassphrase").value;
+        const confirmPassphrase = document.getElementById("privateSyncPassphraseConfirm").value;
+        if (passphrase.length < 10) throw new Error("Use a backup passphrase of at least 10 characters.");
+        if (passphrase !== confirmPassphrase) throw new Error("The two backup passphrases do not match.");
+
+        setPrivateSyncStatus("Encrypting locally on this device…");
+        const engine = window.ONEINTOONE_PRIVATE_SYNC;
+        const snapshot = engine.buildSnapshot();
+        const encrypted = await engine.encryptSnapshot(snapshot, passphrase);
+        const chunks = engine.splitCiphertext(encrypted.ciphertext, 240000);
+        if (!chunks.length) throw new Error("Nothing was produced for backup.");
+
+        setPrivateSyncStatus("Uploading encrypted chunks…");
+        const db = firebase.firestore();
+        const backupRef = db.collection("users").doc(currentUser.uid)
+          .collection("encrypted_backups").doc("current");
+        const oldChunks = await backupRef.collection("chunks").get();
+        const batch = db.batch();
+
+        oldChunks.forEach(function(doc) { batch.delete(doc.ref); });
+        chunks.forEach(function(chunk, index) {
+          const chunkId = String(index).padStart(4, "0");
+          batch.set(backupRef.collection("chunks").doc(chunkId), { data:chunk });
+        });
+
+        batch.set(backupRef, {
+          version:encrypted.version,
+          algorithm:encrypted.algorithm,
+          kdf:encrypted.kdf,
+          iterations:encrypted.iterations,
+          salt:encrypted.salt,
+          iv:encrypted.iv,
+          chunkCount:chunks.length,
+          updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        await batch.commit();
+        const now = new Date().toISOString();
+        localStorage.setItem("oneintoone_backup_last_at", now);
+        setPrivateSyncStatus("Encrypted backup completed. Your passphrase was not uploaded.");
+        trackSanctuaryEvent("encrypted_backup_created", { chunks:chunks.length });
+      } catch (err) {
+        setPrivateSyncStatus(err && err.message ? err.message : "Encrypted backup failed.", true);
+      } finally {
+        setPrivateSyncBusy(false);
+      }
+    }
+
+    async function restorePrivateData() {
+      setPrivateSyncBusy(true);
+      try {
+        requirePrivateSyncAccess();
+        const passphrase = document.getElementById("privateSyncPassphrase").value;
+        if (passphrase.length < 10) throw new Error("Enter the backup passphrase used when this backup was created.");
+
+        setPrivateSyncStatus("Downloading encrypted backup…");
+        const db = firebase.firestore();
+        const backupRef = db.collection("users").doc(currentUser.uid)
+          .collection("encrypted_backups").doc("current");
+        const backupDoc = await backupRef.get();
+        if (!backupDoc.exists) throw new Error("No encrypted backup was found for this account.");
+
+        const meta = backupDoc.data() || {};
+        const chunkSnap = await backupRef.collection("chunks").get();
+        const docs = chunkSnap.docs.slice().sort(function(a,b) { return a.id.localeCompare(b.id); });
+        if (!docs.length || docs.length !== Number(meta.chunkCount || 0)) {
+          throw new Error("The encrypted backup is incomplete. Please create a fresh backup from the source device.");
+        }
+
+        const payload = {
+          version:meta.version,
+          algorithm:meta.algorithm,
+          kdf:meta.kdf,
+          iterations:meta.iterations,
+          salt:meta.salt,
+          iv:meta.iv,
+          ciphertext:docs.map(function(doc) { return String((doc.data() || {}).data || ""); }).join("")
+        };
+
+        setPrivateSyncStatus("Decrypting locally on this device…");
+        const engine = window.ONEINTOONE_PRIVATE_SYNC;
+        const snapshot = await engine.decryptBackup(payload, passphrase);
+        const stats = engine.snapshotStats(snapshot);
+        const ok = confirm(
+          "Restore this encrypted backup to this device?\n\n" +
+          stats.journalSessions + " journal session(s), " +
+          stats.journalTurns + " journal turn(s), and " +
+          stats.journeyTracks + " journey track(s) are included.\n\n" +
+          "Backed-up fields will replace the matching local fields."
+        );
+        if (!ok) {
+          setPrivateSyncStatus("Restore cancelled. No local data was changed.");
+          return;
+        }
+
+        engine.applySnapshot(snapshot);
+        localStorage.setItem("oneintoone_restore_last_at", new Date().toISOString());
+        setPrivateSyncStatus("Restore complete. Reloading your local sanctuary…");
+        trackSanctuaryEvent("encrypted_backup_restored");
+        window.setTimeout(function() { window.location.reload(); }, 900);
+      } catch (err) {
+        setPrivateSyncStatus(err && err.message ? err.message : "Restore failed.", true);
+      } finally {
+        setPrivateSyncBusy(false);
+      }
+    }
+
+    async function deletePrivateBackup() {
+      setPrivateSyncBusy(true);
+      try {
+        requirePrivateSyncAccess();
+        if (!confirm("Delete the encrypted cloud backup for this account? Local data on this device will not be deleted.")) {
+          return;
+        }
+
+        const db = firebase.firestore();
+        const backupRef = db.collection("users").doc(currentUser.uid)
+          .collection("encrypted_backups").doc("current");
+        const chunkSnap = await backupRef.collection("chunks").get();
+        const batch = db.batch();
+        chunkSnap.forEach(function(doc) { batch.delete(doc.ref); });
+        batch.delete(backupRef);
+        await batch.commit();
+
+        localStorage.removeItem("oneintoone_backup_last_at");
+        setPrivateSyncStatus("Encrypted cloud backup deleted. Local data remains on this device.");
+        trackSanctuaryEvent("encrypted_backup_deleted");
+      } catch (err) {
+        setPrivateSyncStatus(err && err.message ? err.message : "Backup deletion failed.", true);
+      } finally {
+        setPrivateSyncBusy(false);
       }
     }
 
@@ -3059,74 +3283,63 @@
       } 
     }
 
-    /* Cloud-Synchronized User State & Quota */
-    async function syncUserCreditsWithCloud(user) {
+    /* ACCOUNT ENTITLEMENTS — PRIVATE CONTENT STAYS LOCAL */
+    async function syncAccountEntitlements(user) {
       if (user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase()) {
         userCredits = 1000;
+        isSubscribed = true;
         updateCreditUI();
         return;
       }
-      const localKey = `jesus_credits_${user.uid}`;
+
+      const localKey = "jesus_credits_" + user.uid;
       try {
-        if (typeof firebase !== 'undefined' && firebase.firestore) {
+        if (typeof firebase !== "undefined" && firebase.firestore) {
           const db = firebase.firestore();
-          const doc = await db.collection('users').doc(user.uid).get();
+          const ref = db.collection("users").doc(user.uid);
+          const doc = await ref.get();
+
           if (doc.exists) {
-            const data = doc.data();
+            const data = doc.data() || {};
             userCredits = data.credits !== undefined ? data.credits : 5;
-            isSubscribed = data.isSubscribed || false;
+            isSubscribed = Boolean(data.isSubscribed);
 
             if (!isSubscribed && data.passExpiresAt) {
               try {
-                const expDate = data.passExpiresAt.toDate 
-                  ? data.passExpiresAt.toDate() 
+                const expDate = data.passExpiresAt.toDate
+                  ? data.passExpiresAt.toDate()
                   : new Date(data.passExpiresAt);
-                if (expDate > new Date()) {
-                  isSubscribed = true;
-                }
-              } catch (e) {}
+                if (expDate > new Date()) isSubscribed = true;
+              } catch (_) {}
             }
 
-            if (data.psyche) {
-              currentPsyche = data.psyche;
-              localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
-            }
-            if (data.intentions) {
-              userIntentions = data.intentions;
-              localStorage.setItem("jesus_user_intentions", userIntentions);
-              const intInput = document.getElementById("userIntentionsInput");
-              if (intInput) intInput.value = userIntentions;
-            }
-            if (data.streak !== undefined) {
-              localStorage.setItem("jesus_prayer_streak", data.streak);
-              if (data.lastStreakDate) {
-                localStorage.setItem("jesus_last_streak_date", data.lastStreakDate);
-              }
-            }
+            await ref.set({
+              email:user.email || "",
+              displayName:user.displayName || "",
+              lastActive:firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge:true });
           } else {
             userCredits = 5;
             isSubscribed = false;
-            await db.collection('users').doc(user.uid).set({
-              email: user.email,
-              displayName: user.displayName || '',
-              credits: 5,
-              isSubscribed: false,
-              psyche: currentPsyche,
-              intentions: userIntentions,
-              streak: parseInt(localStorage.getItem("jesus_prayer_streak") || "1", 10),
-              lastStreakDate: localStorage.getItem("jesus_last_streak_date") || new Date().toISOString().slice(0, 10),
-              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            await ref.set({
+              email:user.email || "",
+              displayName:user.displayName || "",
+              credits:5,
+              isSubscribed:false,
+              createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+              lastActive:firebase.firestore.FieldValue.serverTimestamp()
             });
           }
+
           localStorage.setItem(localKey, userCredits);
           updateCreditUI();
           updateSpiritualActivityDashboard();
           return;
         }
       } catch (err) {
-        console.warn("Firestore sync note:", err);
+        console.warn("Account entitlement sync note:", err);
       }
+
       const stored = localStorage.getItem(localKey);
       userCredits = stored !== null ? parseInt(stored, 10) : 5;
       updateCreditUI();
@@ -3166,7 +3379,7 @@
             currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
             userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
             authBtn.textContent = "Sign Out";
-            await syncUserCreditsWithCloud(user);
+            await syncAccountEntitlements(user);
 
             if (!pendingBiblePrompt) {
               checkAndTriggerTimeSlotBlessing(false);
@@ -3234,6 +3447,7 @@
       if (event.target == shareCardModal) closeShareModal();
       if (event.target == blessingModal) closeBlessingModal();
       if (event.target == journalModal) closeJournalModal();
+      if (event.target == document.getElementById("privateSyncModal")) closePrivateSyncModal();
       if (event.target == privacyModal) closePrivacyModal();
       if (event.target == confessionalModal) closeConfessionalModal();
       if (event.target == intercessoryModal) closeIntercessoryModal();
