@@ -1283,11 +1283,13 @@
     </div>
   </div>
 
+  <script src="/launch-config.js"></script>
   <script src="/billing-config.js"></script>
   <script>
-    const BACKEND_API_URL = "https://jesus-talk-dusky.vercel.app";
-    const APP_CANONICAL_URL = "https://www.1into1.com";
-    const DEVELOPER_EMAIL = "anuanuu87@gmail.com";
+    const LAUNCH_CONFIG = window.ONEINTOONE_LAUNCH_CONFIG || {};
+    const FEATURE_FLAGS = LAUNCH_CONFIG.features || {};
+    const BACKEND_API_URL = LAUNCH_CONFIG.backendApiUrl || "https://jesus-talk-dusky.vercel.app";
+    const APP_CANONICAL_URL = LAUNCH_CONFIG.canonicalHost || "https://www.1into1.com";
 
     const BILLING_CONFIG = window.ONEINTOONE_BILLING_CONFIG || {};
     const LEMON_SQUEEZY_PLANS = [
@@ -2093,6 +2095,10 @@
     }
 
     function openPrivateSyncModal() {
+      if (!FEATURE_FLAGS.encryptedBackupEnabled) {
+        alert("Encrypted cross-device backup is not live yet. Your journal and prayer data remain local on this device.");
+        return;
+      }
       if (!currentUser) {
         closeJournalModal();
         openPrivacyModal();
@@ -2117,6 +2123,21 @@
       );
 
       document.getElementById("privateSyncModal").style.display = "flex";
+    }
+
+    function applyLaunchFeatureGates() {
+      const backupBtn = document.getElementById("encryptedBackupBtn");
+      if (backupBtn && !FEATURE_FLAGS.encryptedBackupEnabled) {
+        backupBtn.textContent = "🔐 Encrypted Backup · Coming Soon";
+        backupBtn.setAttribute("aria-disabled", "true");
+        backupBtn.title = "Activates after production Firestore security rules are verified.";
+      }
+
+      document.querySelectorAll(".plans-btn").forEach(function(btn) {
+        if (!FEATURE_FLAGS.plusCheckoutEnabled) {
+          btn.title = "Plus checkout is not live yet.";
+        }
+      });
     }
 
     function closePrivateSyncModal() {
@@ -2767,13 +2788,19 @@
     function updateCheckoutButton() {
       const btn = document.getElementById("billingCheckoutBtn");
       if (!btn) return;
-      const ready = Boolean(selectedPlanBaseUrl && !selectedPlanBaseUrl.includes("#"));
+      const ready = Boolean(
+        FEATURE_FLAGS.plusCheckoutEnabled &&
+        selectedPlanBaseUrl &&
+        !selectedPlanBaseUrl.includes("#")
+      );
       btn.disabled = !ready;
       btn.style.opacity = ready ? "1" : "0.58";
       btn.style.cursor = ready ? "pointer" : "not-allowed";
       btn.innerHTML = ready
         ? '<span class="holy-cross-icon" style="filter:brightness(2);margin-right:4px;">✝</span> Continue to Secure Checkout'
-        : 'Billing setup required before launch';
+        : (FEATURE_FLAGS.plusCheckoutEnabled
+          ? 'Checkout configuration unavailable'
+          : 'Plus checkout coming soon');
     }
 
     function renderPlans() {
@@ -2814,8 +2841,12 @@
     }
 
     function executeCheckout() {
+      if (!FEATURE_FLAGS.plusCheckoutEnabled) {
+        alert("1into1 Plus checkout is not live yet. The free local prayer and Bible features remain available.");
+        return;
+      }
       if (!selectedPlanBaseUrl || selectedPlanBaseUrl.includes("#")) {
-        alert("The new 1into1 Plus checkout is not connected yet. The old checkout links are intentionally blocked so nobody is charged the wrong price.");
+        alert("Plus checkout is temporarily unavailable. No payment will be attempted.");
         return;
       }
       if (!currentUser) { openPrivacyModal(); return; }
@@ -3363,13 +3394,6 @@
 
     /* ACCOUNT ENTITLEMENTS — PRIVATE CONTENT STAYS LOCAL */
     async function syncAccountEntitlements(user) {
-      if (user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase()) {
-        userCredits = 1000;
-        isSubscribed = true;
-        updateCreditUI();
-        return;
-      }
-
       const localKey = "jesus_credits_" + user.uid;
       try {
         if (typeof firebase !== "undefined" && firebase.firestore) {
@@ -3428,6 +3452,7 @@
     let authHasResolved = false;
 
     window.onload = function() {
+      applyLaunchFeatureGates();
       restoreActiveChatFeed();
       renderPlans();
       updateDailyRitualWidget();
