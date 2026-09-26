@@ -2,6 +2,7 @@
 from pathlib import Path
 from urllib.parse import urlsplit
 import html as html_lib
+import json
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -118,6 +119,12 @@ def main():
         if 'name="robots" content="noindex' in text.lower():
             failures.append(f"{rel}: critical page contains noindex")
 
+        for raw_jsonld in re.findall(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', text, re.I | re.S):
+            try:
+                json.loads(html_lib.unescape(raw_jsonld.strip()))
+            except Exception as exc:
+                failures.append(f"{rel}: invalid JSON-LD: {exc}")
+
     # Breadcrumbs on the new crawlable hierarchy.
     for rel in SEO_PILLARS:
         text = read(rel)
@@ -179,15 +186,40 @@ def main():
     if len(blog_files) < 80:
         failures.append(f"expected established devotional library; found only {len(blog_files)} blog pages")
 
+    seen_blog_titles = {}
+    seen_blog_descriptions = {}
     for path in blog_files:
         text = path.read_text(encoding="utf-8")
         canonical = first(r'<link[^>]+rel=["\']canonical["\'][^>]+href=["\'](.*?)["\']', text)
+        title = first(r"<title>(.*?)</title>", text)
+        desc = first(r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']', text)
+        rel = path.relative_to(ROOT)
+
         if not canonical.startswith(DOMAIN + "/blogs/"):
-            failures.append(f"{path.relative_to(ROOT)}: invalid canonical {canonical!r}")
-        if not first(r"<title>(.*?)</title>", text):
-            failures.append(f"{path.relative_to(ROOT)}: missing title")
-        if not first(r'<meta[^>]+name=["\']description["\'][^>]+content=["\'](.*?)["\']', text):
-            failures.append(f"{path.relative_to(ROOT)}: missing description")
+            failures.append(f"{rel}: invalid canonical {canonical!r}")
+        elif canonical not in sitemap_urls:
+            failures.append(f"sitemap.xml: missing devotional canonical {canonical}")
+
+        if not title:
+            failures.append(f"{rel}: missing title")
+        elif title in seen_blog_titles:
+            failures.append(f"duplicate devotional title: {rel} and {seen_blog_titles[title]} -> {title}")
+        else:
+            seen_blog_titles[title] = rel
+
+        if not desc:
+            failures.append(f"{rel}: missing description")
+        elif desc in seen_blog_descriptions:
+            failures.append(f"duplicate devotional description: {rel} and {seen_blog_descriptions[desc]}")
+        else:
+            seen_blog_descriptions[desc] = rel
+
+        visible = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", " ", text, flags=re.I)
+        visible = re.sub(r"<[^>]+>", " ", visible)
+        visible = html_lib.unescape(visible)
+        words = re.findall(r"\b[\w’'-]+\b", visible)
+        if len(words) < 450:
+            warnings.append(f"{rel}: relatively short devotional ({len(words)} words)")
 
     # Broken local hrefs across crawlable HTML.
     for source in ROOT.rglob("*.html"):
@@ -199,6 +231,17 @@ def main():
                     f"{source.relative_to(ROOT)}: broken local href {href!r} -> "
                     f"{target.relative_to(ROOT) if str(target).startswith(str(ROOT)) else target}"
                 )
+
+    # Keep scaled publishing disabled. Editorial generation must be intentional.
+    editorial_workflow = read(".github/workflows/seo_cron.yml")
+    if re.search(r"^\s*schedule\s*:", editorial_workflow, re.M):
+        failures.append(".github/workflows/seo_cron.yml: scheduled bulk SEO publishing must remain disabled")
+    if "workflow_dispatch" not in editorial_workflow:
+        failures.append(".github/workflows/seo_cron.yml: manual workflow_dispatch trigger missing")
+
+    generator = read("auto_seo_engine.py")
+    if "anchor_verse_text" in generator:
+        failures.append("auto_seo_engine.py: unverified generated verse-quote field has returned")
 
     # Google ignores meta keywords; keep them out of critical pages.
     for rel in CRITICAL:
