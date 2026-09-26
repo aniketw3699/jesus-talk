@@ -1,0 +1,12 @@
+{
+  "name": "oneintoone-jesus-api",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "vars": {
+    "FIREBASE_PROJECT_ID": "jesus-chat-bd89f",
+    "PLUS_DAILY_FAIR_USE_LIMIT": "100",
+    "AI_MODELS": "openai/gpt-oss-20b,openai/gpt-oss-120b",
+    "ALLOWED_ORIGINS": "https://www.1into1.com,https://1into1.com,https://oneintoone-jesus.aniketw3699.workers.dev,https://jesus-chat-bd89f.firebaseapp.com,http://localhost:5000,http://127.0.0.1:5000,http://localhost:3000"
+  }
+}

@@ -198,17 +198,30 @@ async function inspectViewport(device, viewport) {
   record(device + " journey choices render", /Anxiety|Forgiveness|Financial/i.test(journeyText));
   await page.evaluate(() => closeJourneysModal());
 
-  // Pricing stays safely gated.
+  // Phase 14C pricing: Plus checkout is connected on the workers.dev preview,
+  // while production DNS and encrypted backup remain gated.
   await page.evaluate(() => openPlansModal());
   await page.waitForTimeout(120);
   const pricing = await page.evaluate(() => ({
     text:document.getElementById("plansModal")?.innerText || "",
     checkoutDisabled:document.getElementById("billingCheckoutBtn")?.disabled || false,
-    checkoutText:document.getElementById("billingCheckoutBtn")?.textContent || ""
+    checkoutText:document.getElementById("billingCheckoutBtn")?.textContent || "",
+    plusEnabled:Boolean(window.ONEINTOONE_LAUNCH_CONFIG?.features?.plusCheckoutEnabled),
+    monthlyUrl:window.ONEINTOONE_BILLING_CONFIG?.plusMonthly?.checkoutUrl || "",
+    annualUrl:window.ONEINTOONE_BILLING_CONFIG?.plusAnnual?.checkoutUrl || ""
   }));
   record(device + " pricing shows Free Forever", /FREE FOREVER/i.test(pricing.text));
-  record(device + " prelaunch checkout is unavailable", /coming soon|not live|unavailable|setup/i.test(pricing.text + " " + pricing.checkoutText) || pricing.checkoutDisabled,
+  record(device + " Phase 14C Plus checkout is enabled",
+    pricing.plusEnabled && !pricing.checkoutDisabled && /secure checkout/i.test(pricing.checkoutText),
     pricing.checkoutText);
+  record(device + " Monthly checkout targets approved variant",
+    pricing.monthlyUrl.startsWith("https://purple1into1.lemonsqueezy.com/checkout/buy/") &&
+      pricing.monthlyUrl.includes("enabled=2171751"),
+    pricing.monthlyUrl);
+  record(device + " Annual checkout targets approved variant",
+    pricing.annualUrl.startsWith("https://purple1into1.lemonsqueezy.com/checkout/buy/") &&
+      pricing.annualUrl.includes("enabled=2171775"),
+    pricing.annualUrl);
   await page.screenshot({ path:shotName(device,"pricing"), fullPage:true });
   await page.evaluate(() => closePlansModal());
 
