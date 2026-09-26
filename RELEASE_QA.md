@@ -156,7 +156,7 @@ The current Vercel status is blocked by the account-level build-rate limit rathe
 - Local/Cloud mode labels fit on mobile
 - pricing modal clearly says checkout is not live
 - encrypted backup button clearly says Coming Soon
-- no old You With Jesus / PDF / Firebase-domain copy appears visually
+- no legacy product-brand / PDF / Firebase-domain copy appears visually
 
 ## Merge gate
 
