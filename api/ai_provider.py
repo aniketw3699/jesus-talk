@@ -29,6 +29,23 @@ class CloudAIProvider:
         raise NotImplementedError
 
 
+
+class DisabledProvider(CloudAIProvider):
+    name = "disabled"
+
+    def is_configured(self) -> bool:
+        return False
+
+    def model_candidates(self) -> List[str]:
+        return []
+
+    def complete(self, messages: List[Dict], model: str, temperature: float = 0.7, max_tokens: int = 4096) -> str:
+        raise RuntimeError("Cloud AI is disabled")
+
+    def stream(self, messages: List[Dict], model: str, temperature: float = 0.7, max_tokens: int = 4096) -> Iterable[str]:
+        raise RuntimeError("Cloud AI is disabled")
+
+
 class GroqProvider(CloudAIProvider):
     name = "groq"
 
@@ -82,19 +99,23 @@ class GroqProvider(CloudAIProvider):
     def stream(self, messages: List[Dict], model: str, temperature: float = 0.7, max_tokens: int = 4096) -> Iterable[str]:
         if not self._client:
             raise RuntimeError("Groq provider is not configured")
-        stream = self._client.chat.completions.create(
+        stream_response = self._client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             stream=True,
         )
-        for chunk in stream:
-            if not getattr(chunk, "choices", None):
-                continue
-            delta = getattr(chunk.choices[0].delta, "content", None) or ""
-            if delta:
-                yield delta
+
+        def iterator():
+            for chunk in stream_response:
+                if not getattr(chunk, "choices", None):
+                    continue
+                delta = getattr(chunk.choices[0].delta, "content", None) or ""
+                if delta:
+                    yield delta
+
+        return iterator()
 
 
 class OpenAICompatibleProvider(CloudAIProvider):
@@ -142,9 +163,13 @@ class OpenAICompatibleProvider(CloudAIProvider):
             "max_tokens": max_tokens,
             "stream": True,
         }
-        with httpx.Client(timeout=self.timeout) as client:
-            with client.stream("POST", self._endpoint(), headers=self._headers(), json=payload) as response:
-                response.raise_for_status()
+        client = httpx.Client(timeout=self.timeout)
+        request = client.build_request("POST", self._endpoint(), headers=self._headers(), json=payload)
+        response = client.send(request, stream=True)
+        response.raise_for_status()
+
+        def iterator():
+            try:
                 for line in response.iter_lines():
                     if not line:
                         continue
@@ -159,6 +184,11 @@ class OpenAICompatibleProvider(CloudAIProvider):
                         continue
                     if delta:
                         yield delta
+            finally:
+                response.close()
+                client.close()
+
+        return iterator()
 
 
 def _configured_models() -> List[str]:
@@ -194,7 +224,9 @@ def get_cloud_provider() -> CloudAIProvider:
     if _PROVIDER_CACHE is not None and _PROVIDER_CACHE_KEY == config_key:
         return _PROVIDER_CACHE
 
-    if provider_name in {"openai_compatible", "openai-compatible", "compatible"}:
+    if provider_name in {"none", "off", "disabled", "local_only", "local-only"}:
+        provider = DisabledProvider()
+    elif provider_name in {"openai_compatible", "openai-compatible", "compatible"}:
         provider = OpenAICompatibleProvider()
     else:
         provider = GroqProvider()
