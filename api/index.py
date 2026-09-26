@@ -659,28 +659,37 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "isCrisis": True
         }
 
+    cloud_provider = get_cloud_provider()
+    if not cloud_provider.is_configured():
+        return {"error": "SERVICE_DEGRADED", "degraded": True,
+                "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
+
     verified_uid, verified_email = get_verified_user(request)
-    decision = resolve_entitlement(verified_uid, verified_email, client_ip)
+    decision = reserve_cloud_access(verified_uid, verified_email, client_ip)
 
     if not decision["allowed"]:
-        if decision.get("reason") == "guest_quota_exhausted":
+        reason = decision.get("reason")
+        if reason == "guest_quota_exhausted":
             return {
                 "error": "AUTH_REQUIRED",
                 "reply": GUEST_AUTH_REQUIRED_REPLY,
                 "cardText": "",
                 "updatedPsyche": user_psyche
             }
+        if reason == "quota_exhausted":
+            return {
+                "error": "PAYWALL_EXHAUSTED",
+                "reply": PAYWALL_EXHAUSTED_REPLY,
+                "cardText": "",
+                "updatedPsyche": user_psyche
+            }
         return {
-            "error": "PAYWALL_EXHAUSTED",
-            "reply": PAYWALL_EXHAUSTED_REPLY,
+            "error": "SERVICE_DEGRADED",
+            "degraded": True,
+            "reply": DEGRADED_REPLY,
             "cardText": "",
             "updatedPsyche": user_psyche
         }
-
-    cloud_provider = get_cloud_provider()
-    if not cloud_provider.is_configured():
-        return {"error": "SERVICE_DEGRADED", "degraded": True,
-                "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
 
     messages = build_chat_messages(raw_message, user_name, user_psyche, user_intentions,
                                    selected_mode, payload.history)
@@ -714,10 +723,9 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
         raw_reply = strip_invalid_citations(last_candidate)
 
     if not raw_reply:
+        release_cloud_reservation(verified_uid, decision)
         return {"error": "SERVICE_DEGRADED", "degraded": True,
                 "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
-
-    consume_credit(verified_uid, verified_email, decision)
 
     # 1. Reliably extract Psyche using an anchored line match
     updated_psyche = user_psyche
@@ -794,19 +802,6 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
             yield "data: [DONE]\n\n"
         return StreamingResponse(crisis_stream(), media_type="text/event-stream", headers=sse_headers)
 
-    verified_uid, verified_email = get_verified_user(request)
-    decision = resolve_entitlement(verified_uid, verified_email, client_ip)
-
-    if not decision["allowed"]:
-        if decision.get("reason") == "guest_quota_exhausted":
-            err = {"type": "error", "error": "AUTH_REQUIRED", "reply": GUEST_AUTH_REQUIRED_REPLY}
-        else:
-            err = {"type": "error", "error": "PAYWALL_EXHAUSTED", "reply": PAYWALL_EXHAUSTED_REPLY}
-        def denied_stream():
-            yield sse(err)
-            yield "data: [DONE]\n\n"
-        return StreamingResponse(denied_stream(), media_type="text/event-stream", headers=sse_headers)
-
     cloud_provider = get_cloud_provider()
     if not cloud_provider.is_configured():
         def degraded_stream():
@@ -814,11 +809,27 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
             yield "data: [DONE]\n\n"
         return StreamingResponse(degraded_stream(), media_type="text/event-stream", headers=sse_headers)
 
+    verified_uid, verified_email = get_verified_user(request)
+    decision = reserve_cloud_access(verified_uid, verified_email, client_ip)
+
+    if not decision["allowed"]:
+        reason = decision.get("reason")
+        if reason == "guest_quota_exhausted":
+            err = {"type": "error", "error": "AUTH_REQUIRED", "reply": GUEST_AUTH_REQUIRED_REPLY}
+        elif reason == "quota_exhausted":
+            err = {"type": "error", "error": "PAYWALL_EXHAUSTED", "reply": PAYWALL_EXHAUSTED_REPLY}
+        else:
+            err = {"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY}
+        def denied_stream():
+            yield sse(err)
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(denied_stream(), media_type="text/event-stream", headers=sse_headers)
+
     messages = build_chat_messages(raw_message, user_name, user_psyche, user_intentions,
                                    selected_mode, payload.history)
 
     def event_stream():
-        consumed = False
+        provider_started = False
         emitted_any = False
         pending = ""
         psyche_mode = False
@@ -847,9 +858,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                 if not delta:
                     continue
 
-                if not consumed:
-                    consume_credit(verified_uid, verified_email, decision)
-                    consumed = True
+                provider_started = True
 
                 if psyche_mode:
                     psyche_accum += delta
@@ -884,6 +893,11 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
                 if safe:
                     yield sse({"type": "delta", "text": safe})
 
+            if not provider_started:
+                yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
+                yield "data: [DONE]\n\n"
+                return
+
             updated_psyche = user_psyche
             candidate_psyche = re.sub(r'^\s*PSYCHE\s*:\s*', '', psyche_accum or "", flags=re.IGNORECASE | re.MULTILINE).strip()
             if candidate_psyche:
@@ -901,6 +915,9 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
             if not emitted_any:
                 yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
             yield "data: [DONE]\n\n"
+        finally:
+            if not provider_started:
+                release_cloud_reservation(verified_uid, decision)
 
     return StreamingResponse(event_stream(), media_type="text/event-stream", headers=sse_headers)
 
