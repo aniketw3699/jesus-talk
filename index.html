@@ -3283,74 +3283,63 @@
       } 
     }
 
-    /* Cloud-Synchronized User State & Quota */
-    async function syncUserCreditsWithCloud(user) {
+    /* ACCOUNT ENTITLEMENTS — PRIVATE CONTENT STAYS LOCAL */
+    async function syncAccountEntitlements(user) {
       if (user.email && user.email.toLowerCase() === DEVELOPER_EMAIL.toLowerCase()) {
         userCredits = 1000;
+        isSubscribed = true;
         updateCreditUI();
         return;
       }
-      const localKey = `jesus_credits_${user.uid}`;
+
+      const localKey = "jesus_credits_" + user.uid;
       try {
-        if (typeof firebase !== 'undefined' && firebase.firestore) {
+        if (typeof firebase !== "undefined" && firebase.firestore) {
           const db = firebase.firestore();
-          const doc = await db.collection('users').doc(user.uid).get();
+          const ref = db.collection("users").doc(user.uid);
+          const doc = await ref.get();
+
           if (doc.exists) {
-            const data = doc.data();
+            const data = doc.data() || {};
             userCredits = data.credits !== undefined ? data.credits : 5;
-            isSubscribed = data.isSubscribed || false;
+            isSubscribed = Boolean(data.isSubscribed);
 
             if (!isSubscribed && data.passExpiresAt) {
               try {
-                const expDate = data.passExpiresAt.toDate 
-                  ? data.passExpiresAt.toDate() 
+                const expDate = data.passExpiresAt.toDate
+                  ? data.passExpiresAt.toDate()
                   : new Date(data.passExpiresAt);
-                if (expDate > new Date()) {
-                  isSubscribed = true;
-                }
-              } catch (e) {}
+                if (expDate > new Date()) isSubscribed = true;
+              } catch (_) {}
             }
 
-            if (data.psyche) {
-              currentPsyche = data.psyche;
-              localStorage.setItem("jesus_soul_journey_psyche", currentPsyche);
-            }
-            if (data.intentions) {
-              userIntentions = data.intentions;
-              localStorage.setItem("jesus_user_intentions", userIntentions);
-              const intInput = document.getElementById("userIntentionsInput");
-              if (intInput) intInput.value = userIntentions;
-            }
-            if (data.streak !== undefined) {
-              localStorage.setItem("jesus_prayer_streak", data.streak);
-              if (data.lastStreakDate) {
-                localStorage.setItem("jesus_last_streak_date", data.lastStreakDate);
-              }
-            }
+            await ref.set({
+              email:user.email || "",
+              displayName:user.displayName || "",
+              lastActive:firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge:true });
           } else {
             userCredits = 5;
             isSubscribed = false;
-            await db.collection('users').doc(user.uid).set({
-              email: user.email,
-              displayName: user.displayName || '',
-              credits: 5,
-              isSubscribed: false,
-              psyche: currentPsyche,
-              intentions: userIntentions,
-              streak: parseInt(localStorage.getItem("jesus_prayer_streak") || "1", 10),
-              lastStreakDate: localStorage.getItem("jesus_last_streak_date") || new Date().toISOString().slice(0, 10),
-              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              lastActive: firebase.firestore.FieldValue.serverTimestamp()
+            await ref.set({
+              email:user.email || "",
+              displayName:user.displayName || "",
+              credits:5,
+              isSubscribed:false,
+              createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+              lastActive:firebase.firestore.FieldValue.serverTimestamp()
             });
           }
+
           localStorage.setItem(localKey, userCredits);
           updateCreditUI();
           updateSpiritualActivityDashboard();
           return;
         }
       } catch (err) {
-        console.warn("Firestore sync note:", err);
+        console.warn("Account entitlement sync note:", err);
       }
+
       const stored = localStorage.getItem(localKey);
       userCredits = stored !== null ? parseInt(stored, 10) : 5;
       updateCreditUI();
@@ -3390,7 +3379,7 @@
             currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
             userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
             authBtn.textContent = "Sign Out";
-            await syncUserCreditsWithCloud(user);
+            await syncAccountEntitlements(user);
 
             if (!pendingBiblePrompt) {
               checkAndTriggerTimeSlotBlessing(false);
@@ -3458,6 +3447,7 @@
       if (event.target == shareCardModal) closeShareModal();
       if (event.target == blessingModal) closeBlessingModal();
       if (event.target == journalModal) closeJournalModal();
+      if (event.target == document.getElementById("privateSyncModal")) closePrivateSyncModal();
       if (event.target == privacyModal) closePrivacyModal();
       if (event.target == confessionalModal) closeConfessionalModal();
       if (event.target == intercessoryModal) closeIntercessoryModal();
