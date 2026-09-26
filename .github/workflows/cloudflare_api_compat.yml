@@ -35,9 +35,41 @@ jobs:
           set -e
           cat /tmp/cloudflare-api-compat.log
           if [ "$code" -eq 0 ]; then
-            echo "COMPATIBILITY_RESULT=PASS"
-            echo "The current critical Python dependency set can be bundled by Cloudflare Python Workers."
+            echo "BUNDLE_COMPATIBILITY_RESULT=PASS"
           else
-            echo "COMPATIBILITY_RESULT=BLOCKED"
-            echo "The current backend cannot be lifted unchanged to Python Workers; use the log to identify the incompatible dependency."
+            echo "BUNDLE_COMPATIBILITY_RESULT=BLOCKED"
+          fi
+
+      - name: Probe dependency imports in Workers runtime
+        shell: bash
+        run: |
+          cd cloudflare-api-compat
+          rm -f /tmp/cloudflare-api-runtime.json /tmp/cloudflare-api-dev.log
+          set +e
+          uv run pywrangler dev --port 8788 > /tmp/cloudflare-api-dev.log 2>&1 &
+          worker_pid=$!
+          set -e
+
+          success=0
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8788/ > /tmp/cloudflare-api-runtime.json 2>/dev/null; then
+              success=1
+              break
+            fi
+            sleep 1
+          done
+
+          kill "$worker_pid" 2>/dev/null || true
+          wait "$worker_pid" 2>/dev/null || true
+
+          echo "--- Workers runtime log ---"
+          cat /tmp/cloudflare-api-dev.log || true
+          echo "--- Runtime response ---"
+          cat /tmp/cloudflare-api-runtime.json || true
+          echo
+
+          if [ "$success" -eq 1 ] && grep -q '"ok":true' /tmp/cloudflare-api-runtime.json; then
+            echo "RUNTIME_IMPORT_RESULT=PASS"
+          else
+            echo "RUNTIME_IMPORT_RESULT=BLOCKED"
           fi
