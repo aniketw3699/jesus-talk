@@ -3072,6 +3072,7 @@
     }
 
     let pendingBiblePrompt = null;
+    let pendingBibleMode = null;
     let authHasResolved = false;
 
     window.onload = function() {
@@ -3083,10 +3084,14 @@
       
       const urlParams = new URLSearchParams(window.location.search);
       const promptParam = urlParams.get('prompt');
+      const modeParam = urlParams.get('mode');
 
       if (promptParam && promptParam.trim().length > 0) {
         window.history.replaceState({}, document.title, window.location.pathname);
         pendingBiblePrompt = promptParam;
+        if (['comfort','prayer','guidance','study'].includes(modeParam)) {
+          pendingBibleMode = modeParam;
+        }
       }
 
       const quizDone = localStorage.getItem("jesus_quiz_completed");
@@ -3123,7 +3128,10 @@
 
           if (pendingBiblePrompt) {
             const promptToSent = pendingBiblePrompt;
+            const modeToUse = pendingBibleMode;
             pendingBiblePrompt = null;
+            pendingBibleMode = null;
+            if (modeToUse) setPastoralMode(modeToUse);
             setTimeout(() => {
               sendQuickPrompt(promptToSent);
             }, 200);
@@ -3133,7 +3141,10 @@
         authHasResolved = true;
         if (pendingBiblePrompt) {
           const promptToSent = pendingBiblePrompt;
+          const modeToUse = pendingBibleMode;
           pendingBiblePrompt = null;
+          pendingBibleMode = null;
+          if (modeToUse) setPastoralMode(modeToUse);
           sendQuickPrompt(promptToSent);
         } else if (!quizDone) {
           startOnboardingQuiz();
@@ -3143,7 +3154,10 @@
       setTimeout(() => {
         if (pendingBiblePrompt && !authHasResolved) {
           const promptToSent = pendingBiblePrompt;
+          const modeToUse = pendingBibleMode;
           pendingBiblePrompt = null;
+          pendingBibleMode = null;
+          if (modeToUse) setPastoralMode(modeToUse);
           sendQuickPrompt(promptToSent);
         }
       }, 1500);
