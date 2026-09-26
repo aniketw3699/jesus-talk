@@ -57,6 +57,23 @@ async function inspectViewport(device, viewport) {
       /WHAT WEIGHS ON YOUR HEART/i.test(modal.innerText || "");
   });
   record(device + " onboarding step 1 visible", onboardingVisible);
+  if (onboardingVisible) {
+    const burdenVisibility = await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll(".quiz-opt-btn"));
+      const last = buttons[buttons.length - 1];
+      const card = document.querySelector(".blessing-modal-card");
+      if (!last || !card) return { count:buttons.length, visible:false };
+      const r = last.getBoundingClientRect();
+      const c = card.getBoundingClientRect();
+      return {
+        count:buttons.length,
+        visible:r.top >= c.top && r.bottom <= c.bottom && r.bottom <= window.innerHeight
+      };
+    });
+    record(device + " all 6 onboarding burdens are discoverable",
+      burdenVisibility.count === 6 && burdenVisibility.visible,
+      JSON.stringify(burdenVisibility));
+  }
   await page.screenshot({ path:shotName(device,"onboarding-step1"), fullPage:true });
 
   if (onboardingVisible) {
