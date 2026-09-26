@@ -529,8 +529,8 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
             "updatedPsyche": user_psyche
         }
 
-    groq_client = get_groq_client()
-    if groq_client is None:
+    cloud_provider = get_cloud_provider()
+    if not cloud_provider.is_configured():
         return {"error": "SERVICE_DEGRADED", "degraded": True,
                 "reply": DEGRADED_REPLY, "cardText": "", "updatedPsyche": user_psyche}
 
@@ -539,15 +539,15 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 
     raw_reply = None
     last_candidate = None
-    for model_name in get_active_models():
+    for model_name in cloud_provider.model_candidates():
         try:
-            response = groq_client.chat.completions.create(
-                model=model_name,
+            response_text = cloud_provider.complete(
                 messages=messages,
+                model=model_name,
                 temperature=0.7,
-                max_tokens=4096  # Generous headroom to eliminate token exhaustion
+                max_tokens=4096
             )
-            candidate = strip_thinking_tags(response.choices[0].message.content or "")
+            candidate = strip_thinking_tags(response_text or "")
             if not candidate:
                 continue
 
@@ -558,7 +558,8 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
 
             raw_reply = candidate
             break
-        except Exception:
+        except Exception as exc:
+            logger.warning(f"Cloud model attempt failed ({cloud_provider.name}/{model_name}): {exc}")
             continue
 
     if not raw_reply and last_candidate:
@@ -658,8 +659,8 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
             yield "data: [DONE]\n\n"
         return StreamingResponse(denied_stream(), media_type="text/event-stream", headers=sse_headers)
 
-    groq_client = get_groq_client()
-    if groq_client is None:
+    cloud_provider = get_cloud_provider()
+    if not cloud_provider.is_configured():
         def degraded_stream():
             yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
             yield "data: [DONE]\n\n"
@@ -677,30 +678,24 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
         HOLD = 100
         try:
             stream = None
-            for model_name in get_active_models():
+            for model_name in cloud_provider.model_candidates():
                 try:
-                    stream = groq_client.chat.completions.create(
-                        model=model_name,
+                    stream = cloud_provider.stream(
                         messages=messages,
+                        model=model_name,
                         temperature=0.7,
-                        max_tokens=4096,
-                        stream=True
+                        max_tokens=4096
                     )
                     break
-                except Exception:
+                except Exception as exc:
+                    logger.warning(f"Cloud stream model attempt failed ({cloud_provider.name}/{model_name}): {exc}")
                     stream = None
             if stream is None:
                 yield sse({"type": "error", "error": "SERVICE_DEGRADED", "reply": DEGRADED_REPLY})
                 yield "data: [DONE]\n\n"
                 return
 
-            for chunk in stream:
-                try:
-                    if not chunk.choices:
-                        continue
-                    delta = chunk.choices[0].delta.content or ""
-                except Exception:
-                    continue
+            for delta in stream:
                 if not delta:
                     continue
 
