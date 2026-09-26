@@ -77,6 +77,7 @@ LEMON_PLUS_VARIANT_IDS = {
     for item in os.getenv("LEMON_PLUS_VARIANT_IDS", "").split(",")
     if item.strip()
 }
+ALLOW_TEST_BILLING = os.getenv("ALLOW_TEST_BILLING", "").lower() in {"1", "true", "yes"}
 FREE_DAILY_CREDITS = int(os.getenv("FREE_DAILY_CREDITS", "5"))
 GUEST_DAILY_CREDITS = int(os.getenv("GUEST_DAILY_CREDITS", "1"))
 MAX_JSON_BODY_BYTES = int(os.getenv("MAX_JSON_BODY_BYTES", "32768"))
@@ -566,11 +567,6 @@ class ChatRequest(BaseModel):
     mode: Optional[str] = Field(default="comfort", max_length=16)
     history: List[Dict[str, str]] = Field(default_factory=list, max_length=12)
 
-class SavePrayerRequest(BaseModel):
-    title: str = Field(..., min_length=1, max_length=120)
-    content: str = Field(..., min_length=1, max_length=4000)
-    mode: Optional[str] = Field(default="comfort", max_length=16)
-
 DEGRADED_REPLY = (
     "Ask Deeper is temporarily unavailable. "
     "Your local prayer tools, Bible, journeys, journal, and Lay It Down still work on this device."
@@ -921,64 +917,7 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
 
     return StreamingResponse(event_stream(), media_type="text/event-stream", headers=sse_headers)
 
-# ---------------- Prayer Journal & Webhooks ----------------
-@app.post("/api/prayers/save")
-@app.post("/prayers/save")
-async def save_prayer(payload: SavePrayerRequest, request: Request):
-    uid, _ = get_verified_user(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Sign in to save prayers.")
-    if db is None:
-        raise HTTPException(status_code=503, detail="Storage unavailable.")
-
-    content = sanitize_input(payload.content, max_length=4000)
-    title = sanitize_metadata(payload.title, max_length=120, default="Saved Prayer")
-    mode = payload.mode if payload.mode in MODE_INSTRUCTIONS else "comfort"
-
-    try:
-        ref = db.collection("users").document(uid).collection("saved_prayers").document()
-        ref.set({
-            "title": title,
-            "content": content,
-            "mode": mode,
-            "createdAt": firestore.SERVER_TIMESTAMP
-        })
-        return {"saved": True, "id": ref.id}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Could not save prayer.")
-
-@app.get("/api/prayers")
-@app.get("/prayers")
-async def list_prayers(request: Request):
-    uid, _ = get_verified_user(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Sign in required.")
-    if db is None:
-        raise HTTPException(status_code=503, detail="Storage unavailable.")
-    try:
-        docs = db.collection("users").document(uid).collection("saved_prayers") \
-            .order_by("createdAt", direction=firestore.Query.DESCENDING).limit(100).stream()
-        prayers = [{
-            "id": d.id,
-            "title": d.to_dict().get("title", "Saved Prayer"),
-            "content": d.to_dict().get("content", ""),
-            "mode": d.to_dict().get("mode", "comfort"),
-            "createdAt": str(d.to_dict().get("createdAt", ""))
-        } for d in docs]
-        return {"prayers": prayers}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Could not load prayers.")
-
-@app.delete("/api/prayers/{prayer_id}")
-async def delete_prayer(prayer_id: str, request: Request):
-    uid, _ = get_verified_user(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Sign in required.")
-    if db is None:
-        raise HTTPException(status_code=503, detail="Storage unavailable.")
-    db.collection("users").document(uid).collection("saved_prayers").document(prayer_id).delete()
-    return {"deleted": True}
-
+# ---------------- Billing Webhook ----------------
 @app.post("/webhook/lemon")
 @app.post("/webhook/lemonsqueezy")
 @app.post("/api/webhook/lemon")
@@ -994,49 +933,69 @@ async def lemon_squeezy_webhook(request: Request, x_signature: Optional[str] = H
 
     try:
         event_payload = json.loads(raw_body.decode("utf-8"))
-        event_name = event_payload.get("meta", {}).get("event_name", "unknown")
-        custom_data = event_payload.get("meta", {}).get("custom_data", {})
-        user_id = custom_data.get("user_id")
-
-        attrs = event_payload.get("data", {}).get("attributes", {}) or {}
-        status_val = str(attrs.get("status", "") or "").lower()
-
-        # Handle 7-Day Pass one-time order
-        if event_name == "order_created" and user_id and db:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-            db.collection("users").document(user_id).set({
-                "passExpiresAt": expires_at,
-                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-            }, merge=True)
-            return {"status": "success", "event": event_name}
-
-        # Handle 7-Day Pass refund
-        if event_name == "order_refunded" and user_id and db:
-            db.collection("users").document(user_id).set({
-                "passExpiresAt": None,
-                "isSubscribed": False,
-                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-            }, merge=True)
-            return {"status": "success", "event": event_name}
-
-        # Handle recurring subscriptions
-        active_events = ("subscription_created", "subscription_payment_success", "subscription_resumed", "subscription_unpaused")
-        inactive_events = ("subscription_cancelled", "subscription_expired", "subscription_paused", "subscription_payment_failed", "subscription_payment_refunded")
-
-        should_activate = None
-        if event_name == "subscription_updated":
-            should_activate = status_val in ("active", "on_trial")
-        elif event_name in active_events:
-            should_activate = True
-        elif event_name in inactive_events:
-            should_activate = False
-
-        if should_activate is not None and user_id and db:
-            db.collection("users").document(user_id).set({
-                "isSubscribed": should_activate,
-                "lastPlanUpdate": firestore.SERVER_TIMESTAMP
-            }, merge=True)
-
-        return {"status": "success", "event": event_name}
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid payload format.")
+
+    event_name = str(event_payload.get("meta", {}).get("event_name", "") or "")
+    custom_data = event_payload.get("meta", {}).get("custom_data", {}) or {}
+    user_id = str(custom_data.get("user_id", "") or "").strip()
+
+    data_obj = event_payload.get("data", {}) or {}
+    data_type = str(data_obj.get("type", "") or "")
+    subscription_id = str(data_obj.get("id", "") or "")
+    attrs = data_obj.get("attributes", {}) or {}
+
+    # Only signed Subscription-object events may change Plus entitlement.
+    # Invoice/order/license events are acknowledged but never grant access.
+    if data_type != "subscriptions":
+        return {"status": "ignored", "event": event_name, "reason": "not_subscription_object"}
+
+    if db is None:
+        raise HTTPException(status_code=503, detail="Billing storage unavailable.")
+
+    if not LEMON_PLUS_VARIANT_IDS:
+        logger.error("LEMON_PLUS_VARIANT_IDS is not configured; ignoring subscription entitlement event.")
+        return {"status": "ignored", "event": event_name, "reason": "billing_variants_not_configured"}
+
+    variant_id = str(attrs.get("variant_id", "") or "")
+    if variant_id not in LEMON_PLUS_VARIANT_IDS:
+        logger.warning(f"Ignoring unapproved Lemon Squeezy variant: {variant_id or 'missing'}")
+        return {"status": "ignored", "event": event_name, "reason": "unapproved_variant"}
+
+    if bool(attrs.get("test_mode", False)) and not ALLOW_TEST_BILLING:
+        return {"status": "ignored", "event": event_name, "reason": "test_mode_disabled"}
+
+    if not user_id or not re.fullmatch(r"[A-Za-z0-9:_-]{1,160}", user_id):
+        return {"status": "ignored", "event": event_name, "reason": "missing_or_invalid_user"}
+
+    user_ref = db.collection("users").document(user_id)
+    user_doc = user_ref.get()
+    if not user_doc.exists:
+        return {"status": "ignored", "event": event_name, "reason": "unknown_user"}
+
+    account_data = user_doc.to_dict() or {}
+    account_email = str(account_data.get("email", "") or "").strip().lower()
+    billing_email = str(attrs.get("user_email", "") or "").strip().lower()
+    if account_email and billing_email and account_email != billing_email:
+        logger.warning("Ignoring subscription webhook with account/billing email mismatch.")
+        return {"status": "ignored", "event": event_name, "reason": "email_mismatch"}
+
+    status_val = str(attrs.get("status", "") or "").lower()
+    access_statuses = {"on_trial", "active", "paused", "past_due", "cancelled"}
+    is_active = status_val in access_statuses
+
+    user_ref.set({
+        "isSubscribed": is_active,
+        "subscriptionStatus": status_val,
+        "lemonSubscriptionId": subscription_id,
+        "lemonVariantId": variant_id,
+        "subscriptionEndsAt": attrs.get("ends_at"),
+        "lastPlanUpdate": firestore.SERVER_TIMESTAMP
+    }, merge=True)
+
+    return {
+        "status": "success",
+        "event": event_name,
+        "subscription_status": status_val,
+        "active": is_active
+    }
