@@ -86,8 +86,6 @@ EXPOSE_HEALTH_DETAILS = os.getenv("EXPOSE_HEALTH_DETAILS", "").lower() in {"1", 
 DEFAULT_ALLOWED_ORIGINS = [
     "https://www.1into1.com",
     "https://1into1.com",
-    "https://jesus-chat-bd89f.web.app",
-    "https://jesus-chat-bd89f.firebaseapp.com",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
     "http://localhost:3000"
