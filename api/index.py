@@ -306,106 +306,209 @@ def get_verified_user(request: Request):
             logger.warning(f"ID token verification failed: {e}")
     return None, None
 
-def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
+def reserve_cloud_access(uid: Optional[str], email: Optional[str], client_ip: str) -> dict:
+    """
+    Atomically reserve one Ask Deeper use before the provider is called.
+    This prevents concurrent requests from overspending free/guest quotas.
+    """
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    if email and email.lower() == DEVELOPER_EMAIL.lower():
-        return {"allowed": True, "remaining": 9999, "tier": "developer"}
+    if DEVELOPER_EMAIL and email and email.lower() == DEVELOPER_EMAIL.lower():
+        return {
+            "allowed": True,
+            "remaining": 9999,
+            "tier": "developer",
+            "reserved": False
+        }
 
-    if uid and db:
+    if db is None or firestore is None:
+        return {
+            "allowed": False,
+            "remaining": 0,
+            "tier": "unavailable",
+            "reason": "entitlement_unavailable"
+        }
+
+    if uid:
+        ref = db.collection("users").document(uid)
+        transaction = db.transaction()
+
+        @firestore.transactional
+        def reserve_user(txn):
+            snapshot = ref.get(transaction=txn)
+            exists = snapshot.exists
+            data = snapshot.to_dict() or {} if exists else {}
+
+            if bool(data.get("isSubscribed", False)):
+                return {
+                    "allowed": True,
+                    "remaining": 9999,
+                    "tier": "subscribed",
+                    "reserved": False
+                }
+
+            if data.get("lastResetDate") != today_str:
+                credits = FREE_DAILY_CREDITS
+            else:
+                try:
+                    credits = int(data.get("credits", FREE_DAILY_CREDITS))
+                except (TypeError, ValueError):
+                    credits = FREE_DAILY_CREDITS
+
+            credits = max(0, min(credits, FREE_DAILY_CREDITS))
+            if credits <= 0:
+                return {
+                    "allowed": False,
+                    "remaining": 0,
+                    "tier": "free",
+                    "reason": "quota_exhausted",
+                    "reserved": False
+                }
+
+            remaining = credits - 1
+            updates = {
+                "email": email or data.get("email", ""),
+                "credits": remaining,
+                "isSubscribed": False,
+                "lastResetDate": today_str,
+                "lastActive": firestore.SERVER_TIMESTAMP
+            }
+            if not exists:
+                updates["createdAt"] = firestore.SERVER_TIMESTAMP
+
+            txn.set(ref, updates, merge=True)
+            return {
+                "allowed": True,
+                "remaining": remaining,
+                "tier": "free",
+                "reserved": True,
+                "reservation_kind": "user",
+                "reservation_key": uid,
+                "reservation_date": today_str
+            }
+
         try:
-            ref = db.collection("users").document(uid)
-            doc = ref.get()
-            if doc.exists:
-                data = doc.to_dict() or {}
-                if data.get("isSubscribed", False):
-                    return {"allowed": True, "remaining": 9999, "tier": "subscribed"}
-
-                # Check 7-Day Pass expiration
-                pass_expires = data.get("passExpiresAt")
-                if pass_expires:
-                    is_valid = False
-                    if isinstance(pass_expires, datetime):
-                        is_valid = pass_expires > datetime.now(timezone.utc)
-                    elif isinstance(pass_expires, str):
-                        try:
-                            dt = datetime.fromisoformat(pass_expires.replace("Z", "+00:00"))
-                            is_valid = dt > datetime.now(timezone.utc)
-                        except Exception:
-                            pass
-                    if is_valid:
-                        return {"allowed": True, "remaining": 9999, "tier": "pass"}
-
-                if data.get("lastResetDate") != today_str:
-                    return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
-                            "tier": "free", "needs_reset": True}
-                credits = data.get("credits", 0)
-                if credits <= 0:
-                    return {"allowed": False, "remaining": 0, "tier": "free",
-                            "reason": "quota_exhausted"}
-                return {"allowed": True, "remaining": credits, "tier": "free"}
-            return {"allowed": True, "remaining": FREE_DAILY_CREDITS,
-                    "tier": "free", "is_new": True}
-        except Exception as e:
-            logger.error(f"Firestore entitlement error (fail-open): {e}")
-            return {"allowed": True, "remaining": FREE_DAILY_CREDITS, "tier": "db_fallback"}
+            return reserve_user(transaction)
+        except Exception as exc:
+            logger.error(f"Firestore user entitlement reservation failed: {exc}")
+            return {
+                "allowed": False,
+                "remaining": 0,
+                "tier": "unavailable",
+                "reason": "entitlement_unavailable"
+            }
 
     safe_ip = re.sub(r'[^a-zA-Z0-9.:_-]', '', client_ip) or "unknown"
     guest_doc_id = f"{today_str}_{safe_ip}"
+    ref = db.collection("guest_usage").document(guest_doc_id)
+    transaction = db.transaction()
 
-    if db:
+    @firestore.transactional
+    def reserve_guest(txn):
+        snapshot = ref.get(transaction=txn)
+        data = snapshot.to_dict() or {} if snapshot.exists else {}
         try:
-            doc = db.collection("guest_usage").document(guest_doc_id).get()
-            used = (doc.to_dict() or {}).get("count", 0) if doc.exists else 0
-            if used >= GUEST_DAILY_CREDITS:
-                return {"allowed": False, "remaining": 0, "tier": "guest",
-                        "reason": "guest_quota_exhausted"}
-            return {"allowed": True, "remaining": 0, "tier": "guest",
-                    "guest_key": guest_doc_id, "guest_ip": client_ip}
-        except Exception as e:
-            logger.error(f"Guest entitlement error: {e}")
+            used = int(data.get("count", 0))
+        except (TypeError, ValueError):
+            used = 0
 
-    return {"allowed": True, "remaining": 0, "tier": "guest",
-            "guest_key": guest_doc_id, "guest_ip": client_ip}
+        if used >= GUEST_DAILY_CREDITS:
+            return {
+                "allowed": False,
+                "remaining": 0,
+                "tier": "guest",
+                "reason": "guest_quota_exhausted",
+                "reserved": False
+            }
 
-def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
-    tier = decision.get("tier")
+        new_count = used + 1
+        txn.set(ref, {
+            "count": new_count,
+            "ip": safe_ip,
+            "date": today_str,
+            "updatedAt": firestore.SERVER_TIMESTAMP
+        }, merge=True)
+
+        return {
+            "allowed": True,
+            "remaining": max(0, GUEST_DAILY_CREDITS - new_count),
+            "tier": "guest",
+            "reserved": True,
+            "reservation_kind": "guest",
+            "reservation_key": guest_doc_id,
+            "reservation_date": today_str
+        }
+
     try:
-        if tier == "guest":
-            key = decision.get("guest_key")
-            ip = decision.get("guest_ip")
-            if not key or not ip:
-                return
-            if db:
-                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-                db.collection("guest_usage").document(key).set({
-                    "count": firestore.Increment(1),
-                    "ip": ip,
-                    "date": today_str,
+        return reserve_guest(transaction)
+    except Exception as exc:
+        logger.error(f"Firestore guest entitlement reservation failed: {exc}")
+        return {
+            "allowed": False,
+            "remaining": 0,
+            "tier": "unavailable",
+            "reason": "entitlement_unavailable"
+        }
+
+
+def release_cloud_reservation(uid: Optional[str], decision: dict) -> None:
+    """Best-effort refund when a reserved cloud request never produces an answer."""
+    if not decision.get("reserved") or db is None or firestore is None:
+        return
+
+    kind = decision.get("reservation_kind")
+    key = decision.get("reservation_key")
+    reservation_date = decision.get("reservation_date")
+
+    try:
+        if kind == "user" and uid and key == uid:
+            ref = db.collection("users").document(uid)
+            transaction = db.transaction()
+
+            @firestore.transactional
+            def refund_user(txn):
+                snapshot = ref.get(transaction=txn)
+                if not snapshot.exists:
+                    return
+                data = snapshot.to_dict() or {}
+                if data.get("lastResetDate") != reservation_date:
+                    return
+                try:
+                    current = int(data.get("credits", 0))
+                except (TypeError, ValueError):
+                    current = 0
+                txn.set(ref, {
+                    "credits": min(FREE_DAILY_CREDITS, max(0, current) + 1),
+                    "lastActive": firestore.SERVER_TIMESTAMP
+                }, merge=True)
+
+            refund_user(transaction)
+            return
+
+        if kind == "guest" and key:
+            ref = db.collection("guest_usage").document(str(key))
+            transaction = db.transaction()
+
+            @firestore.transactional
+            def refund_guest(txn):
+                snapshot = ref.get(transaction=txn)
+                if not snapshot.exists:
+                    return
+                data = snapshot.to_dict() or {}
+                if data.get("date") != reservation_date:
+                    return
+                try:
+                    current = int(data.get("count", 0))
+                except (TypeError, ValueError):
+                    current = 0
+                txn.set(ref, {
+                    "count": max(0, current - 1),
                     "updatedAt": firestore.SERVER_TIMESTAMP
                 }, merge=True)
-            return
-        if tier in ("developer", "subscribed", "pass", "db_fallback"):
-            return
-        if uid and db:
-            ref = db.collection("users").document(uid)
-            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            if decision.get("needs_reset") or decision.get("is_new"):
-                ref.set({
-                    "email": email or "",
-                    "credits": FREE_DAILY_CREDITS - 1,
-                    "isSubscribed": False,
-                    "lastResetDate": today_str,
-                    "createdAt": firestore.SERVER_TIMESTAMP,
-                    "lastActive": firestore.SERVER_TIMESTAMP
-                }, merge=True)
-            else:
-                ref.update({
-                    "credits": firestore.Increment(-1),
-                    "lastActive": firestore.SERVER_TIMESTAMP
-                })
-    except Exception as e:
-        logger.error(f"Credit consumption error: {e}")
+
+            refund_guest(transaction)
+    except Exception as exc:
+        logger.error(f"Cloud reservation refund failed: {exc}")
 
 # ---------------- Prompts ----------------
 MODE_INSTRUCTIONS = {
@@ -499,10 +602,10 @@ def build_chat_messages(raw_message, user_name, user_psyche, user_intentions, se
     return msgs
 
 def compute_remaining(decision: dict) -> int:
-    remaining = decision.get("remaining", 0)
-    if decision.get("tier") == "free" and remaining < 9999:
-        remaining = max(0, remaining - 1)
-    return remaining
+    try:
+        return max(0, int(decision.get("remaining", 0)))
+    except (TypeError, ValueError):
+        return 0
 
 # ---------------- Routes ----------------
 @app.get("/")
