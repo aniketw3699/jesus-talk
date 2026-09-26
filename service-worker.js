@@ -1,6 +1,6 @@
-const CACHE_VERSION = "1into1-shell-v2";
-const PAGE_CACHE = "1into1-pages-v2";
-const STATIC_CACHE = "1into1-static-v2";
+const CACHE_VERSION = "1into1-shell-v3";
+const PAGE_CACHE = "1into1-pages-v3";
+const STATIC_CACHE = "1into1-static-v3";
 
 const APP_SHELL = [
   "/",
@@ -13,6 +13,7 @@ const APP_SHELL = [
   "/offline.html",
   "/local-scripture-data.js",
   "/offline-core.js",
+  "/local-experiences.js",
   "/manifest.webmanifest",
   "/pwa-icon.svg",
   "/BG1.png",
