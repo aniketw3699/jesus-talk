@@ -761,26 +761,55 @@
 
 
     document.addEventListener("visibilitychange", () => { if (document.hidden) stopAllBibleAudio(); });
+
     async function initBibleOfflineMode() {
       const status = document.getElementById("offlineBibleStatus");
-      const update = () => {
+
+      function applyProgress(data) {
+        if (!status || !data || data.type !== "BIBLE_CACHE_PROGRESS") return;
+        const done = Number(data.done) || 0;
+        const total = Number(data.total) || 66;
+
+        if (done >= total) {
+          status.textContent = "✓ Full Bible ready offline on this device";
+        } else if (!navigator.onLine) {
+          status.textContent = "Offline · " + done + "/" + total + " Bible books prepared";
+        } else {
+          status.textContent = "Preparing offline Bible · " + done + "/" + total + " books";
+        }
+      }
+
+      function updateNetwork() {
         if (!status) return;
-        status.textContent = navigator.onLine
-          ? "Online · chapters you open are saved for offline reading"
-          : "Offline · previously opened chapters remain available";
-      };
-      update();
-      window.addEventListener("online", update);
-      window.addEventListener("offline", update);
+        if (!navigator.onLine && !status.textContent.includes("ready offline")) {
+          status.textContent = "Offline · using Bible books prepared on this device";
+        }
+      }
+
+      updateNetwork();
+      window.addEventListener("online", updateNetwork);
+      window.addEventListener("offline", updateNetwork);
+
       if ("serviceWorker" in navigator) {
         try {
-          await navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+          navigator.serviceWorker.addEventListener("message", function(event) {
+            applyProgress(event.data);
+          });
+
+          const registration = await navigator.serviceWorker.register("/service-worker.js", { scope:"/" });
           await navigator.serviceWorker.ready;
+
+          const worker = registration.active || registration.waiting || registration.installing;
+          if (worker) {
+            worker.postMessage({ type:"GET_BIBLE_CACHE_STATUS" });
+            if (navigator.onLine) worker.postMessage({ type:"PREPARE_BIBLE_LIBRARY" });
+          }
         } catch (err) {
-          console.warn("Bible offline registration note:", err);
+          console.warn("Bible offline preparation note:", err);
         }
       }
     }
+
 
     window.onload = () => {
       initBibleOfflineMode();
