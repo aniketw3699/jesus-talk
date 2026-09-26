@@ -31,6 +31,7 @@
   
   <script defer src="/local-scripture-data.js"></script>
   <script defer src="/offline-core.js"></script>
+  <script defer src="/local-experiences.js"></script>
 
   <!-- Firebase SDKs with Firestore Cloud Sync -->
   <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
@@ -876,25 +877,25 @@
         <p class="modal-desc">Guided multi-day tracks to build your daily prayer habit.</p>
       </div>
 
-      <div class="journey-card-item" onclick="startJourneyDay('anxiety', 1)">
+      <div class="journey-card-item" onclick="startOrResumeJourney('anxiety')">
         <span class="journey-tag">7-Day Track</span>
         <h4 class="journey-title">🕊️ Overcoming Overwhelming Anxiety</h4>
         <p style="font-size: 12px; color: var(--text-muted);">Anchor your mind in God's promises and release fear.</p>
-        <div class="journey-progress-bar"><div class="journey-progress-fill" id="progAnxiety" style="width: 14%;"></div></div>
+        <div class="journey-progress-bar"><div class="journey-progress-fill" id="progAnxiety" style="width: 0%;"></div></div><p id="labelAnxiety" style="font-size:10.5px;color:var(--text-muted);margin-top:5px;">Start Day 1</p>
       </div>
 
-      <div class="journey-card-item" onclick="startJourneyDay('surrender', 1)">
+      <div class="journey-card-item" onclick="startOrResumeJourney('surrender')">
         <span class="journey-tag">7-Day Track</span>
         <h4 class="journey-title">💼 Surrendering Financial Anxiety</h4>
         <p style="font-size: 12px; color: var(--text-muted);">Moving from scarcity fear to trusting divine provision.</p>
-        <div class="journey-progress-bar"><div class="journey-progress-fill" id="progSurrender" style="width: 14%;"></div></div>
+        <div class="journey-progress-bar"><div class="journey-progress-fill" id="progSurrender" style="width: 0%;"></div></div><p id="labelSurrender" style="font-size:10.5px;color:var(--text-muted);margin-top:5px;">Start Day 1</p>
       </div>
 
-      <div class="journey-card-item" onclick="startJourneyDay('forgiveness', 1)">
+      <div class="journey-card-item" onclick="startOrResumeJourney('forgiveness')">
         <span class="journey-tag">14-Day Track</span>
         <h4 class="journey-title">🤝 Healing & The Freedom of Forgiveness</h4>
         <p style="font-size: 12px; color: var(--text-muted);">Releasing deep hurts and finding restored peace.</p>
-        <div class="journey-progress-bar"><div class="journey-progress-fill" id="progForgiveness" style="width: 7%;"></div></div>
+        <div class="journey-progress-bar"><div class="journey-progress-fill" id="progForgiveness" style="width: 0%;"></div></div><p id="labelForgiveness" style="font-size:10.5px;color:var(--text-muted);margin-top:5px;">Start Day 1</p>
       </div>
     </div>
   </div>
@@ -904,8 +905,8 @@
     <div class="modal-card">
       <button class="modal-close" onclick="closeStillnessModal()">✕</button>
       <div class="modal-header">
-        <h3 class="modal-title">BE STILL & REST</h3>
-        <p class="modal-desc">When words fail, the Spirit intercedes for you.</p>
+        <h3 class="modal-title">I DON'T KNOW WHAT TO PRAY</h3>
+        <p class="modal-desc">No prompt needed. One tap creates a private prayer on this device.</p>
       </div>
 
       <div class="breath-circle-wrap">
@@ -917,7 +918,7 @@
       </div>
 
       <button class="primary-gold-btn" onclick="prayWordlessSigh()">
-        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Pray For Me, Lord
+        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Give Me Words to Pray
       </button>
     </div>
   </div>
@@ -968,6 +969,10 @@
         </div>
       </div>
 
+      <div class="privacy-notice-box" style="padding:10px 12px;margin-bottom:12px;font-size:11.5px;">
+        🔒 Created privately on this device. The name and note are not sent to the AI server. Internet is only needed when you choose to share.
+      </div>
+
       <button class="primary-gold-btn" onclick="submitIntercessoryPrayer()">
         <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Generate Prayer & Blessing Card
       </button>
@@ -979,8 +984,8 @@
     <div class="modal-card">
       <button class="modal-close" onclick="closeConfessionalModal()">✕</button>
       <div class="modal-header">
-        <h3 class="modal-title">GETHSEMANE SURRENDER</h3>
-        <p class="modal-desc">Write your heaviest unspoken burden, guilt, or secret fear.</p>
+        <h3 class="modal-title">LAY IT DOWN</h3>
+        <p class="modal-desc">Name what you are carrying. It stays on this device and disappears when you release it.</p>
       </div>
 
       <div class="privacy-notice-box" style="padding: 10px 12px; margin-bottom: 12px; font-size: 11.5px;">
@@ -999,10 +1004,11 @@
       <div class="surrendered-peace-card" id="surrenderedPeaceCard">
         <p id="surrenderScriptureQuote">“Come to me, all who labor and are heavy laden, and I will give you rest.”</p>
         <em id="surrenderScriptureRef">— Matthew 11:28</em>
+        <div id="surrenderReflection" style="margin-top:10px;font-size:12px;line-height:1.55;color:var(--text-muted);"></div>
       </div>
 
       <button class="primary-gold-btn" id="surrenderBtn" onclick="executeSacredSurrender()">
-        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Surrender to the Cross
+        <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Lay It Down
       </button>
     </div>
   </div>
@@ -1631,30 +1637,92 @@
 
     function prayWordlessSigh() {
       closeStillnessModal();
-      trackSanctuaryEvent('wordless_prayer_clicked');
-      let lastIdx = parseInt(localStorage.getItem("jesus_last_wordless_idx") || "-1", 10);
-      let nextIdx = Math.floor(Math.random() * WORDLESS_PRAYER_POOL.length);
-      while (nextIdx === lastIdx && WORDLESS_PRAYER_POOL.length > 1) {
-        nextIdx = Math.floor(Math.random() * WORDLESS_PRAYER_POOL.length);
-      }
-      localStorage.setItem("jesus_last_wordless_idx", nextIdx);
-      sendQuickPrompt(WORDLESS_PRAYER_POOL[nextIdx]);
+      hideMobileHome();
+      trackSanctuaryEvent('wordless_prayer_clicked', { processing:'local' });
+
+      const experiences = window.ONEINTOONE_EXPERIENCES;
+      const seed = String(Date.now()) + "|" + (currentPsyche || "");
+      const result = experiences && typeof experiences.getWordless === 'function'
+        ? experiences.getWordless(seed)
+        : { reply:"God, I do not have the right words. Receive what I cannot explain and give me peace for the next step.\n\nScripture anchor: Romans 8:26" };
+
+      const userLabel = "I don't know what to pray.";
+      appendUserBubble(userLabel);
+      appendBotBubble(result.reply);
+      saveConversationTurnLocally(userLabel, result.reply);
+      pulsePrivateLocalStatus();
     }
 
-    /* MULTI-DAY JOURNEYS */
-    function openJourneysModal() { stopAllAudio(); journeysModal.style.display = "flex"; }
+    /* MULTI-DAY JOURNEYS — LOCAL + OFFLINE */
+    function journeyStorageKey(track) {
+      return 'oneintoone_journey_' + track + '_completed';
+    }
+
+    function getCompletedJourneyDay(track) {
+      return Math.max(0, parseInt(localStorage.getItem(journeyStorageKey(track)) || "0", 10) || 0);
+    }
+
+    function refreshJourneyProgress() {
+      const experiences = window.ONEINTOONE_EXPERIENCES;
+      const configs = [
+        ['anxiety','progAnxiety','labelAnxiety'],
+        ['surrender','progSurrender','labelSurrender'],
+        ['forgiveness','progForgiveness','labelForgiveness']
+      ];
+
+      configs.forEach(([track, barId, labelId]) => {
+        const journey = experiences && experiences.getJourney ? experiences.getJourney(track) : null;
+        if (!journey) return;
+        const completed = Math.min(journey.total, getCompletedJourneyDay(track));
+        const percent = Math.round((completed / journey.total) * 100);
+        const bar = document.getElementById(barId);
+        const label = document.getElementById(labelId);
+        if (bar) bar.style.width = percent + '%';
+        if (label) {
+          label.textContent = completed >= journey.total
+            ? 'Completed · revisit the final day'
+            : completed > 0
+            ? 'Continue with Day ' + (completed + 1) + ' · ' + percent + '% complete'
+            : 'Start Day 1';
+        }
+      });
+    }
+
+    function openJourneysModal() {
+      stopAllAudio();
+      refreshJourneyProgress();
+      journeysModal.style.display = "flex";
+    }
+
     function closeJourneysModal() { journeysModal.style.display = "none"; }
 
+    function startOrResumeJourney(track) {
+      const experiences = window.ONEINTOONE_EXPERIENCES;
+      const journey = experiences && experiences.getJourney ? experiences.getJourney(track) : null;
+      if (!journey) return;
+      const completed = getCompletedJourneyDay(track);
+      const nextDay = completed >= journey.total ? journey.total : completed + 1;
+      startJourneyDay(track, nextDay);
+    }
+
     function startJourneyDay(track, dayNum) {
+      const experiences = window.ONEINTOONE_EXPERIENCES;
+      const day = experiences && experiences.getJourneyDay ? experiences.getJourneyDay(track, dayNum) : null;
+      if (!day) return;
+
       closeJourneysModal();
-      trackSanctuaryEvent('journey_day_started', { track: track, day: dayNum });
-      if (track === 'anxiety') {
-        sendQuickPrompt(`Lord Jesus, I am walking Day ${dayNum} of the 7-Day Journey to Overcoming Anxiety. Teach me how to guard my heart and mind today. (Philippians 4:6-7)`);
-      } else if (track === 'surrender') {
-        sendQuickPrompt(`Lord Jesus, I am walking Day ${dayNum} of the 7-Day Financial Surrender Journey. Help me release the fear of tomorrow into your provision. (Matthew 6:31-34)`);
-      } else {
-        sendQuickPrompt(`Lord Jesus, I am walking Day ${dayNum} of the 14-Day Freedom of Forgiveness Journey. Heal my hurt and give me the grace to release bitterness. (Colossians 3:13)`);
-      }
+      hideMobileHome();
+      trackSanctuaryEvent('journey_day_started', { track:track, day:day.day, processing:'local' });
+
+      const userLabel = day.title + ' · Day ' + day.day;
+      appendUserBubble(userLabel);
+      appendBotBubble(day.reply);
+      saveConversationTurnLocally(userLabel, day.reply);
+      pulsePrivateLocalStatus();
+
+      const completed = Math.max(getCompletedJourneyDay(track), day.day);
+      localStorage.setItem(journeyStorageKey(track), String(completed));
+      localStorage.setItem('oneintoone_last_journey', JSON.stringify({ track:track, day:day.day, at:Date.now() }));
     }
 
     /* PRAY FOR A LOVED ONE */
@@ -1672,17 +1740,24 @@
       const need = document.getElementById("lovedOneNeed").value;
       const note = document.getElementById("lovedOneNote").value.trim();
 
-      currentIntercessoryRecipient = name;
       closeIntercessoryModal();
+      hideMobileHome();
+      trackSanctuaryEvent('intercessory_prayer_created', { need:need, processing:'local' });
 
-      trackSanctuaryEvent('intercessory_prayer_created', { need: need });
+      const experiences = window.ONEINTOONE_EXPERIENCES;
+      const engine = window.OneIntoOneOffline;
+      const result = experiences && typeof experiences.buildIntercessory === 'function'
+        ? experiences.buildIntercessory(name, need, note, engine)
+        : {
+            reply:'A prayer for ' + name + '\n\nGod, be near to ' + name + '. Give wisdom, peace, strength, and the right support for the next step.\n\nScripture anchor: James 1:5',
+            cardText:'May God give ' + name + ' wisdom, peace, and strength for the next step. Scripture: James 1:5'
+          };
 
-      let prompt = `Lord Jesus, I bring ${name} before you today. They are in deep need of ${need.toLowerCase()}`;
-      if (note) prompt += ` (${note})`;
-      prompt += `. Please surround ${name} with your healing grace, peace, and divine provision. Speak a prayer and Scripture promise over their life that I can share with them.`;
-
-      messageInput.value = prompt;
-      handleUserSubmit(new Event('submit'));
+      const userLabel = 'Praying for ' + name + ' · ' + need;
+      appendUserBubble(userLabel);
+      appendBotBubble(result.reply, name, result.cardText || '');
+      saveConversationTurnLocally(userLabel, result.reply);
+      pulsePrivateLocalStatus();
     }
 
     /* IN-CHAT SPEECH SYNTHESIS */
@@ -1992,50 +2067,89 @@
       animate();
     }
 
-    /* GETHSEMANE CONFESSIONAL */
+    /* LAY IT DOWN — EPHEMERAL LOCAL RITUAL */
     function openConfessionalModal() {
-      if (!currentUser) { openPrivacyModal(); return; }
       stopAllAudio();
       confessionInput.value = "";
       confessionInput.className = "confession-textarea";
       confessionBoxWrapper.style.display = "block";
       surrenderedPeaceCard.style.display = "none";
+      const reflection = document.getElementById("surrenderReflection");
+      if (reflection) reflection.textContent = "";
+      surrenderScriptureQuote.style.whiteSpace = "normal";
       surrenderBtn.style.display = "flex";
       surrenderBtn.disabled = false;
       surrenderBtn.onclick = executeSacredSurrender;
-      surrenderBtn.innerHTML = `<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Surrender to the Cross`;
+      surrenderBtn.innerHTML = '<span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Lay It Down';
       confessionalModal.style.display = "flex";
       setTimeout(() => confessionInput.focus(), 150);
     }
-    function closeConfessionalModal() { confessionalModal.style.display = "none"; }
+
+    function closeConfessionalModal() {
+      confessionInput.value = "";
+      confessionalModal.style.display = "none";
+    }
 
     function executeSacredSurrender() {
       const text = confessionInput.value.trim();
-      if (!text) { alert("Please write your burden before surrendering."); return; }
+      if (!text) { alert("Write what you are carrying before laying it down."); return; }
+
+      const engine = window.OneIntoOneOffline;
+      const experiences = window.ONEINTOONE_EXPERIENCES;
+      const analysis = engine && typeof engine.analyze === 'function' ? engine.analyze(text) : null;
+
+      // A safety concern should never be treated as something to merely "release".
+      if (analysis && analysis.safety) {
+        const safetyExperience = engine.buildExperience(text, 'comfort');
+        confessionInput.value = "";
+        confessionBoxWrapper.style.display = "none";
+        surrenderedPeaceCard.style.display = "block";
+        surrenderScriptureQuote.style.whiteSpace = "pre-line";
+        surrenderScriptureQuote.textContent = safetyExperience.reply;
+        surrenderScriptureRef.textContent = "Immediate safety comes first.";
+        const reflection = document.getElementById("surrenderReflection");
+        if (reflection) reflection.textContent = "";
+        surrenderBtn.innerHTML = "Close";
+        surrenderBtn.disabled = false;
+        surrenderBtn.onclick = closeConfessionalModal;
+        trackSanctuaryEvent('surrender_safety_intercept');
+        return;
+      }
 
       const prev = parseInt(localStorage.getItem("jesus_surrendered_count") || "0", 10);
       localStorage.setItem("jesus_surrendered_count", prev + 1);
+      trackSanctuaryEvent('confession_surrendered', {
+        processing:'local',
+        topic:analysis && analysis.primary ? analysis.primary.id : 'general'
+      });
 
-      trackSanctuaryEvent('confession_surrendered');
+      const selected = experiences && typeof experiences.selectSurrenderScripture === 'function'
+        ? experiences.selectSurrenderScripture(analysis, SURRENDER_SCRIPTURES)
+        : SURRENDER_SCRIPTURES[Math.floor(Math.random() * SURRENDER_SCRIPTURES.length)];
 
-      const randomScripture = SURRENDER_SCRIPTURES[Math.floor(Math.random() * SURRENDER_SCRIPTURES.length)];
-      surrenderScriptureQuote.textContent = randomScripture.quote;
-      surrenderScriptureRef.textContent = randomScripture.ref;
+      surrenderScriptureQuote.textContent = selected.quote;
+      surrenderScriptureRef.textContent = selected.ref;
+      const reflection = document.getElementById("surrenderReflection");
+      if (reflection && experiences && typeof experiences.surrenderReflection === 'function') {
+        reflection.textContent = experiences.surrenderReflection(analysis);
+      }
 
       surrenderBtn.disabled = true;
-      surrenderBtn.innerHTML = "✨ Dissolving into Ashes...";
-      
+      surrenderBtn.innerHTML = "✨ Laying it down...";
+
       confessionInput.classList.add("confession-dissolving");
       runAshDissolveAnimation();
       playSacredDissolveSound();
 
       setTimeout(() => {
+        // The burden itself is deliberately not persisted anywhere.
         confessionInput.value = "";
         confessionBoxWrapper.style.display = "none";
         surrenderedPeaceCard.style.display = "block";
         surrenderBtn.innerHTML = "🕊️ Return in Peace";
         surrenderBtn.disabled = false;
         surrenderBtn.onclick = closeConfessionalModal;
+        pulsePrivateLocalStatus();
       }, 2900);
     }
 
