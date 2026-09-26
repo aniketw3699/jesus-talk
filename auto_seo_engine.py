@@ -124,7 +124,7 @@ JSON Structure Requirements:
 {
   "h1": "Title of the guide",
   "meta_description": "Search meta description under 155 characters",
-  "anchor_verse_text": "The exact wording of the primary anchor verse requested.",
+  "anchor_passage_note": "One concise sentence explaining why the requested anchor passage matters. Do not quote or reconstruct the verse text.",
   "introduction": "3 in-depth paragraphs explaining the emotional struggle and the biblical path forward. Separate each paragraph with a blank line.",
   "exegesis_title": "Understanding the Scripture Context",
   "exegesis_body": "2 detailed paragraphs analyzing original biblical context and theological depth. Separate them with a blank line.",
@@ -195,7 +195,7 @@ def generate_article_content(topic):
     return None
 
 def generate_dynamic_topic(existing_slugs):
-    prompt = f"""You are a Christian SEO content strategist. Generate ONE new unique devotional topic that is NOT in this list: {existing_slugs[-15:]}.
+    prompt = f"""You are a Christian SEO content strategist. Generate ONE genuinely distinct devotional topic that is NOT a duplicate or near-duplicate of any slug in this list: {existing_slugs}.
 Return strictly valid JSON with all 5 fields populated:
 {{
   "slug": "kebab-case-slug-here",
@@ -283,15 +283,15 @@ def build_article_html(topic, data):
     # Prevent JSON-LD script breakout attacks
     safe_schema_json = json.dumps(schema_graph, ensure_ascii=False).replace("</", "<\\/")
 
-    anchor_verse_text = (data.get("anchor_verse_text") or "").strip()
-    if len(anchor_verse_text) < 5:
-        anchor_verse_text = "The Lord is near to all who call on him, to all who call on him in truth."
+    anchor_passage_note = (data.get("anchor_passage_note") or "").strip()
+    if len(anchor_passage_note) < 5:
+        anchor_passage_note = "Read this passage in context and notice how it speaks to the theme of this devotional."
 
     # HTML Escaping for variables inserted into HTML
     escaped_title = html.escape(title, quote=True)
     escaped_meta_desc = html.escape(meta_desc, quote=True)
     escaped_primary_verse = html.escape(primary_verse)
-    escaped_anchor_verse = html.escape(anchor_verse_text)
+    escaped_anchor_note = html.escape(anchor_passage_note)
 
     intro_html = split_paragraphs(data.get("introduction", ""), "Find peace in God's presence today.")
 
@@ -376,8 +376,8 @@ def build_article_html(topic, data):
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
     <h1>{escaped_title}</h1>
     <div class="verse-card">
-      <p class="verse-text">“{escaped_anchor_verse}”</p>
-      <span class="verse-ref">— {escaped_primary_verse}</span>
+      <p class="verse-text">Read {escaped_primary_verse} in context.</p>
+      <span class="verse-ref">{escaped_anchor_note}</span>
     </div>
     {intro_html}
     {exegesis_section}
