@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safety audit for the Cloudflare Pages frontend bundle."""
+"""Safety audit for the Cloudflare static frontend bundle."""
 
 from __future__ import annotations
 
@@ -108,6 +108,30 @@ if not (DIST / "guides").is_dir() or not any((DIST / "guides").glob("*.html")):
     raise SystemExit("FAIL: guide pages were not copied")
 
 files = [p for p in DIST.rglob("*") if p.is_file()]
-print(f"PASS: Cloudflare Pages bundle is sanitized and complete ({len(files)} files).")
+print(f"PASS: Cloudflare static bundle is sanitized and complete ({len(files)} files).")
 print("PASS: Firebase frontend bootstrap no longer depends on the current host.")
 print(f"PASS: {len(shell_paths)} service-worker app-shell routes resolve inside dist.")
+
+
+# Workers Static Assets is Cloudflare's current primary path for new static apps.
+import json
+wrangler_path = ROOT / "wrangler.jsonc"
+if not wrangler_path.is_file():
+    raise SystemExit("FAIL: wrangler.jsonc is missing")
+try:
+    wrangler = json.loads(wrangler_path.read_text(encoding="utf-8"))
+except Exception as exc:
+    raise SystemExit(f"FAIL: wrangler.jsonc is not valid JSON: {exc}")
+
+assets = wrangler.get("assets") or {}
+if wrangler.get("name") != "oneintoone-jesus":
+    raise SystemExit("FAIL: unexpected Worker name in wrangler.jsonc")
+if assets.get("directory") != "./dist":
+    raise SystemExit("FAIL: Workers Static Assets must publish ./dist")
+if assets.get("not_found_handling") != "404-page":
+    raise SystemExit("FAIL: Workers must preserve real 404 handling")
+if assets.get("html_handling") != "auto-trailing-slash":
+    raise SystemExit("FAIL: Workers HTML routing must keep clean canonical paths")
+
+print("PASS: Workers Static Assets configuration points only to ./dist.")
+print("PASS: Worker routing preserves clean HTML URLs and custom 404 behavior.")
