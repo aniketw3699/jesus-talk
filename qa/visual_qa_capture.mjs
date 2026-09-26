@@ -49,6 +49,47 @@ async function inspectViewport(device, viewport) {
   record(device + " homepage HTTP", response && response.status() === 200, response ? response.status() : "no response");
   await page.waitForTimeout(1200);
 
+  // First-time onboarding is part of the real guest experience. Test it
+  // separately, then enter the sanctuary before capturing other screens.
+  const onboardingVisible = await page.evaluate(() => {
+    const modal = document.getElementById("blessingModal");
+    return !!modal && getComputedStyle(modal).display !== "none" &&
+      /WHAT WEIGHS ON YOUR HEART/i.test(modal.innerText || "");
+  });
+  record(device + " onboarding step 1 visible", onboardingVisible);
+  await page.screenshot({ path:shotName(device,"onboarding-step1"), fullPage:true });
+
+  if (onboardingVisible) {
+    await page.evaluate(() => selectQuizBurden("Overwhelming Anxiety & Fear"));
+    await page.waitForTimeout(100);
+    const step2 = await page.evaluate(() => document.getElementById("blessingModal")?.innerText || "");
+    record(device + " onboarding step 2 renders", /WHEN IS IT HEAVIEST/i.test(step2));
+    await page.screenshot({ path:shotName(device,"onboarding-step2"), fullPage:true });
+
+    await page.evaluate(() => selectQuizTime("late night racing thoughts"));
+    await page.waitForTimeout(100);
+    const step3 = await page.evaluate(() => document.getElementById("blessingModal")?.innerText || "");
+    record(device + " onboarding step 3 renders", /WHAT DO YOU SEEK/i.test(step3));
+    await page.screenshot({ path:shotName(device,"onboarding-step3"), fullPage:true });
+
+    await page.evaluate(() => selectQuizNeed("Deep Peace & Stillness"));
+    await page.waitForTimeout(100);
+    const resultCard = await page.evaluate(() => document.getElementById("blessingModal")?.innerText || "");
+    record(device + " onboarding result renders", /YOUR PROMISED REST/i.test(resultCard) && /anxiety/i.test(resultCard));
+    await page.screenshot({ path:shotName(device,"onboarding-result"), fullPage:true });
+
+    await page.evaluate(() => enterSanctuaryFromBlessing());
+    await page.waitForTimeout(120);
+  } else {
+    await page.evaluate(() => closeBlessingModal && closeBlessingModal()).catch(()=>{});
+  }
+
+  const onboardingClosed = await page.evaluate(() => {
+    const modal = document.getElementById("blessingModal");
+    return !modal || getComputedStyle(modal).display === "none";
+  });
+  record(device + " onboarding closes before sanctuary use", onboardingClosed);
+
   const metrics = await page.evaluate(() => ({
     viewportWidth:window.innerWidth,
     bodyWidth:document.body.scrollWidth,
