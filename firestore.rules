@@ -10,6 +10,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isPlus(userId) {
+      return isOwner(userId)
+        && get(/databases/$(database)/documents/users/$(userId)).data.isSubscribed == true;
+    }
+
     function validAccountCreate() {
       return request.resource.data.keys().hasOnly([
           'email', 'displayName', 'credits', 'isSubscribed', 'createdAt', 'lastActive'
@@ -63,12 +68,14 @@ service cloud.firestore {
       }
 
       match /encrypted_backups/{backupId} {
+        // Owners retain read/delete access to their encrypted data for portability.
+        // Creating or replacing a cross-device backup is a Plus entitlement.
         allow read, delete: if isOwner(userId);
-        allow create, update: if isOwner(userId) && validEncryptedBackup();
+        allow create, update: if isPlus(userId) && validEncryptedBackup();
 
         match /chunks/{chunkId} {
           allow read, delete: if isOwner(userId);
-          allow create, update: if isOwner(userId) && validEncryptedChunk();
+          allow create, update: if isPlus(userId) && validEncryptedChunk();
         }
       }
     }
