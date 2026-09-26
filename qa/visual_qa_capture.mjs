@@ -32,10 +32,18 @@ async function inspectViewport(device, viewport) {
 
   const page = await context.newPage();
   const consoleErrors = [];
+  const failedResources = [];
   page.on("console", msg => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
+    if (msg.type() === "error" && !/Failed to load resource/i.test(msg.text())) {
+      consoleErrors.push(msg.text());
+    }
   });
   page.on("pageerror", err => consoleErrors.push("PAGEERROR: " + err.message));
+  page.on("response", response => {
+    if (response.status() >= 400) {
+      failedResources.push({ status:response.status(), url:response.url() });
+    }
+  });
 
   const response = await page.goto(BASE + "/", { waitUntil:"domcontentloaded", timeout:30000 });
   record(device + " homepage HTTP", response && response.status() === 200, response ? response.status() : "no response");
@@ -192,7 +200,17 @@ async function inspectViewport(device, viewport) {
   const seriousErrors = consoleErrors.filter(x =>
     !/favicon|Firebase|Google|analytics|net::ERR|blocked/i.test(x)
   );
+  const unexpectedFailedResources = failedResources.filter(item => {
+    const url = item.url || "";
+    return !(
+      /\/__\/firebase\//i.test(url) ||
+      /favicon\.ico/i.test(url) ||
+      /google-analytics\.com|googletagmanager\.com/i.test(url)
+    );
+  });
   record(device + " no serious browser console errors", seriousErrors.length === 0, seriousErrors.join(" | ").slice(0,500));
+  record(device + " no missing product resources", unexpectedFailedResources.length === 0,
+    JSON.stringify(unexpectedFailedResources.slice(0,8)));
 
   await context.close();
 }
