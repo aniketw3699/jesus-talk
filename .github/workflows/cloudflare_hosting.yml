@@ -28,7 +28,7 @@ jobs:
           node-version: "22"
 
       # Run repository-level audits before generating dist/ or installing
-      # Playwright so generated/vendor HTML cannot be mistaken for product SEO.
+      # browser/vendor dependencies so they cannot be mistaken for product SEO.
       - name: Re-run launch safety audit
         run: python launch_audit.py
 
@@ -47,8 +47,11 @@ jobs:
       - name: Re-run JavaScript/PWA parsing
         run: node launch_js_audit.mjs
 
-      - name: Build and audit Cloudflare Pages bundle
+      - name: Build and audit Cloudflare static bundle
         run: python cloudflare_hosting_audit.py
+
+      - name: Validate Workers package without deploying
+        run: npx --yes wrangler@latest deploy --dry-run
 
       - name: Install Playwright
         run: |
@@ -80,7 +83,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cloudflare-pages-visual-qa
+          name: cloudflare-workers-static-assets-visual-qa
           path: cloudflare-visual-qa/
           if-no-files-found: warn
           retention-days: 7
