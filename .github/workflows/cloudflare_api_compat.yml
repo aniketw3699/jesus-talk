@@ -1,0 +1,43 @@
+name: Cloudflare API Compatibility Probe
+
+on:
+  push:
+    branches:
+      - feature/phase14-external-launch-readiness
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: python -m pip install uv
+
+      - name: Probe current backend dependency bundle
+        shell: bash
+        run: |
+          cd cloudflare-api-compat
+          set +e
+          uv run pywrangler deploy --dry-run > /tmp/cloudflare-api-compat.log 2>&1
+          code=$?
+          set -e
+          cat /tmp/cloudflare-api-compat.log
+          if [ "$code" -eq 0 ]; then
+            echo "COMPATIBILITY_RESULT=PASS"
+            echo "The current critical Python dependency set can be bundled by Cloudflare Python Workers."
+          else
+            echo "COMPATIBILITY_RESULT=BLOCKED"
+            echo "The current backend cannot be lifted unchanged to Python Workers; use the log to identify the incompatible dependency."
+          fi
