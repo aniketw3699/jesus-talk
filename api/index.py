@@ -7,11 +7,11 @@ import hashlib
 import logging
 from typing import List, Dict, Optional
 from collections import defaultdict
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request, HTTPException, Header, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -26,7 +26,14 @@ try:
     from sentry_sdk.integrations.fastapi import FastApiIntegration
     _dsn = os.getenv("SENTRY_DSN", "")
     if _dsn:
-        sentry_sdk.init(dsn=_dsn, integrations=[FastApiIntegration()], traces_sample_rate=1.0)
+        _sample_rate = float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.05"))
+        sentry_sdk.init(
+            dsn=_dsn,
+            integrations=[FastApiIntegration()],
+            traces_sample_rate=max(0.0, min(_sample_rate, 1.0)),
+            send_default_pii=False,
+            max_request_body_size="never"
+        )
 except ImportError:
     pass
 
@@ -64,27 +71,62 @@ if not db:
 
 # ---------------- Config ----------------
 LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
-DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "anuanuu87@gmail.com")
-FREE_DAILY_CREDITS = 5  # Ask Deeper cloud questions per signed-in free user/day
-GUEST_DAILY_CREDITS = 1  # Ask Deeper cloud question per guest IP/day
+DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "").strip()
+LEMON_PLUS_VARIANT_IDS = {
+    item.strip()
+    for item in os.getenv("LEMON_PLUS_VARIANT_IDS", "").split(",")
+    if item.strip()
+}
+FREE_DAILY_CREDITS = int(os.getenv("FREE_DAILY_CREDITS", "5"))
+GUEST_DAILY_CREDITS = int(os.getenv("GUEST_DAILY_CREDITS", "1"))
+MAX_JSON_BODY_BYTES = int(os.getenv("MAX_JSON_BODY_BYTES", "32768"))
+EXPOSE_HEALTH_DETAILS = os.getenv("EXPOSE_HEALTH_DETAILS", "").lower() in {"1", "true", "yes"}
 
-ALLOWED_ORIGINS = [
+DEFAULT_ALLOWED_ORIGINS = [
     "https://www.1into1.com",
+    "https://1into1.com",
+    "https://jesus-chat-bd89f.web.app",
     "https://jesus-chat-bd89f.firebaseapp.com",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
     "http://localhost:3000"
 ]
+EXTRA_ALLOWED_ORIGINS = [
+    item.strip().rstrip("/")
+    for item in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if item.strip()
+]
+ALLOWED_ORIGINS = list(dict.fromkeys(DEFAULT_ALLOWED_ORIGINS + EXTRA_ALLOWED_ORIGINS))
 
-app = FastAPI(title="1into1 with Jesus Sanctuary API", version="4.0.0")
+app = FastAPI(title="1into1 with Jesus Sanctuary API", version="4.1.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+@app.middleware("http")
+async def production_request_guard(request: Request, call_next):
+    if request.method in {"POST", "PUT", "PATCH"}:
+        raw_length = request.headers.get("content-length", "")
+        try:
+            if raw_length and int(raw_length) > MAX_JSON_BODY_BYTES:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Request body is too large."}
+                )
+        except ValueError:
+            return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length header."})
+
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=(self)"
+    return response
 
 # ---------------- Cloud AI Provider ----------------
 # Core prayer features run locally in the browser. This provider layer is
@@ -101,8 +143,8 @@ def get_cloud_status() -> dict:
 # ---------------- Rate limiting ----------------
 IP_REQUEST_LOG = defaultdict(list)
 GUEST_DAILY_IP_LOG = defaultdict(int)
-RATE_LIMIT_REQUESTS = 20
-RATE_LIMIT_WINDOW = 60
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "12"))
+RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
 
 def prune_rate_limit_log():
     now = time.time()
@@ -414,17 +456,17 @@ Seeker Information:
 """
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., max_length=1500)
-    userName: Optional[str] = "beloved"
-    userPsyche: Optional[str] = "A soul seeking peace"
-    userIntentions: Optional[str] = "Seeking peace and daily direction"
-    mode: Optional[str] = "comfort"
-    history: Optional[List[Dict[str, str]]] = []
+    message: str = Field(..., min_length=1, max_length=1500)
+    userName: Optional[str] = Field(default="beloved", max_length=60)
+    userPsyche: Optional[str] = Field(default="A soul seeking peace", max_length=120)
+    userIntentions: Optional[str] = Field(default="Seeking peace and daily direction", max_length=240)
+    mode: Optional[str] = Field(default="comfort", max_length=16)
+    history: List[Dict[str, str]] = Field(default_factory=list, max_length=12)
 
 class SavePrayerRequest(BaseModel):
-    title: str = Field(..., max_length=120)
-    content: str = Field(..., max_length=4000)
-    mode: Optional[str] = "comfort"
+    title: str = Field(..., min_length=1, max_length=120)
+    content: str = Field(..., min_length=1, max_length=4000)
+    mode: Optional[str] = Field(default="comfort", max_length=16)
 
 DEGRADED_REPLY = (
     "Ask Deeper is temporarily unavailable. "
@@ -468,16 +510,20 @@ def compute_remaining(decision: dict) -> int:
 @app.get("/api")
 @app.get("/api/health")
 def health_check():
-    cloud = get_cloud_status()
-    return {
+    payload = {
         "status": "active",
         "service": "1into1 with Jesus Sanctuary API",
-        "version": "4.0.0",
-        "cloud_provider": cloud.get("provider"),
-        "cloud_configured": cloud.get("configured", False),
-        "resolved_models": cloud.get("models", []),
-        "db_connected": db is not None
+        "version": "4.1.0"
     }
+    if EXPOSE_HEALTH_DETAILS:
+        cloud = get_cloud_status()
+        payload.update({
+            "cloud_provider": cloud.get("provider"),
+            "cloud_configured": cloud.get("configured", False),
+            "db_connected": db is not None,
+            "billing_variant_guard": bool(LEMON_PLUS_VARIANT_IDS)
+        })
+    return payload
 
 @app.post("/")
 @app.post("/chat")
