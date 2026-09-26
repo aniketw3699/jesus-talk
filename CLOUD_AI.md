@@ -40,3 +40,15 @@ Ask Deeper will report that cloud guidance is unavailable while the local produc
 ## Secret handling
 
 Never commit real API keys. Keep them only in Vercel/hosting environment variables.
+
+## Plus fair use
+
+Core local prayer is not metered.
+
+Plus Ask Deeper uses paid cloud inference, so subscribed accounts are protected by a configurable daily anti-abuse ceiling:
+
+`PLUS_DAILY_FAIR_USE_LIMIT=100`
+
+The default is intentionally generous for normal personal use. If the ceiling is reached, Ask Deeper pauses until the next UTC day while local prayer, Bible, journal, journeys and Lay It Down continue working normally.
+
+The limit is an economics/abuse guardrail, not a prayer limit.
