@@ -110,56 +110,160 @@ Current RC CI also passes:
 
 ## Visual/browser QA status
 
-**PENDING — not falsely marked complete.**
+**COMPLETE for the local release-candidate UI and offline flows.**
 
-The current Vercel status is blocked by the account-level build-rate limit rather than a source-code failure. Because there is no usable rendered RC preview yet, the following still require actual-browser inspection before merge:
+A dedicated Chromium workflow now renders the exact RC locally inside GitHub Actions without deploying it.
 
-### Mobile visual
-- narrow iPhone-sized viewport
-- Android-sized viewport
-- short-height screen
-- safe-area / bottom navigation
-- modal scrolling
-- textarea/input focus behavior
-- pinch zoom
-- reduced-motion behavior
+Workflow:
 
-### First-time guest journey
-- landing screen
-- burden chips
+`.github/workflows/visual_qa.yml`
+
+Browser driver:
+
+`qa/visual_qa_capture.mjs`
+
+Latest rendered QA result:
+
+**110 / 110 checks passed**
+
+Viewports tested:
+
+- iPhone-style: 390 × 844
+- Android-style: 360 × 800
+- large mobile: 412 × 915
+- desktop: 1366 × 768
+
+### First-time onboarding
+
+Rendered and checked:
+
+- step 1 burden selection
+- step 2 timing selection
+- step 3 need selection
+- personalized result card
+- entering the sanctuary
+
+A real issue was found during this pass: the sixth burden option was present but easy to miss inside an internal scroll area on mobile.
+
+Fixed:
+- blessing/onboarding card is now short-screen scroll-safe
+- all six burden choices are visibly discoverable on mobile
+
+The latest iPhone assertion confirms:
+
+`count: 6, visible: true`
+
+### Sanctuary / local prayer
+
+Rendered and checked:
+
+- home screen
+- burden-first mobile layout
+- Local/Cloud labels
 - local prayer response
-- Bible open/search
-- Journal
-- Lay It Down animation
-- I Don't Know What to Pray
-- Pray for Someone
-- journey start/progress
-- first Ask Deeper cloud allowance
+- bottom navigation
+- ritual banner
+- prayer composer
+- no horizontal page overflow
 
-### Signed-in free journey
-- Google sign-in
-- 5 Ask Deeper/day display and behavior
-- local prayer remains unlimited
-- exhausted free cloud allowance opens Plus UI only for Ask Deeper
+### Journal
 
-### Offline browser journey
-- load once online
-- switch network off
-- local prayer
-- prepared Bible
-- journal
-- journeys
-- Lay It Down
-- Ask Deeper degrades locally/gracefully
+Rendered and checked:
 
-### Visual trust / copy
-- Local/Cloud mode labels fit on mobile
-- pricing modal clearly says checkout is not live
-- encrypted backup button clearly says Coming Soon
-- no legacy product-brand / PDF / Firebase-domain copy appears visually
+- opens without sign-in
+- local entries render
+- intentions render
+- encrypted backup remains visibly Coming Soon
+- clear-history and return controls fit on mobile
+
+A QA issue found here was also fixed: the modal did not explicitly state that the Journal is local.
+
+The Journal now says that the private local journal, prayer history, habit metrics, and intentions stay on the device by default.
+
+### Lay It Down
+
+Rendered and checked:
+
+- private burden entry
+- ephemeral privacy notice
+- surrender state
+- Scripture result
+- reflection
+- Return in Peace
+
+### Pray for Someone
+
+Rendered and checked:
+- named local prayer output
+- Scripture-grounded output
+- share/listen controls
+
+### Journeys
+
+Rendered and checked:
+- Anxiety journey
+- Financial journey
+- Forgiveness journey cards
+- modal fit on mobile/desktop
+
+### Pricing
+
+Rendered and checked:
+- FREE FOREVER section
+- $2.99 monthly plan
+- $19.99 annual plan
+- fair-use wording
+- checkout visibly unavailable in prelaunch
+- no accidental live-payment path
+
+### Bible
+
+Rendered and checked:
+- WEB / Public Domain selector
+- book/chapter selectors
+- Scripture search
+- topic shortcuts
+- chapter text
+- Listen / Reflect / Pray controls
+- mobile and desktop layout
+- no horizontal document overflow
+
+### Offline
+
+Rendered and checked:
+- Service Worker reaches ready state
+- app reloads after network is disabled
+- offline/local status is understandable
+- no missing product-shell resources
+
+All current Service Worker app-shell files were separately verified to exist in the RC repository.
+
+### Browser errors/resources
+
+Latest visual run:
+- no serious browser console errors
+- no missing product resources
+
+Expected localhost-only Firebase Hosting helper 404s are excluded by URL in the QA harness; genuine product resource failures still fail the workflow.
+
+### What still requires production-host testing
+
+The local rendered RC cannot truthfully prove external production integrations that depend on the real domain/environment.
+
+These remain part of production smoke / launch setup:
+
+- Google sign-in on the final authorized production origin
+- real Ask Deeper browser request from `https://www.1into1.com`
+- Lemon Squeezy checkout after verified products are connected
+- encrypted Firestore backup after production rules are deployed
+- actual DNS/custom-domain behavior
+
+Those are external launch checks, not unresolved local UI defects.
 
 ## Merge gate
 
-PR #12 should remain Draft until rendered browser QA is completed on a usable release preview.
+The local release-candidate UI, offline behavior, and rendered browser flows have completed automated + visual QA.
 
-Do not merge solely because automated CI is green.
+PR #12 should still remain Draft until the external production-dependent items are deliberately configured and checked according to the cutover runbook.
+
+Do not enable billing or encrypted backup merely to make the release appear complete.
