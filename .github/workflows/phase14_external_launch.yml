@@ -1,0 +1,36 @@
+name: Phase 14 External Launch Audit
+
+on:
+  push:
+    branches:
+      - feature/phase14-external-launch-readiness
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  phase14:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify safe repository state
+        run: |
+          python launch_audit.py
+          python seo_audit.py
+          python production_readiness.py
+          python release_candidate_audit.py
+
+      - name: Verify product-flow contracts
+        run: node release_flow_qa.mjs
+
+      - name: Audit live Phase 14 external dependencies
+        run: python phase14_external_launch_audit.py
