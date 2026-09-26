@@ -12,6 +12,7 @@ permissions:
 jobs:
   cloudflare-hosting:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,8 +22,48 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Build and audit Cloudflare Pages bundle
         run: python cloudflare_hosting_audit.py
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start Cloudflare bundle server
+        shell: bash
+        run: |
+          cd dist
+          python -m http.server 4173 --bind 127.0.0.1 > /tmp/cloudflare-dist-server.log 2>&1 &
+          echo $! > /tmp/cloudflare-dist-server.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/cloudflare-dist-server.log
+          exit 1
+
+      - name: Run rendered QA against Cloudflare bundle
+        env:
+          QA_BASE_URL: http://127.0.0.1:4173
+          QA_OUT: cloudflare-visual-qa
+        run: node qa/visual_qa_capture.mjs
+
+      - name: Upload Cloudflare rendered QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-pages-visual-qa
+          path: cloudflare-visual-qa/
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Re-run launch safety audit
         run: python launch_audit.py
