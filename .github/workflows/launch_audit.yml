@@ -1,0 +1,27 @@
+name: Launch Hardening Audit
+
+on:
+  push:
+    branches:
+      - "feature/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  launch-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run launch audit
+        run: python launch_audit.py
+      - name: Compile Python launch files
+        run: python -m py_compile api/index.py api/ai_provider.py auto_seo_engine.py launch_audit.py
+      - name: Parse JavaScript and PWA files
+        run: node launch_js_audit.mjs

@@ -69,7 +69,7 @@ FREE_DAILY_CREDITS = 5  # Ask Deeper cloud questions per signed-in free user/day
 GUEST_DAILY_CREDITS = 1  # Ask Deeper cloud question per guest IP/day
 
 ALLOWED_ORIGINS = [
-    "https://jesus-chat-bd89f.web.app",
+    "https://www.1into1.com",
     "https://jesus-chat-bd89f.firebaseapp.com",
     "http://localhost:5000",
     "http://127.0.0.1:5000",

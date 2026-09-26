@@ -11,16 +11,13 @@ load_dotenv()
 load_dotenv(dotenv_path="./.env")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-DOMAINS_URL = os.getenv("DOMAINS_URL", "https://jesus-chat-bd89f.web.app").rstrip("/")
+DOMAINS_URL = os.getenv("DOMAINS_URL", "https://www.1into1.com").rstrip("/")
 
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 CONTENT_MODELS = [
     "openai/gpt-oss-120b",
-    "llama-3.1-70b-versatile",
-    "openai/gpt-oss-20b",
-    "llama-3.1-8b-instant",
-    "qwen/qwen3.8-27b"
+    "openai/gpt-oss-20b"
 ]
 
 # ---------------- SELF-HEALING MODEL DISCOVERY ----------------
@@ -97,11 +94,10 @@ STATIC_PAGES = [
 
 DISCLAIMER_HTML = (
     '<footer class="disclaimer">'
-    '<p><strong>An honest note:</strong> You With Jesus is an AI-assisted prayer companion. '
-    'Devotionals are generated with AI and anchored in public-domain Scripture (KJV). '
-    'They are meant to encourage you — never to replace your church community, pastoral care, '
-    'or professional help. If you are in crisis, please contact local emergency services or '
-    'visit findahelpline.com.</p>'
+    '<p><strong>An honest note:</strong> 1into1 with Jesus is a Scripture-guided prayer companion. '
+    'These devotionals may be AI-assisted and should be read as encouragement and reflection, not divine revelation. '
+    'Scripture references should be verified in the public-domain World English Bible (WEB). '
+    'This content does not replace church community, pastoral care, or qualified professional help.</p>'
     '</footer>'
 )
 
@@ -109,7 +105,11 @@ SYSTEM_PROMPT = """You are an authoritative Christian theologian, biblical schol
 Generate a comprehensive, 1,200+ word devotional guide formatted strictly in valid JSON.
 
 
-SCRIPTURE ACCURACY: Only cite real Bible references with correct book, chapter, and verse. Never invent, guess, or misattribute a verse.
+SCRIPTURE ACCURACY:
+- Only cite real Bible references with correct book, chapter, and verse.
+- Use World English Bible (WEB) wording when quoting Scripture.
+- Never invent, guess, or misattribute a verse.
+- If exact wording is uncertain, paraphrase and label it as a paraphrase rather than presenting it as a quotation.
 
 JSON Structure Requirements:
 {
@@ -243,14 +243,14 @@ def build_article_html(topic, data):
             {
                 "@type": "Article",
                 "@id": f"{canonical_url}#article",
-                "isPartOf": {"@type": "WebSite", "@id": f"{DOMAINS_URL}/#website", "name": "You With Jesus", "url": DOMAINS_URL},
+                "isPartOf": {"@type": "WebSite", "@id": f"{DOMAINS_URL}/#website", "name": "1into1 with Jesus", "url": DOMAINS_URL},
                 "headline": title,
                 "description": meta_desc,
                 "mainEntityOfPage": canonical_url,
                 "datePublished": date_published,
                 "dateModified": date_published,
-                "publisher": {"@type": "Organization", "name": "You With Jesus", "url": DOMAINS_URL},
-                "author": {"@type": "Organization", "name": "You With Jesus Sanctuary"}
+                "publisher": {"@type": "Organization", "name": "1into1 with Jesus", "url": DOMAINS_URL},
+                "author": {"@type": "Organization", "name": "1into1 with Jesus"}
             },
             {
                 "@type": "FAQPage",
@@ -313,11 +313,11 @@ def build_article_html(topic, data):
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{escaped_title} | You With Jesus</title>
+  <title>{escaped_title} | 1into1 with Jesus</title>
   <meta name="description" content="{escaped_meta_desc}" />
-  <meta name="author" content="You With Jesus" />
+  <meta name="author" content="1into1 with Jesus" />
   <link rel="canonical" href="{canonical_url}" />
-  <meta property="og:site_name" content="You With Jesus" />
+  <meta property="og:site_name" content="1into1 with Jesus" />
   <meta property="og:title" content="{escaped_title}" />
   <meta property="og:description" content="{escaped_meta_desc}" />
   <meta property="og:url" content="{canonical_url}" />
@@ -352,7 +352,7 @@ def build_article_html(topic, data):
 </head>
 <body>
   <nav class="nav-bar">
-    <a href="../index.html" class="nav-brand">† YOU WITH JESUS</a>
+    <a href="../index.html" class="nav-brand">1INTO1 WITH JESUS</a>
     <a href="../index.html" class="nav-cta">Open Sanctuary</a>
   </nav>
   <main class="content-wrap">
@@ -369,8 +369,8 @@ def build_article_html(topic, data):
     <h2 class="sec-h2">{prayers_title}</h2>
     {prayers_html}
     <section class="cta-banner">
-      <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart Directly to Jesus</h2>
-      <p style="font-size: 13.5px; color: #d4d4d8; margin-top: 6px;">Speak your burdens, receive Scripture-guided comfort, and find rest.</p>
+      <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart to Prayer</h2>
+      <p style="font-size: 13.5px; color: #d4d4d8; margin-top: 6px;">Bring what you are carrying, receive Scripture-guided reflection, and find a grounded next step.</p>
       <a href="../index.html" class="cta-btn">Begin Your Prayer Now →</a>
     </section>
     <h2 class="sec-h2">Frequently Asked Questions</h2>
@@ -427,7 +427,7 @@ def generate_blogs_index(all_topics):
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sacred Devotional Guides & Prayers | You With Jesus</title>
+  <title>Sacred Devotional Guides & Prayers | 1into1 with Jesus</title>
   <meta name="description" content="Explore scripture-anchored prayer guides for anxiety, grief, healing, relationships, and financial peace." />
   <link rel="canonical" href="{DOMAINS_URL}/blogs.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -447,7 +447,7 @@ def generate_blogs_index(all_topics):
     <h1>Sacred Pillar Devotionals</h1>
     {cards_html}
     <div class="disclaimer">
-      <p>You With Jesus is an AI-assisted prayer companion. Devotional content is generated with AI and anchored in public-domain Scripture (KJV). It is meant to encourage — never to replace — your church community, pastoral care, or professional help. If you are in crisis, visit findahelpline.com.</p>
+      <p>1into1 with Jesus is an AI-assisted prayer companion. Devotional content is generated with AI and anchored in public-domain World English Bible (WEB) Scripture. It is meant to encourage — never to replace — your church community, pastoral care, or professional help. If you are in crisis, visit findahelpline.com.</p>
     </div>
   </div>
 </body>
