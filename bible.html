@@ -157,6 +157,43 @@
       text-align: center; padding: 40px 0; color: var(--gold);
       font-family: 'Cinzel', serif; font-size: 16px;
     }
+
+    .bible-search-panel {
+      background: rgba(18,18,22,.96); border: 1px solid rgba(226,183,100,.18);
+      border-radius: 18px; padding: 14px; margin-bottom: 14px;
+    }
+    .bible-search-row { display:flex; gap:8px; }
+    .bible-search-input {
+      flex:1; min-width:0; background:#151519; border:1px solid rgba(226,183,100,.28);
+      color:#f5f1e9; border-radius:12px; padding:11px 13px; font:inherit; outline:none;
+    }
+    .bible-search-input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(226,183,100,.08); }
+    .bible-search-btn {
+      border:0; border-radius:12px; padding:10px 14px; background:var(--gold); color:#17130c;
+      font:inherit; font-size:12px; font-weight:800; cursor:pointer;
+    }
+    .topic-strip { display:flex; gap:7px; overflow-x:auto; margin-top:10px; padding-bottom:2px; scrollbar-width:none; }
+    .topic-strip::-webkit-scrollbar { display:none; }
+    .topic-chip {
+      flex:0 0 auto; border:1px solid rgba(226,183,100,.24); color:#e8dfcf; background:#151519;
+      border-radius:999px; padding:7px 10px; font-size:10.5px; font-weight:700; cursor:pointer;
+    }
+    .bible-search-results { display:none; margin-top:12px; gap:8px; flex-direction:column; }
+    .bible-search-results.visible { display:flex; }
+    .bible-search-result {
+      width:100%; text-align:left; background:#111115; border:1px solid rgba(226,183,100,.14);
+      border-radius:12px; padding:10px 11px; color:#e8e5df; cursor:pointer;
+    }
+    .bible-search-result strong { color:var(--gold); display:block; margin-bottom:4px; font-size:11px; }
+    .bible-search-result span { font-size:12px; line-height:1.45; color:#c9c7c1; }
+    .search-hit { background:rgba(226,183,100,.12) !important; border-color:rgba(226,183,100,.55) !important; }
+    .translation-note { font-size:10.5px; color:var(--text-secondary); margin-top:7px; text-align:center; }
+    @media (max-width:640px) {
+      .bible-search-row { flex-direction:column; }
+      .bible-search-btn { width:100%; }
+      .controls-grid { grid-template-columns:1fr 1fr; }
+      #translationSelect { grid-column:1/-1; }
+    }
   </style>
 </head>
 <body>
@@ -179,11 +216,21 @@
     <div class="controls-grid">
       <select id="bookSelect" onchange="handleBookChange()"></select>
       <select id="chapterSelect" onchange="loadCurrentChapter()"></select>
-      <select id="translationSelect" onchange="loadCurrentChapter()">
-        <option value="web">World English (WEB)</option>
-        <option value="kjv">King James (KJV)</option>
+      <select id="translationSelect" disabled aria-label="Bible translation">
+        <option value="web">World English Bible (WEB) · Public Domain</option>
       </select>
     </div>
+
+
+    <section class="bible-search-panel" aria-label="Search Scripture">
+      <div class="bible-search-row">
+        <input class="bible-search-input" id="bibleSearchInput" type="search" autocomplete="off" placeholder="Search Scripture or type a reference, e.g. John 3:16" />
+        <button class="bible-search-btn" id="bibleSearchBtn" type="button">Search Bible</button>
+      </div>
+      <div class="topic-strip" id="bibleTopicStrip" aria-label="Scripture topics"></div>
+      <div class="translation-note">Local Scripture text: World English Bible (public domain). The full Bible prepares quietly for offline use.</div>
+      <div class="bible-search-results" id="bibleSearchResults"></div>
+    </section>
 
     <div class="chapter-bar" id="chapterPills"></div>
 
@@ -197,6 +244,8 @@
 
   </div>
 
+  <script src="/bible-manifest.js"></script>
+  <script src="/local-bible-engine.js"></script>
   <script>
     const BIBLE_BOOKS = [
       // Old Testament
