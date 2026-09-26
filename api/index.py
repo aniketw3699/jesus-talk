@@ -67,6 +67,7 @@ LEMON_WEBHOOK_SECRET = os.getenv("LEMON_WEBHOOK_SECRET", "")
 DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "").strip()
 FREE_DAILY_CREDITS = 5  # Ask Deeper cloud questions per signed-in free user/day
 GUEST_DAILY_CREDITS = 1  # Ask Deeper cloud question per guest IP/day
+PLUS_DAILY_FAIR_USE_LIMIT = max(20, int(os.getenv("PLUS_DAILY_FAIR_USE_LIMIT", "100")))  # abuse ceiling, not a local-prayer limit
 
 ALLOWED_ORIGINS = [
     "https://www.1into1.com",
@@ -278,7 +279,27 @@ def resolve_entitlement(uid: Optional[str], email: Optional[str], client_ip: str
             if doc.exists:
                 data = doc.to_dict() or {}
                 if data.get("isSubscribed", False):
-                    return {"allowed": True, "remaining": 9999, "tier": "subscribed"}
+                    plus_date = str(data.get("plusUsageDate", "") or "")
+                    plus_used = int(data.get("plusUsageCount", 0) or 0)
+                    if plus_date != today_str:
+                        return {
+                            "allowed": True,
+                            "remaining": PLUS_DAILY_FAIR_USE_LIMIT,
+                            "tier": "subscribed",
+                            "needs_plus_reset": True
+                        }
+                    if plus_used >= PLUS_DAILY_FAIR_USE_LIMIT:
+                        return {
+                            "allowed": False,
+                            "remaining": 0,
+                            "tier": "subscribed",
+                            "reason": "plus_fair_use_exhausted"
+                        }
+                    return {
+                        "allowed": True,
+                        "remaining": max(0, PLUS_DAILY_FAIR_USE_LIMIT - plus_used),
+                        "tier": "subscribed"
+                    }
 
                 # Check 7-Day Pass expiration
                 pass_expires = data.get("passExpiresAt")
@@ -344,7 +365,24 @@ def consume_credit(uid: Optional[str], email: Optional[str], decision: dict):
                     "updatedAt": firestore.SERVER_TIMESTAMP
                 }, merge=True)
             return
-        if tier in ("developer", "subscribed", "pass", "db_fallback"):
+        if tier == "subscribed":
+            if uid and db:
+                ref = db.collection("users").document(uid)
+                today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                if decision.get("needs_plus_reset"):
+                    ref.set({
+                        "plusUsageDate": today_str,
+                        "plusUsageCount": 1,
+                        "lastActive": firestore.SERVER_TIMESTAMP
+                    }, merge=True)
+                else:
+                    ref.set({
+                        "plusUsageDate": today_str,
+                        "plusUsageCount": firestore.Increment(1),
+                        "lastActive": firestore.SERVER_TIMESTAMP
+                    }, merge=True)
+            return
+        if tier in ("developer", "pass", "db_fallback"):
             return
         if uid and db:
             ref = db.collection("users").document(uid)
@@ -438,7 +476,11 @@ GUEST_AUTH_REQUIRED_REPLY = (
 )
 PAYWALL_EXHAUSTED_REPLY = (
     "You have used today's 5 free Ask Deeper questions. They renew tomorrow. "
-    "Your local prayer tools, Bible, journeys, and Lay It Down remain available."
+    "Your unlimited local prayer tools, Bible, journeys, and Lay It Down remain available."
+)
+PLUS_FAIR_USE_REPLY = (
+    "You have reached today's Ask Deeper fair-use limit. It resets automatically tomorrow. "
+    "Unlimited local prayer, Bible, journeys, journal, and Lay It Down remain available."
 )
 
 def build_chat_messages(raw_message, user_name, user_psyche, user_intentions, selected_mode, history):
@@ -534,10 +576,18 @@ async def chat_endpoint(payload: ChatRequest, request: Request):
     decision = resolve_entitlement(verified_uid, verified_email, client_ip)
 
     if not decision["allowed"]:
-        if decision.get("reason") == "guest_quota_exhausted":
+        reason = decision.get("reason")
+        if reason == "guest_quota_exhausted":
             return {
                 "error": "AUTH_REQUIRED",
                 "reply": GUEST_AUTH_REQUIRED_REPLY,
+                "cardText": "",
+                "updatedPsyche": user_psyche
+            }
+        if reason == "plus_fair_use_exhausted":
+            return {
+                "error": "FAIR_USE_EXHAUSTED",
+                "reply": PLUS_FAIR_USE_REPLY,
                 "cardText": "",
                 "updatedPsyche": user_psyche
             }
@@ -669,8 +719,11 @@ async def chat_stream_endpoint(payload: ChatRequest, request: Request):
     decision = resolve_entitlement(verified_uid, verified_email, client_ip)
 
     if not decision["allowed"]:
-        if decision.get("reason") == "guest_quota_exhausted":
+        reason = decision.get("reason")
+        if reason == "guest_quota_exhausted":
             err = {"type": "error", "error": "AUTH_REQUIRED", "reply": GUEST_AUTH_REQUIRED_REPLY}
+        elif reason == "plus_fair_use_exhausted":
+            err = {"type": "error", "error": "FAIR_USE_EXHAUSTED", "reply": PLUS_FAIR_USE_REPLY}
         else:
             err = {"type": "error", "error": "PAYWALL_EXHAUSTED", "reply": PAYWALL_EXHAUSTED_REPLY}
         def denied_stream():
