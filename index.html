@@ -64,11 +64,13 @@
   <script defer src="/local-experiences.js"></script>
   <script defer src="/private-sync.js"></script>
 
-  <!-- Firebase SDKs with Firestore Cloud Sync -->
-  <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
-  <script defer src="/__/firebase/10.12.0/firebase-auth-compat.js"></script>
-  <script defer src="/__/firebase/10.12.0/firebase-firestore-compat.js"></script>
-  <script defer src="/__/firebase/init.js"></script>
+  <!-- Firebase SDKs with Firestore Cloud Sync.
+       Use host-independent URLs so the same frontend works on Cloudflare Pages,
+       Firebase Hosting, Vercel previews, and localhost. -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://jesus-chat-bd89f.firebaseapp.com/__/firebase/init.js"></script>
 
   <style>
     :root {
