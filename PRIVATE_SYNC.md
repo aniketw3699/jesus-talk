@@ -29,21 +29,31 @@ Plus users may explicitly create a cross-device backup.
 - selected onboarding/preferences
 - local topic-memory summary
 
-Active UI feed HTML and active conversation history are intentionally excluded because the journal is the durable local record.
+Active UI feed HTML and active conversation history are intentionally excluded because the journal is the durable local record. Lay It Down text is excluded.
 
 ## Firestore location
 
 `users/{uid}/encrypted_backups/current`
 
-Ciphertext is split into child documents at:
+Ciphertext chunks are stored at:
 
 `users/{uid}/encrypted_backups/current/chunks/{chunkId}`
 
-Security rules permit access only when the authenticated UID matches `{uid}`.
+## Security rules
+
+The production rules now:
+- limit normal browser account creation to the expected free-account fields;
+- allow client account updates only for `email`, `displayName` and `lastActive`;
+- block browser writes to subscription, quota and billing fields;
+- block the legacy plaintext `saved_prayers` collection;
+- validate encrypted-backup algorithm/KDF metadata;
+- cap backup chunk count and ciphertext chunk size;
+- restrict every backup document to the authenticated owner;
+- block all client access to server-managed guest quota records.
 
 ## Deployment requirement
 
-The updated `firestore.rules` must be deployed to Firebase before production encrypted backup/restore will succeed.
+The updated `firestore.rules` must be deployed to Firebase before encrypted backup/restore or the hardened account rules are considered live.
 
 ## Recovery limitation
 
