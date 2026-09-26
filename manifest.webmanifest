@@ -1,0 +1,19 @@
+{
+  "name": "1into1 with Jesus",
+  "short_name": "1into1",
+  "description": "A private Scripture-guided prayer sanctuary that continues working offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3eee6",
+  "theme_color": "#17140f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
