@@ -32,6 +32,7 @@
   <script defer src="/local-scripture-data.js"></script>
   <script defer src="/offline-core.js"></script>
   <script defer src="/local-experiences.js"></script>
+  <script defer src="/private-sync.js"></script>
 
   <!-- Firebase SDKs with Firestore Cloud Sync -->
   <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
@@ -1019,12 +1020,14 @@
       <button class="modal-close" onclick="closePrivacyModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">YOUR PRIVACY COMES FIRST</h3>
-        <p class="modal-desc">A sacred sanctuary of complete trust and zero data tracking.</p>
+        <p class="modal-desc">Local-first by default, with cloud features only when you choose them.</p>
       </div>
 
       <div class="privacy-notice-box">
-        <p><strong>Ephemeral Sanctuary:</strong> 100% of your active conversation feed and private surrender confessions are stored locally on your device only. We never sell, read, or maintain logs of your personal prayer conversations.</p>
-        <p>To enable continuous spiritual guidance across sessions, only your high-level prayer intentions, habit streaks, and anonymous anti-abuse quotas are securely synced to your private account.</p>
+        <p><strong>Local prayer:</strong> Your local prayer conversations, journal, journeys, and Lay It Down experience stay on this device by default. Lay It Down text is never saved.</p>
+        <p><strong>Ask Deeper:</strong> When you choose Ask Deeper, your question and limited recent context are sent to the configured cloud AI provider so it can answer.</p>
+        <p><strong>Account:</strong> Signing in syncs only account/entitlement information by default. Plus encrypted backup is optional and must be started by you; backup content is encrypted in your browser before upload.</p>
+        <p><strong>Analytics:</strong> We may collect product-usage events such as feature opens or mode changes. Prayer text is not deliberately included in those analytics events.</p>
       </div>
 
       <button class="primary-gold-btn" onclick="proceedToGoogleAuth()">
@@ -1114,8 +1117,40 @@
       <div class="journal-psyche-box" id="journalPsycheDisplay">Spiritual State: A soul seeking peace</div>
       <div class="journal-list" id="journalEntriesList"></div>
 
+      <button class="secondary-soft-btn" id="encryptedBackupBtn" onclick="openPrivateSyncModal()">🔐 Encrypted Backup · Plus</button>
       <button class="secondary-soft-btn" onclick="clearJournalHistory()">🗑️ Clear Journal History</button>
       <button class="primary-gold-btn" onclick="closeJournalModal()">Return to Sanctuary</button>
+    </div>
+  </div>
+
+  <!-- 7B. OPTIONAL PLUS ENCRYPTED BACKUP -->
+  <div class="modal-backdrop" id="privateSyncModal">
+    <div class="modal-card">
+      <button class="modal-close" onclick="closePrivateSyncModal()">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">ENCRYPTED BACKUP</h3>
+        <p class="modal-desc">Optional Plus backup for moving selected local data between your devices.</p>
+      </div>
+
+      <div class="privacy-notice-box" style="margin-bottom:12px;">
+        <p><strong>Off by default.</strong> Nothing uploads until you press “Back Up This Device.”</p>
+        <p>Your journal, intentions, journey progress, and selected preferences are encrypted on this device with AES-256-GCM before upload. Your passphrase is never stored by 1into1.</p>
+        <p><strong>Important:</strong> If you lose the passphrase, we cannot decrypt or recover this backup. Lay It Down confessions are never included.</p>
+      </div>
+
+      <label style="display:block;font-size:11px;font-weight:800;color:var(--gold-deep);margin-bottom:5px;">Backup passphrase</label>
+      <input id="privateSyncPassphrase" class="intentions-input" type="password" autocomplete="new-password" minlength="10" placeholder="At least 10 characters" />
+
+      <label style="display:block;font-size:11px;font-weight:800;color:var(--gold-deep);margin:10px 0 5px;">Confirm passphrase for new backup</label>
+      <input id="privateSyncPassphraseConfirm" class="intentions-input" type="password" autocomplete="new-password" minlength="10" placeholder="Re-enter for backup" />
+
+      <div id="privateSyncStatus" style="min-height:38px;margin:10px 0;font-size:11.5px;line-height:1.5;color:var(--text-muted);">
+        No automatic sync. You decide when to back up or restore.
+      </div>
+
+      <button class="primary-gold-btn" id="privateSyncBackupBtn" onclick="backupPrivateData()">🔐 Back Up This Device</button>
+      <button class="secondary-soft-btn" id="privateSyncRestoreBtn" onclick="restorePrivateData()">↙ Restore to This Device</button>
+      <button class="secondary-soft-btn" id="privateSyncDeleteBtn" onclick="deletePrivateBackup()" style="color:#a34141;">Delete Cloud Backup</button>
     </div>
   </div>
 
