@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Holy Scripture Reader | You With Jesus</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Holy Scripture Reader | 1into1 with Jesus</title>
   <meta name="description" content="Read the complete Old and New Testaments. Reflect upon sacred scripture directly with Jesus." />
-  <meta property="og:site_name" content="You With Jesus" />
-  <meta property="og:title" content="Holy Scripture Reader | You With Jesus" />
+  <meta property="og:site_name" content="1into1 with Jesus" />
+  <meta property="og:title" content="Holy Scripture Reader | 1into1 with Jesus" />
   <meta property="og:description" content="Read the complete Old and New Testaments with direct sanctuary reflections." />
   <link rel="canonical" href="https://jesus-chat-bd89f.web.app/bible.html" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta name="theme-color" content="#09090b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="1into1" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 
@@ -62,7 +63,11 @@
     }
     .header-box p { color: var(--text-secondary); font-size: 14px; }
 
-    /* Controls Bar */
+    
+    .offline-bible-status {
+      margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--gold); opacity: 0.85;
+    }
+/* Controls Bar */
     .controls-grid {
       display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px;
       background: var(--card-bg); border: 1px solid var(--border);
@@ -167,7 +172,8 @@
 
     <header class="header-box">
       <h1>THE HOLY SCRIPTURES</h1>
-      <p>Explore the Living Word. Click any verse to reflect directly with Jesus.</p>
+      <p>Explore the Living Word. Save chapters automatically as you read.</p>
+      <div class="offline-bible-status" id="offlineBibleStatus">Preparing offline access…</div>
     </header>
 
     <div class="controls-grid">
@@ -512,11 +518,34 @@
       loadCurrentChapter();
     }
 
+    function bibleCacheKey(book, chapter, translation) {
+      return `oneintoone_bible_${translation}_${book}_${chapter}`;
+    }
+
+    function renderLoadedVerses(verses, cached = false) {
+      currentLoadedVerses = Array.isArray(verses) ? verses : [];
+      versesContainer.innerHTML = currentLoadedVerses.map((v, index) => `
+        <div class="verse-row" id="verseRow_${index}">
+          <span class="verse-num">${v.verse}</span>
+          <span class="verse-text">${escapeHtml((v.text || "").trim())}</span>
+          <div class="actions-wrap">
+            <button class="verse-listen-btn" id="verseBtn_${index}" onclick="narrateSingleVerse(${index})">🔊</button>
+            <button class="reflect-btn" onclick="triggerReflectByIndex(${index})">✝ Reflect</button>
+          </div>
+        </div>
+      `).join("");
+      const status = document.getElementById("offlineBibleStatus");
+      if (status) status.textContent = cached
+        ? "Offline · showing a chapter saved on this device"
+        : "Saved on this device for offline reading";
+    }
+
     async function loadCurrentChapter() {
       stopAllBibleAudio();
       const book = bookSelect.value;
       const chapter = chapterSelect.value;
       const translation = translationSelect.value;
+      const cacheKey = bibleCacheKey(book, chapter, translation);
 
       document.querySelectorAll(".chap-pill").forEach(p => {
         p.classList.toggle("active", p.textContent === chapter);
@@ -525,32 +554,45 @@
       passageHeader.textContent = `${book} ${chapter}`;
       versesContainer.innerHTML = `<div class="loading-spinner">🕊️ Gathering sacred verses...</div>`;
 
+      const localRecord = localStorage.getItem(cacheKey);
+      if (!navigator.onLine && localRecord) {
+        try {
+          const parsed = JSON.parse(localRecord);
+          if (parsed.verses && parsed.verses.length) {
+            renderLoadedVerses(parsed.verses, true);
+            return;
+          }
+        } catch (_) {}
+      }
+
       try {
         const formattedQuery = encodeURIComponent(`${book} ${chapter}`);
         const res = await fetch(`https://bible-api.com/${formattedQuery}?translation=${translation}`);
+        if (!res.ok) throw new Error(`Bible request failed: ${res.status}`);
         const data = await res.json();
 
         if (data.verses && data.verses.length > 0) {
-          currentLoadedVerses = data.verses;
-          versesContainer.innerHTML = currentLoadedVerses.map((v, index) => `
-            <div class="verse-row" id="verseRow_${index}">
-              <span class="verse-num">${v.verse}</span>
-              <span class="verse-text">${escapeHtml(v.text.trim())}</span>
-              <div class="actions-wrap">
-                <button class="verse-listen-btn" id="verseBtn_${index}" onclick="narrateSingleVerse(${index})">🔊</button>
-                <button class="reflect-btn" onclick="triggerReflectByIndex(${index})">
-                  ✝ Reflect
-                </button>
-              </div>
-            </div>
-          `).join("");
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({ verses: data.verses, savedAt: Date.now() }));
+          } catch (_) {}
+          renderLoadedVerses(data.verses, false);
         } else {
-          currentLoadedVerses = [];
-          versesContainer.innerHTML = `<p style="text-align:center; color:#a1a1aa;">Scripture passage currently resting. Please select another chapter.</p>`;
+          throw new Error("No verses returned");
         }
       } catch (err) {
+        if (localRecord) {
+          try {
+            const parsed = JSON.parse(localRecord);
+            if (parsed.verses && parsed.verses.length) {
+              renderLoadedVerses(parsed.verses, true);
+              return;
+            }
+          } catch (_) {}
+        }
         currentLoadedVerses = [];
-        versesContainer.innerHTML = `<p style="text-align:center; color:#e07a5f;">Unable to load scripture at this moment. Please check your connection.</p>`;
+        versesContainer.innerHTML = `<p style="text-align:center; color:#e07a5f;">This chapter has not been saved on this device yet. Reconnect once, open it, and it will remain available offline.</p>`;
+        const status = document.getElementById("offlineBibleStatus");
+        if (status) status.textContent = "Offline · previously opened chapters remain available";
       }
     }
 
@@ -573,7 +615,29 @@
     }
 
     document.addEventListener("visibilitychange", () => { if (document.hidden) stopAllBibleAudio(); });
+    async function initBibleOfflineMode() {
+      const status = document.getElementById("offlineBibleStatus");
+      const update = () => {
+        if (!status) return;
+        status.textContent = navigator.onLine
+          ? "Online · chapters you open are saved for offline reading"
+          : "Offline · previously opened chapters remain available";
+      };
+      update();
+      window.addEventListener("online", update);
+      window.addEventListener("offline", update);
+      if ("serviceWorker" in navigator) {
+        try {
+          await navigator.serviceWorker.register("/service-worker.js", { scope: "/" });
+          await navigator.serviceWorker.ready;
+        } catch (err) {
+          console.warn("Bible offline registration note:", err);
+        }
+      }
+    }
+
     window.onload = () => {
+      initBibleOfflineMode();
       updateBibleMusicUI();
       initBookDropdown();
     };
