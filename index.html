@@ -749,7 +749,7 @@
         <button class="action-btn" onclick="openIntercessoryModal()">🙏 Pray for Others</button>
         <button class="action-btn" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
         <button class="action-btn plans-btn" onclick="openPlansModal()">
-          <span class="holy-cross-icon">✝</span> Plans
+          <span class="holy-cross-icon">✝</span> Plus
         </button>
         <button class="action-btn" onclick="openJournalModal()">📜 Journal</button>
         <button class="action-btn" onclick="startNewPrayer(true)">🕊️ New Prayer</button>
@@ -1147,13 +1147,20 @@
     <div class="modal-card">
       <button class="modal-close" onclick="closePlansModal()">✕</button>
       <div class="modal-header">
-        <h3 class="modal-title">DEEPEN YOUR SPIRITUAL WALK</h3>
-        <p class="modal-desc">Choose a pathway for unlimited scripture communion and daily peace.</p>
+        <h3 class="modal-title">1INTO1 PLUS</h3>
+        <p class="modal-desc">Core prayer stays free. Plus unlocks unlimited Ask Deeper cloud reasoning.</p>
+      </div>
+
+      <div style="background:#f8f6f1;border:1px solid var(--gold-border);border-radius:16px;padding:13px 14px;margin-bottom:12px;">
+        <div style="font-weight:800;color:var(--gold-deep);margin-bottom:5px;">FREE FOREVER · $0</div>
+        <div style="font-size:12px;line-height:1.55;color:var(--text-muted);">
+          Local prayer guidance, Holy Bible, Scripture search, Lay It Down, guided journeys, journal, loved-one prayers, and 5 daily Ask Deeper questions after sign-in.
+        </div>
       </div>
 
       <div class="plans-grid" id="plansContainer"></div>
 
-      <button class="billing-checkout-btn" onclick="executeCheckout()">
+      <button class="billing-checkout-btn" id="billingCheckoutBtn" onclick="executeCheckout()">
         <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Start Your Sacred Walk
       </button>
 
@@ -1163,28 +1170,36 @@
     </div>
   </div>
 
+  <script src="/billing-config.js"></script>
   <script>
     const BACKEND_API_URL = "https://jesus-talk-dusky.vercel.app";
     const APP_CANONICAL_URL = "https://jesus-chat-bd89f.web.app";
     const DEVELOPER_EMAIL = "anuanuu87@gmail.com";
 
+    const BILLING_CONFIG = window.ONEINTOONE_BILLING_CONFIG || {};
     const LEMON_SQUEEZY_PLANS = [
-      { 
-        id: "plan_1", name: "7-Day Devotional Pass", desc: "25 Scripture Guidance Prayers & Audio Blessings", 
-        price: "$1.99", subPrice: "One-time pass", featured: false, 
-        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/cf0e4518-23cd-4011-8fc6-df4713c51516" 
+      {
+        ...(BILLING_CONFIG.plusMonthly || {}),
+        id: (BILLING_CONFIG.plusMonthly && BILLING_CONFIG.plusMonthly.id) || "plus_monthly",
+        name: (BILLING_CONFIG.plusMonthly && BILLING_CONFIG.plusMonthly.name) || "1into1 Plus Monthly",
+        desc: "Unlimited Ask Deeper cloud reasoning. All core local prayer tools remain free.",
+        price: (BILLING_CONFIG.plusMonthly && BILLING_CONFIG.plusMonthly.price) || "$2.99",
+        subPrice: (BILLING_CONFIG.plusMonthly && BILLING_CONFIG.plusMonthly.subPrice) || "per month",
+        checkoutUrl: (BILLING_CONFIG.plusMonthly && BILLING_CONFIG.plusMonthly.checkoutUrl) || "",
+        featured: false
       },
-      { 
-        id: "plan_2", name: "Monthly Sanctuary", desc: "Unlimited Daily Prayers, Voice Audio & Soul Journal", 
-        price: "$7.99", subPrice: "7-Day Free Trial • Then $7.99/mo • Cancel anytime", featured: false, 
-        ribbon: "★ 7-DAY FREE TRIAL", saveBadge: "FREE TRIAL",
-        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/4aab51c1-d448-43d4-b3da-7ad7408d2a73" 
-      },
-      { 
-        id: "plan_3", name: "6-Month Sacred Walk Pass", desc: "Unlimited sanctuary access, voice audio & daily soul journal", 
-        price: "$29.99", subPrice: "$5.00/mo equivalent • Billed every 6 months", featured: true, 
-        isPopular: true, ribbon: "★ MOST POPULAR", saveBadge: "SAVE 37%",
-        checkoutUrl: "https://purple1into1.lemonsqueezy.com/checkout/buy/dca75e97-af03-4754-97ef-36a760e80e83" 
+      {
+        ...(BILLING_CONFIG.plusAnnual || {}),
+        id: (BILLING_CONFIG.plusAnnual && BILLING_CONFIG.plusAnnual.id) || "plus_annual",
+        name: (BILLING_CONFIG.plusAnnual && BILLING_CONFIG.plusAnnual.name) || "1into1 Plus Annual",
+        desc: "Unlimited Ask Deeper cloud reasoning at the lowest effective monthly price.",
+        price: (BILLING_CONFIG.plusAnnual && BILLING_CONFIG.plusAnnual.price) || "$19.99",
+        subPrice: (BILLING_CONFIG.plusAnnual && BILLING_CONFIG.plusAnnual.subPrice) || "$1.67/month equivalent · billed yearly",
+        checkoutUrl: (BILLING_CONFIG.plusAnnual && BILLING_CONFIG.plusAnnual.checkoutUrl) || "",
+        featured: true,
+        isPopular: true,
+        ribbon: "★ BEST VALUE",
+        saveBadge: "SAVE 44%"
       }
     ];
 
