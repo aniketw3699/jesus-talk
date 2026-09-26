@@ -169,7 +169,7 @@
     ),
     topic(
       "health","Health, illness & caregiving",
-      ["sick","ill","illness","disease","diagnosis","hospital","surgery","operation","doctor","medical","pain","cancer","treatment","health","healing","caregiver","caregiving"],
+      ["sick","ill","illness","disease","diagnosis","new diagnosis","hospital","in hospital","surgery","has surgery","having surgery","surgery tomorrow","operation","doctor","medical","pain","cancer","cancer treatment","treatment","health","healing","caregiver","caregiving"],
       ["Psalm 41:3","James 5:14–15","Isaiah 41:10","Psalm 121:1–2"],
       ["strength","healing","wisdom"],
       [
