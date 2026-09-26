@@ -3382,15 +3382,6 @@
             userCredits = data.credits !== undefined ? data.credits : 5;
             isSubscribed = Boolean(data.isSubscribed);
 
-            if (!isSubscribed && data.passExpiresAt) {
-              try {
-                const expDate = data.passExpiresAt.toDate
-                  ? data.passExpiresAt.toDate()
-                  : new Date(data.passExpiresAt);
-                if (expDate > new Date()) isSubscribed = true;
-              } catch (_) {}
-            }
-
             await ref.set({
               email:user.email || "",
               displayName:user.displayName || "",
