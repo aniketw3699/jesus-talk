@@ -28,6 +28,16 @@ service cloud.firestore {
       match /saved_prayers/{prayerId} {
         allow read, write: if isOwner(userId);
       }
+
+      // Plus encrypted backup: ciphertext only. Encryption/decryption happens
+      // in the user's browser; the passphrase is never written to Firestore.
+      match /encrypted_backups/{backupId} {
+        allow read, write: if isOwner(userId);
+
+        match /chunks/{chunkId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
     }
 
     // Block all client writes to the server-managed guest usage collection
