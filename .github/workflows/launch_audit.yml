@@ -22,6 +22,8 @@ jobs:
       - name: Run launch audit
         run: python launch_audit.py
       - name: Compile Python launch files
-        run: python -m py_compile api/index.py api/ai_provider.py auto_seo_engine.py launch_audit.py
+        run: python -m py_compile api/index.py api/ai_provider.py auto_seo_engine.py launch_audit.py seo_audit.py
+      - name: Run SEO architecture audit
+        run: python seo_audit.py
       - name: Parse JavaScript and PWA files
         run: node launch_js_audit.mjs
