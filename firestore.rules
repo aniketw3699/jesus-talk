@@ -10,37 +10,70 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function validAccountCreate() {
+      return request.resource.data.keys().hasOnly([
+          'email', 'displayName', 'credits', 'isSubscribed', 'createdAt', 'lastActive'
+        ])
+        && request.resource.data.isSubscribed == false
+        && request.resource.data.credits == 5;
+    }
+
+    function validAccountUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['email', 'displayName', 'lastActive']);
+    }
+
+    function validEncryptedBackup() {
+      return request.resource.data.keys().hasOnly([
+          'version', 'algorithm', 'kdf', 'iterations',
+          'salt', 'iv', 'chunkCount', 'updatedAt'
+        ])
+        && request.resource.data.version == 1
+        && request.resource.data.algorithm == 'AES-GCM'
+        && request.resource.data.kdf == 'PBKDF2-SHA256'
+        && request.resource.data.iterations is int
+        && request.resource.data.iterations >= 100000
+        && request.resource.data.iterations <= 1000000
+        && request.resource.data.salt is string
+        && request.resource.data.salt.size() <= 64
+        && request.resource.data.iv is string
+        && request.resource.data.iv.size() <= 64
+        && request.resource.data.chunkCount is int
+        && request.resource.data.chunkCount >= 1
+        && request.resource.data.chunkCount <= 32;
+    }
+
+    function validEncryptedChunk() {
+      return request.resource.data.keys().hasOnly(['data'])
+        && request.resource.data.data is string
+        && request.resource.data.data.size() > 0
+        && request.resource.data.data.size() <= 250000;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
-
-      // Allow initial document creation with default free quota
-      allow create: if isOwner(userId)
-        && request.resource.data.isSubscribed == false
-        && request.resource.data.credits <= 5;
-
-      // Restrict client updates to safe non-billing fields
-      allow update: if isOwner(userId)
-        && !request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny(['isSubscribed', 'credits', 'passExpiresAt', 'subscriptionStatus', 'lastPlanUpdate', 'lastResetDate']);
-
+      allow create: if isOwner(userId) && validAccountCreate();
+      allow update: if isOwner(userId) && validAccountUpdate();
       allow delete: if false;
 
+      // Legacy plaintext cloud prayer storage is intentionally closed.
+      // The current product journal is local-first; Plus backup is encrypted.
       match /saved_prayers/{prayerId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if false;
       }
 
-      // Plus encrypted backup: ciphertext only. Encryption/decryption happens
-      // in the user's browser; the passphrase is never written to Firestore.
       match /encrypted_backups/{backupId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && validEncryptedBackup();
 
         match /chunks/{chunkId} {
-          allow read, write: if isOwner(userId);
+          allow read, delete: if isOwner(userId);
+          allow create, update: if isOwner(userId) && validEncryptedChunk();
         }
       }
     }
 
-    // Block all client writes to the server-managed guest usage collection
+    // Server-managed cloud quota collection. Client access is never allowed.
     match /guest_usage/{docId} {
       allow read, write: if false;
     }
