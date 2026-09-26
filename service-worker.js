@@ -81,7 +81,7 @@ async function prepareBibleLibrary() {
   const cache = await caches.open(BIBLE_CACHE);
   let done = await bibleCacheCount();
   await broadcastBibleProgress(done, BIBLE_URLS.length, done >= BIBLE_URLS.length ? "ready" : "preparing");
-  if (done >= BIBLE_URLS.length || !self.navigator.onLine) return;
+  if (done >= BIBLE_URLS.length) return;
 
   const cachedSet = new Set((await cache.keys()).map(req => req.url));
   const missing = BIBLE_URLS.filter(url => !cachedSet.has(url));
