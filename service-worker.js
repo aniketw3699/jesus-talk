@@ -1,6 +1,6 @@
-const CACHE_VERSION = "1into1-shell-v7";
-const PAGE_CACHE = "1into1-pages-v7";
-const STATIC_CACHE = "1into1-static-v7";
+const CACHE_VERSION = "1into1-shell-v8";
+const PAGE_CACHE = "1into1-pages-v8";
+const STATIC_CACHE = "1into1-static-v8";
 const BIBLE_CACHE = "1into1-bible-web-v1";
 
 const BIBLE_SOURCE_BASE = "https://raw.githubusercontent.com/TehShrike/world-english-bible/master/json/";
@@ -21,6 +21,16 @@ const APP_SHELL = [
   "/bible.html",
   "/blessing.html",
   "/blogs.html",
+  "/christian-prayer-app.html",
+  "/bible-study.html",
+  "/offline-bible.html",
+  "/prayer-guides.html",
+  "/guides/anxiety-and-fear.html",
+  "/guides/grief-and-loss.html",
+  "/guides/sleep-and-rest.html",
+  "/guides/relationships-and-forgiveness.html",
+  "/guides/money-work-and-provision.html",
+  "/seo-pages.css",
   "/privacy.html",
   "/terms.html",
   "/refund.html",
