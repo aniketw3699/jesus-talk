@@ -116,7 +116,7 @@ async function inspectViewport(device, viewport) {
   // Pray for someone.
   await page.evaluate(() => openIntercessoryModal());
   await page.fill("#lovedOneName", "Maria");
-  await page.selectOption("#lovedOneNeed", { label:"Physical Healing & Restoration" }).catch(()=>{});
+  await page.selectOption("#lovedOneNeed", "Physical Healing & Restoration");
   await page.fill("#lovedOneNote", "Surgery tomorrow");
   await page.evaluate(() => submitIntercessoryPrayer());
   await page.waitForTimeout(250);
@@ -162,7 +162,7 @@ async function inspectViewport(device, viewport) {
   await page.screenshot({ path:shotName(device,"bible"), fullPage:true });
 
   // Service worker + offline reload on localhost.
-  await page.goto(BASE + "/", { waitUntil:"networkidle", timeout:30000 }).catch(()=>{});
+  await page.goto(BASE + "/", { waitUntil:"domcontentloaded", timeout:15000 }).catch(()=>{});
   await page.waitForTimeout(1200);
   const swReady = await page.evaluate(async () => {
     if (!("serviceWorker" in navigator)) return false;
@@ -174,7 +174,7 @@ async function inspectViewport(device, viewport) {
   record(device + " service worker ready", swReady);
 
   if (swReady) {
-    await page.reload({ waitUntil:"networkidle" }).catch(()=>{});
+    await page.reload({ waitUntil:"domcontentloaded", timeout:15000 }).catch(()=>{});
     await page.waitForTimeout(500);
     await context.setOffline(true);
     const offlineReloadWorked = await page.reload({ waitUntil:"domcontentloaded", timeout:15000 })
