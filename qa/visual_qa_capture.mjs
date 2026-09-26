@@ -167,8 +167,9 @@ async function inspectViewport(device, viewport) {
   const swReady = await page.evaluate(async () => {
     if (!("serviceWorker" in navigator)) return false;
     try {
-      await navigator.serviceWorker.ready;
-      return true;
+      const ready = navigator.serviceWorker.ready.then(() => true).catch(() => false);
+      const timeout = new Promise(resolve => setTimeout(() => resolve(false), 5000));
+      return await Promise.race([ready, timeout]);
     } catch (_) { return false; }
   });
   record(device + " service worker ready", swReady);
