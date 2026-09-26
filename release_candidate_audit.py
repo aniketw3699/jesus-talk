@@ -40,21 +40,29 @@ def main():
     seo_workflow = read(".github/workflows/seo_cron.yml")
     disruption = read("DISRUPTION_CHECKPOINT.md")
 
+    # Phase 14C preview state: billing and Cloudflare Ask Deeper are now
+    # externally verified, while production DNS and encrypted backup remain gated.
     required_launch_values = [
         'environment: "prelaunch"',
-        "plusCheckoutEnabled: false",
+        "plusCheckoutEnabled: true",
         "encryptedBackupEnabled: false",
         'canonicalHost: "https://www.1into1.com"',
+        'backendApiUrl: "https://oneintoone-jesus-api.aniketw3699.workers.dev"',
     ]
     for marker in required_launch_values:
         if marker not in launch:
-            failures.append(f"launch-config.js: RC must retain {marker!r}")
+            failures.append(f"launch-config.js: Phase 14C preview must retain {marker!r}")
 
     checkout_values = re.findall(r'checkoutUrl\s*:\s*"([^"]*)"', billing)
-    if len(checkout_values) < 2:
-        failures.append("billing-config.js: expected two Plus checkout slots")
-    elif any(value.strip() for value in checkout_values[:2]):
-        failures.append("billing-config.js: RC must not contain live checkout URLs before external billing verification")
+    if len(checkout_values) != 2:
+        failures.append("billing-config.js: expected exactly two Plus checkout URLs")
+    else:
+        monthly, annual = checkout_values
+        approved_prefix = "https://purple1into1.lemonsqueezy.com/checkout/buy/"
+        if not monthly.startswith(approved_prefix) or "enabled=2171751" not in monthly:
+            failures.append("billing-config.js: monthly checkout is not the approved $2.99 variant")
+        if not annual.startswith(approved_prefix) or "enabled=2171775" not in annual:
+            failures.append("billing-config.js: annual checkout is not the approved $19.99 variant")
 
     for marker in [
         "Unlimited local prayer",
@@ -66,6 +74,15 @@ def main():
     ]:
         if marker not in index:
             failures.append(f"index.html: disruption marker missing -> {marker!r}")
+
+    # Checkout must bind Lemon custom_data to the authenticated Firebase UID.
+    for marker in [
+        'checkout[email]=${email}',
+        'checkout[custom][user_id]=${uid}',
+        "if (!currentUser) { openPrivacyModal(); return; }",
+    ]:
+        if marker not in index:
+            failures.append(f"index.html: authenticated checkout binding missing -> {marker!r}")
 
     if "fair-use" not in terms.lower():
         failures.append("terms.html: cloud fair-use disclosure missing")
@@ -133,7 +150,7 @@ def main():
             print(" - " + failure)
         return 1
 
-    print("PASS: RC remains prelaunch-safe, disruption-aligned, manual-deploy only, and free of obvious token patterns.")
+    print("PASS: RC is Phase 14C preview-ready, billing-bound, disruption-aligned, manual-deploy only, and free of obvious token patterns.")
     return 0
 
 if __name__ == "__main__":
