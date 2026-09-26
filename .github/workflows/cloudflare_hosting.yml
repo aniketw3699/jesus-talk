@@ -1,0 +1,43 @@
+name: Cloudflare Hosting Checkpoint
+
+on:
+  push:
+    branches:
+      - feature/cloudflare-hosting-checkpoint
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  cloudflare-hosting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build and audit Cloudflare Pages bundle
+        run: python cloudflare_hosting_audit.py
+
+      - name: Re-run launch safety audit
+        run: python launch_audit.py
+
+      - name: Re-run SEO architecture audit
+        run: python seo_audit.py
+
+      - name: Re-run production readiness audit
+        run: python production_readiness.py
+
+      - name: Re-run release candidate audit
+        run: python release_candidate_audit.py
+
+      - name: Re-run product-flow QA
+        run: node release_flow_qa.mjs
+
+      - name: Re-run JavaScript/PWA parsing
+        run: node launch_js_audit.mjs
