@@ -797,7 +797,7 @@
     <section class="conversation-feed" id="chatFeed">
       <div class="thinking-box" id="thinkingIndicator">
         <span class="holy-spirit-dove">🕊️</span>
-        <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
+        <span class="thinking-text" id="thinkingText">Preparing your response...</span>
       </div>
     </section>
 
@@ -807,7 +807,7 @@
     </div>
     <div class="mode-select-strip">
       <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')">🕊️ Comfort</button>
-      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')">📖 Scripture Study</button>
+      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')">✨ Ask Deeper</button>
       <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')">🙏 Written Prayer</button>
       <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')">🧭 Life Guidance</button>
     </div>
@@ -821,7 +821,7 @@
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, calm the storms and racing thoughts in my mind right now.')">🕊️ Seek Peace</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, as evening comes, I surrender every stress and debt into your hands.')">🌙 Evening Examen</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, my heart is heavy with grief and loss. Draw near and comfort me.')">💔 Grief & Loss</button>
-      <button class="chip-btn" onclick="sendQuickPrompt('Lord, teach me what scripture reveals about finding divine purpose.')">📜 Deep Bible Study</button>
+      <button class="chip-btn" onclick="setPastoralMode('study'); sendQuickPrompt('Help me study what Scripture teaches about purpose, including the context of the passages you use.')">✨ Ask Deeper: Purpose</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Teach me how to forgive those who hurt me.')">🤝 Forgiving Others</button>
       <button class="chip-btn" onclick="sendQuickPrompt('I am burdened by financial worry and need your promised provision.')">💼 Financial Peace</button>
       <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
@@ -1511,7 +1511,7 @@
           indicator.className = "thinking-box";
           indicator.id = "thinkingIndicator";
           indicator.style.display = "none";
-          indicator.innerHTML = `<span class="holy-spirit-dove">🕊️</span><span class="thinking-text">The Holy Spirit is listening to your heart...</span>`;
+          indicator.innerHTML = `<span class="holy-spirit-dove">🕊️</span><span class="thinking-text" id="thinkingText">Preparing your response...</span>`;
           chatFeed.appendChild(indicator);
         } else {
           indicator.style.display = "none";
@@ -1520,7 +1520,7 @@
         chatFeed.innerHTML = `
           <div class="thinking-box" id="thinkingIndicator">
             <span class="holy-spirit-dove">🕊️</span>
-            <span class="thinking-text">The Holy Spirit is listening to your heart...</span>
+            <span class="thinking-text" id="thinkingText">Preparing your response...</span>
           </div>
         `;
         appendBotBubble(getRandomGreetingMessage());
@@ -2948,7 +2948,7 @@
         isNewSessionCreated = true;
         currentIntercessoryRecipient = "";
         activeCardRecipient = "";
-        chatFeed.innerHTML = `<div class="thinking-box" id="thinkingIndicator"><span class="holy-spirit-dove">🕊️</span><span class="thinking-text">The Holy Spirit is listening to your heart...</span></div>`;
+        chatFeed.innerHTML = `<div class="thinking-box" id="thinkingIndicator"><span class="holy-spirit-dove">🕊️</span><span class="thinking-text" id="thinkingText">Preparing your response...</span></div>`;
         appendBotBubble(getRandomGreetingMessage());
         messageInput.value = "";
         if (window.matchMedia('(max-width: 640px)').matches) {
@@ -2961,6 +2961,12 @@
 
     function showThinking(show) {
       const el = document.getElementById("thinkingIndicator");
+      const label = document.getElementById("thinkingText");
+      if (label) {
+        label.textContent = currentPastoralMode === "study"
+          ? "Ask Deeper is studying the question..."
+          : "Preparing your response...";
+      }
       if (el) el.style.display = show ? "flex" : "none";
       if (show) chatFeed.scrollTop = chatFeed.scrollHeight;
     }
