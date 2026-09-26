@@ -13,8 +13,12 @@ from fastapi import FastAPI, Request, HTTPException, Header, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from groq import Groq
 from dotenv import load_dotenv
+
+try:
+    from api.ai_provider import get_cloud_provider, describe_cloud_provider
+except ImportError:
+    from ai_provider import get_cloud_provider, describe_cloud_provider
 
 # Optional Sentry monitoring
 try:
@@ -72,7 +76,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000"
 ]
 
-app = FastAPI(title="You With Jesus Sanctuary API", version="3.9.0")
+app = FastAPI(title="1into1 with Jesus Sanctuary API", version="4.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -82,46 +86,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_groq_client():
-    key = os.getenv("GROQ_API_KEY", "").strip()
-    return Groq(api_key=key) if key else None
+# ---------------- Cloud AI Provider ----------------
+# Core prayer features run locally in the browser. This provider layer is
+# reserved for deeper cloud reasoning and can be swapped without changing
+# the chat endpoint implementation.
 
-# ---------------- PRODUCTION-STABLE GROQ MODELS ----------------
-PREFERRED_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "llama-3.1-70b-versatile"
-]
-
-_MODEL_CACHE = {"models": None, "fetched_at": 0.0}
-MODEL_CACHE_TTL = 3600  # refresh hourly
-
-def get_active_models() -> list:
-    now = time.time()
-    if _MODEL_CACHE["models"] and now - _MODEL_CACHE["fetched_at"] < MODEL_CACHE_TTL:
-        return _MODEL_CACHE["models"]
-
-    groq_client = get_groq_client()
-    if groq_client:
-        try:
-            alive = {m.id for m in groq_client.models.list().data if getattr(m, "active", True)}
-            picks = [m for m in PREFERRED_MODELS if m in alive]
-            if not picks:
-                # Disallow audio, moderation, and reasoning models that consume token limits
-                picks = [
-                    m for m in alive
-                    if not any(x in m.lower() for x in
-                               ["whisper", "guard", "orpheus", "safeguard", "tts", "r1", "deepseek", "reasoner", "thinking"])
-                ][:2]
-            if picks:
-                _MODEL_CACHE["models"] = picks
-                _MODEL_CACHE["fetched_at"] = now
-                logger.info(f"Active Groq models resolved: {picks}")
-                return picks
-        except Exception as e:
-            logger.warning(f"Model discovery fallback: {e}")
-
-    return PREFERRED_MODELS
+def get_cloud_status() -> dict:
+    try:
+        return describe_cloud_provider()
+    except Exception as exc:
+        logger.warning(f"Cloud provider status fallback: {exc}")
+        return {"provider": "unknown", "configured": False, "models": []}
 
 # ---------------- Rate limiting ----------------
 IP_REQUEST_LOG = defaultdict(list)
@@ -494,13 +469,15 @@ def compute_remaining(decision: dict) -> int:
 @app.get("/api")
 @app.get("/api/health")
 def health_check():
+    cloud = get_cloud_status()
     return {
         "status": "active",
-        "service": "You With Jesus Sanctuary API",
-        "version": "3.9.0",
-        "groq_configured": bool(os.getenv("GROQ_API_KEY", "").strip()),
-        "db_connected": db is not None,
-        "resolved_models": get_active_models()
+        "service": "1into1 with Jesus Sanctuary API",
+        "version": "4.0.0",
+        "cloud_provider": cloud.get("provider"),
+        "cloud_configured": cloud.get("configured", False),
+        "resolved_models": cloud.get("models", []),
+        "db_connected": db is not None
     }
 
 @app.post("/")
