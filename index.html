@@ -1384,27 +1384,33 @@
 
       if (!currentUser) {
         const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
-        badge.textContent = guestUsed ? "✨ Sign In for Deep AI" : "✨ 1 Deep AI Reply Ready";
+        badge.textContent = guestUsed ? "✨ Sign in · 5 Ask Deeper/day" : "✨ 1 Ask Deeper free";
       } else if (isSubscribed) {
-        badge.textContent = "✨ Deep AI Unlimited";
+        badge.textContent = "✦ Plus · Ask Deeper unlimited";
       } else {
-        badge.textContent = `✨ ${userCredits} Deep AI Replies`;
+        badge.textContent = `✨ ${userCredits} Ask Deeper today`;
       }
     }
 
     function handleCreditPillAction() {
       if (!currentUser) {
         const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
-        if (!guestUsed) {
-          openFreeBlessingModal();
-        } else {
+        if (guestUsed) {
           openPrivacyModal();
+          return;
         }
-      } else if (!isSubscribed && userCredits <= 0) {
-        openPlansModal();
-      } else {
-        openTimeAwareBlessingModal(true);
+        setPastoralMode("study");
+        focusMobilePrayer();
+        return;
       }
+
+      if (!isSubscribed && userCredits <= 0) {
+        openPlansModal();
+        return;
+      }
+
+      setPastoralMode("study");
+      focusMobilePrayer();
     }
 
     /* AMBIENT AUDIO */
@@ -2455,10 +2461,22 @@
       }
     }
 
-    /* PLANS & CHECKOUT (With Popular Ribbon Logic) */
+    /* FREE + PLUS BILLING */
+    function updateCheckoutButton() {
+      const btn = document.getElementById("billingCheckoutBtn");
+      if (!btn) return;
+      const ready = Boolean(selectedPlanBaseUrl && !selectedPlanBaseUrl.includes("#"));
+      btn.disabled = !ready;
+      btn.style.opacity = ready ? "1" : "0.58";
+      btn.style.cursor = ready ? "pointer" : "not-allowed";
+      btn.innerHTML = ready
+        ? '<span class="holy-cross-icon" style="filter:brightness(2);margin-right:4px;">✝</span> Continue to Secure Checkout'
+        : 'Billing setup required before launch';
+    }
+
     function renderPlans() {
       plansContainer.innerHTML = LEMON_SQUEEZY_PLANS.map((plan) => `
-        <div class="plan-box ${plan.featured ? 'selected' : ''}" onclick="selectPlan(this, '${plan.checkoutUrl}')">
+        <div class="plan-box ${plan.featured ? 'selected' : ''}" data-plan-id="${plan.id}">
           ${plan.ribbon ? `<div class="featured-ribbon ${plan.isPopular ? 'flicker-popular' : ''}">${plan.ribbon}</div>` : ''}
           <div class="plan-left-wrap">
             <div class="plan-radio-circle"><div class="plan-radio-dot"></div></div>
@@ -2473,23 +2491,45 @@
           </div>
         </div>
       `).join('');
+
+      plansContainer.querySelectorAll('.plan-box').forEach((element) => {
+        element.addEventListener('click', () => {
+          const plan = LEMON_SQUEEZY_PLANS.find(p => p.id === element.dataset.planId);
+          selectPlan(element, plan ? plan.checkoutUrl : "");
+        });
+      });
+
+      const featuredPlan = LEMON_SQUEEZY_PLANS.find(plan => plan.featured) || LEMON_SQUEEZY_PLANS[0];
+      selectedPlanBaseUrl = featuredPlan ? featuredPlan.checkoutUrl : "";
+      updateCheckoutButton();
     }
+
     function selectPlan(element, url) {
       document.querySelectorAll('.plan-box').forEach(el => el.classList.remove('selected'));
       element.classList.add('selected');
-      selectedPlanBaseUrl = url;
+      selectedPlanBaseUrl = url || "";
+      updateCheckoutButton();
     }
+
     function executeCheckout() {
-      if (!currentUser) { openPrivacyModal(); return; }
-      if (selectedPlanBaseUrl && !selectedPlanBaseUrl.includes("#")) {
-        trackSanctuaryEvent('checkout_initiated', { plan_url: selectedPlanBaseUrl });
-        const sep = selectedPlanBaseUrl.includes("?") ? "&" : "?";
-        const email = encodeURIComponent(currentUser.email || '');
-        const uid = encodeURIComponent(currentUser.uid || '');
-        window.open(`${selectedPlanBaseUrl}${sep}checkout[email]=${email}&checkout[custom][user_id]=${uid}`, "_blank");
+      if (!selectedPlanBaseUrl || selectedPlanBaseUrl.includes("#")) {
+        alert("The new 1into1 Plus checkout is not connected yet. The old checkout links are intentionally blocked so nobody is charged the wrong price.");
+        return;
       }
+      if (!currentUser) { openPrivacyModal(); return; }
+
+      trackSanctuaryEvent('checkout_initiated', { plan_url: selectedPlanBaseUrl });
+      const sep = selectedPlanBaseUrl.includes("?") ? "&" : "?";
+      const email = encodeURIComponent(currentUser.email || '');
+      const uid = encodeURIComponent(currentUser.uid || '');
+      window.open(`${selectedPlanBaseUrl}${sep}checkout[email]=${email}&checkout[custom][user_id]=${uid}`, "_blank");
     }
-    function openPlansModal() { stopAllAudio(); plansModal.style.display = "flex"; }
+
+    function openPlansModal() {
+      stopAllAudio();
+      renderPlans();
+      plansModal.style.display = "flex";
+    }
     function closePlansModal() { plansModal.style.display = "none"; }
 
 
