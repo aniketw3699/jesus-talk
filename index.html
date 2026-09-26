@@ -855,6 +855,7 @@
       <div class="local-moat-strip" aria-label="Free local privacy benefits">
         <span class="local-moat-chip"><strong>Unlimited</strong>&nbsp;local prayer</span>
         <span class="local-moat-chip">No account needed</span>
+        <span class="local-moat-chip">No app install required</span>
         <span class="local-moat-chip">Works offline</span>
         <span class="local-moat-chip">Local prayer stays on-device</span>
       </div>
@@ -899,10 +900,10 @@
       <span>Select Response Mode:</span>
     </div>
     <div class="mode-select-strip">
-      <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')">🕊️ Comfort</button>
-      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')">✨ Ask Deeper</button>
-      <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')">🙏 Written Prayer</button>
-      <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')">🧭 Life Guidance</button>
+      <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')" title="Runs locally on this device">🕊️ Comfort · Local</button>
+      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')" title="Uses the optional cloud Ask Deeper service">✨ Ask Deeper · Cloud</button>
+      <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')" title="Runs locally on this device">🙏 Written Prayer · Local</button>
+      <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')" title="Runs locally on this device">🧭 Guidance · Local</button>
     </div>
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
