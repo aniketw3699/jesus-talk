@@ -3098,6 +3098,11 @@
           return;
         }
 
+        if (data.error === "FAIR_USE_EXHAUSTED") {
+          appendBotBubble(data.reply, turnRecipient, data.cardText || "");
+          return;
+        }
+
         if (data.reply) {
           appendBotBubble(data.reply, turnRecipient, data.cardText || "");
           if (data.updatedPsyche) {
