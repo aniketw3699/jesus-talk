@@ -12,21 +12,25 @@
   
   <meta name="google-site-verification" content="Dhu9QXDzOPIq4UbVhUBIT_IiKSiG7Y-XPclTy9mWEWk" />
   <meta charset="UTF-8" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>You With Jesus | Scripture-Guided Prayer & Biblical Sanctuary</title>
+  <title>1into1 with Jesus | Scripture-Guided Prayer & Biblical Sanctuary</title>
   <meta name="description" content="A private, sacred sanctuary to receive biblical comfort, surrender daily burdens, and find scripture-anchored guidance." />
-  <meta property="og:site_name" content="You With Jesus" />
-  <meta property="og:title" content="You With Jesus | Scripture-Guided Prayer & Biblical Sanctuary" />
+  <meta property="og:site_name" content="1into1 with Jesus" />
+  <meta property="og:title" content="1into1 with Jesus | Scripture-Guided Prayer & Biblical Sanctuary" />
   <meta property="og:description" content="A private, sacred sanctuary to receive biblical comfort, surrender daily burdens, and find scripture-anchored guidance." />
   <link rel="canonical" href="https://jesus-chat-bd89f.web.app" />
+  <meta name="theme-color" content="#17140f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="1into1" />
+  <link rel="manifest" href="/manifest.webmanifest" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
+  <script defer src="/offline-core.js"></script>
+
   <!-- Firebase SDKs with Firestore Cloud Sync -->
   <script defer src="/__/firebase/10.12.0/firebase-app-compat.js"></script>
   <script defer src="/__/firebase/10.12.0/firebase-auth-compat.js"></script>
@@ -638,6 +642,92 @@
       justify-content: center;
       gap: 6px;
     }
+
+    /* MOBILE-FIRST + OFFLINE FOUNDATION */
+    .mobile-home-panel, .mobile-bottom-nav, .mobile-header-actions { display: none; }
+    .brand-one { letter-spacing: 1.4px; }
+    .brand-with { font-family: 'Playfair Display', serif; font-style: italic; font-weight: 600; letter-spacing: 0; text-transform: none; }
+    .connection-status {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; padding: 3px 9px;
+      border-radius: 999px; font-size: 9.5px; font-weight: 800; letter-spacing: .35px;
+      color: #45604e; background: rgba(233,245,236,.86); border: 1px solid rgba(75,120,86,.25);
+      width: fit-content;
+    }
+    .connection-status.offline { color:#7b5b1f; background:rgba(251,245,232,.95); border-color:rgba(184,134,40,.35); }
+    .connection-status.preparing { color:#536070; background:rgba(243,245,248,.92); border-color:rgba(83,96,112,.18); }
+    .connection-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+    @media (max-width: 640px) {
+      body { align-items: stretch; background: var(--bg-celestial); }
+      .sacred-wallpaper { opacity:.42; background-position:52% top; }
+      .sanctuary-app {
+        max-width:none; border:0; box-shadow:none; background:rgba(250,247,240,.94);
+        backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+      }
+      .sacred-header {
+        padding:max(10px,env(safe-area-inset-top)) 16px 9px; gap:4px;
+        border-bottom:1px solid rgba(143,101,28,.16);
+      }
+      .nav-scroll-strip { display:none; }
+      .header-titles { text-align:left; padding-right:90px; position:relative; }
+      .title-main { font-size:18px; letter-spacing:0; line-height:1.1; }
+      .subtitle-grace { font-size:10.5px; margin-top:3px; max-width:260px; }
+      .connection-status { font-size:9px; padding:2px 7px; }
+      .mobile-header-actions {
+        display:flex; position:absolute; top:max(9px,env(safe-area-inset-top)); right:12px; gap:6px; z-index:3;
+      }
+      .mobile-icon-btn {
+        width:36px; height:36px; border-radius:50%; border:1px solid rgba(143,101,28,.25);
+        background:rgba(255,255,255,.92); display:grid; place-items:center; font-size:16px; cursor:pointer;
+        box-shadow:0 3px 12px rgba(54,42,20,.08);
+      }
+      .mobile-home-panel { display:block; flex-shrink:0; padding:14px 14px 10px; }
+      .mobile-home-panel.is-hidden { display:none; }
+      .mobile-home-kicker {
+        color:var(--gold-deep); text-transform:uppercase; letter-spacing:1.1px; font-size:10px; font-weight:800; margin-bottom:4px;
+      }
+      .mobile-home-title {
+        font-family:'Playfair Display',serif; color:#201a10; font-size:clamp(24px,7vw,31px);
+        line-height:1.08; font-weight:600; margin-bottom:5px;
+      }
+      .mobile-home-copy { color:var(--text-muted); font-size:12.5px; line-height:1.45; margin-bottom:12px; }
+      .burden-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+      .burden-card {
+        min-height:62px; text-align:left; border:1px solid rgba(143,101,28,.18); border-radius:15px;
+        background:rgba(255,255,255,.9); color:#282116; padding:10px 11px; font:inherit;
+        font-size:12px; font-weight:700; line-height:1.25; cursor:pointer; box-shadow:0 4px 14px rgba(64,47,20,.06);
+      }
+      .burden-card span { display:block; font-size:18px; margin-bottom:3px; }
+      .burden-card-wide { grid-column:1/-1; min-height:52px; display:flex; align-items:center; gap:9px; }
+      .burden-card-wide span { margin:0; }
+      .ritual-banner-strip { margin:2px 14px 8px; border-radius:13px; padding:8px 10px; }
+      .ritual-desc { display:none; }
+      .ritual-action-tag { font-size:9.5px; }
+      .conversation-feed { padding:9px 12px 10px; gap:13px; }
+      .bubble-user { max-width:88%; font-size:13.5px; }
+      .bubble-bot { max-width:94%; font-size:13.5px; padding:13px 14px; }
+      .chips-deck { display:none; }
+      .response-mode-label { display:none !important; }
+      .mode-select-strip { padding:3px 12px 5px; gap:6px; overflow-x:auto; scrollbar-width:none; }
+      .mode-select-strip::-webkit-scrollbar { display:none; }
+      .mode-pill { flex:0 0 auto; font-size:10.5px; padding:6px 10px; }
+      .input-deck { padding:6px 10px 7px; background:rgba(255,255,255,.96); }
+      .input-wrapper { min-height:46px; }
+      .prayer-input { font-size:13px; }
+      .mobile-bottom-nav {
+        display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:2px;
+        padding:5px 6px max(6px,env(safe-area-inset-bottom)); background:rgba(255,255,255,.98);
+        border-top:1px solid rgba(143,101,28,.16); flex-shrink:0; z-index:10;
+      }
+      .mobile-nav-btn {
+        min-width:0; border:0; background:transparent; border-radius:10px; padding:5px 2px 3px;
+        font-family:'Plus Jakarta Sans',sans-serif; font-size:9.5px; font-weight:700; color:#5c6570; cursor:pointer;
+      }
+      .mobile-nav-btn .nav-icon { display:block; font-size:18px; line-height:1.1; margin-bottom:2px; }
+      .mobile-nav-btn.active, .mobile-nav-btn:active { color:var(--gold-deep); background:var(--gold-soft); }
+      .legal-compliance-footer { display:none !important; }
+      .modal-card { width:calc(100% - 20px); max-height:calc(100dvh - 28px); overflow-y:auto; border-radius:20px; }
+    }
   </style>
 </head>
 <body>
@@ -663,11 +753,32 @@
         <button class="action-btn" onclick="startNewPrayer(true)">🕊️ New Prayer</button>
         <button class="action-btn auth-btn" id="authBtn" onclick="handleAuthAction()">Sign In</button>
       </div>
+      <div class="mobile-header-actions" aria-label="Quick actions">
+        <button class="mobile-icon-btn" type="button" onclick="openConfessionalModal()" aria-label="Lay it down">✝</button>
+        <button class="mobile-icon-btn" type="button" onclick="handleAuthAction()" aria-label="Account">👤</button>
+      </div>
       <div class="header-titles">
-        <h1 class="title-main">YOU WITH JESUS</h1>
+        <h1 class="title-main"><span class="brand-one">1into1</span> <span class="brand-with">with Jesus</span></h1>
         <p class="subtitle-grace" id="userGreeting">Scripture Guidance & Daily Prayer Sanctuary</p>
+        <div class="connection-status preparing" id="connectionStatus" aria-live="polite"><span class="connection-dot"></span><span id="connectionStatusText">Preparing offline access</span></div>
       </div>
     </header>
+
+    <!-- MOBILE-FIRST BURDEN ENTRY -->
+    <section class="mobile-home-panel" id="mobileHomePanel" aria-labelledby="mobileHomeTitle">
+      <div class="mobile-home-kicker">A private place to begin</div>
+      <h2 class="mobile-home-title" id="mobileHomeTitle">What are you carrying today?</h2>
+      <p class="mobile-home-copy">You do not need the right words. Choose what feels closest, or simply tell us what is happening.</p>
+      <div class="burden-grid">
+        <button class="burden-card" type="button" onclick="beginBurdenPath('I feel overwhelmed by anxiety and fear. Help me pray and find peace in Scripture.', 'comfort')"><span>😟</span>Anxiety & fear</button>
+        <button class="burden-card" type="button" onclick="beginBurdenPath('I am grieving and my heart feels heavy. Help me pray through this loss with Scripture.', 'comfort')"><span>🌧️</span>Grief & loss</button>
+        <button class="burden-card" type="button" onclick="beginBurdenPath('I am worried about money, work, or provision. Help me pray with wisdom and trust.', 'guidance')"><span>💼</span>Money & work</button>
+        <button class="burden-card" type="button" onclick="beginBurdenPath('I am struggling in a relationship and need prayer, wisdom, and a biblical way forward.', 'guidance')"><span>💔</span>Relationships</button>
+        <button class="burden-card" type="button" onclick="beginBurdenPath('I feel guilty, ashamed, or in need of forgiveness. Help me come to God honestly and receive Scripture-grounded hope.', 'prayer')"><span>🕊️</span>Guilt & forgiveness</button>
+        <button class="burden-card" type="button" onclick="beginBurdenPath('I feel lonely, lost, or unsure of my direction. Help me pray and find biblical encouragement.', 'comfort')"><span>🌙</span>Lonely or lost</button>
+        <button class="burden-card burden-card-wide" type="button" onclick="openStillnessModal()"><span>🙏</span>I don't know what to pray</button>
+      </div>
+    </section>
 
     <!-- DYNAMIC DAILY RITUAL WIDGET -->
     <div class="ritual-banner-strip" id="dailyRitualBanner" onclick="triggerDailyRitual()">
@@ -689,7 +800,7 @@
     </section>
 
     <!-- PASTORAL RESPONSE MODE STRIP -->
-    <div style="padding: 4px 14px 2px 14px; font-size: 10.5px; font-weight: 800; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
+    <div class="response-mode-label" style="padding: 4px 14px 2px 14px; font-size: 10.5px; font-weight: 800; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
       <span>Select Response Mode:</span>
     </div>
     <div class="mode-select-strip">
@@ -735,10 +846,18 @@
       </form>
     </footer>
 
+    <nav class="mobile-bottom-nav" aria-label="Primary navigation">
+      <button class="mobile-nav-btn active" id="mobileNavHome" type="button" onclick="showMobileHome()"><span class="nav-icon">⌂</span>Home</button>
+      <button class="mobile-nav-btn" id="mobileNavPray" type="button" onclick="focusMobilePrayer()"><span class="nav-icon">🙏</span>Pray</button>
+      <button class="mobile-nav-btn" type="button" onclick="window.location.href='bible.html'"><span class="nav-icon">📖</span>Bible</button>
+      <button class="mobile-nav-btn" type="button" onclick="openJourneysModal()"><span class="nav-icon">🛤️</span>Journey</button>
+      <button class="mobile-nav-btn" type="button" onclick="openJournalModal()"><span class="nav-icon">✦</span>You</button>
+    </nav>
+
     <!-- LEGAL COMPLIANCE FOOTER -->
-    <footer style="text-align: center; padding: 6px 10px 10px 10px; font-size: 11px; color: var(--text-muted); background: rgba(255, 255, 255, 0.95); flex-shrink: 0;">
+    <footer class="legal-compliance-footer" style="text-align: center; padding: 6px 10px 10px 10px; font-size: 11px; color: var(--text-muted); background: rgba(255, 255, 255, 0.95); flex-shrink: 0;">
       <p style="margin-bottom: 4px; font-size: 10.5px; opacity: 0.85;">
-        You With Jesus is an AI-assisted Scripture companion designed for spiritual encouragement, prayer, and reflection.
+        1into1 with Jesus is a Scripture-guided companion designed for spiritual encouragement, prayer, and reflection.
       </p>
       <a href="privacy.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Privacy Policy</a> •
       <a href="terms.html" style="color: inherit; text-decoration: none; margin: 0 6px;">Terms of Service</a> •
@@ -2243,6 +2362,113 @@
     function openPlansModal() { stopAllAudio(); plansModal.style.display = "flex"; }
     function closePlansModal() { plansModal.style.display = "none"; }
 
+
+    /* MOBILE-FIRST NAVIGATION HELPERS */
+    function setMobileNavActive(id) {
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => btn.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
+    }
+
+    function hideMobileHome() {
+      const panel = document.getElementById('mobileHomePanel');
+      if (panel) panel.classList.add('is-hidden');
+      setMobileNavActive('mobileNavPray');
+    }
+
+    function showMobileHome() {
+      stopAllAudio();
+      const panel = document.getElementById('mobileHomePanel');
+      if (panel) panel.classList.remove('is-hidden');
+      setMobileNavActive('mobileNavHome');
+      if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function focusMobilePrayer() {
+      hideMobileHome();
+      setTimeout(() => messageInput.focus(), 60);
+    }
+
+    function beginBurdenPath(promptText, modeKey = 'comfort') {
+      setPastoralMode(modeKey);
+      hideMobileHome();
+      sendQuickPrompt(promptText);
+    }
+
+    /* OFFLINE/PWA FOUNDATION */
+    let offlineFoundationReady = false;
+
+    function setConnectionStatus(label, state = 'ready') {
+      const pill = document.getElementById('connectionStatus');
+      const statusText = document.getElementById('connectionStatusText');
+      if (!pill || !statusText) return;
+      pill.classList.remove('offline','preparing');
+      if (state === 'offline') pill.classList.add('offline');
+      if (state === 'preparing') pill.classList.add('preparing');
+      statusText.textContent = label;
+    }
+
+    async function initOfflineFoundation() {
+      if (!('serviceWorker' in navigator)) {
+        setConnectionStatus(navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'ready' : 'offline');
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+        await navigator.serviceWorker.ready;
+        offlineFoundationReady = true;
+        if (navigator.storage && navigator.storage.persist) {
+          try {
+            const persisted = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+            if (!persisted) await navigator.storage.persist();
+          } catch (_) {}
+        }
+        setConnectionStatus(navigator.onLine ? 'Offline ready' : 'Offline · local mode', navigator.onLine ? 'ready' : 'offline');
+        if (registration.waiting) registration.waiting.postMessage({ type:'SKIP_WAITING' });
+      } catch (err) {
+        console.warn('Offline foundation registration note:', err);
+        setConnectionStatus(navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'ready' : 'offline');
+      }
+    }
+
+    function updateOnlineState() {
+      if (navigator.onLine) {
+        setConnectionStatus(offlineFoundationReady ? 'Offline ready' : 'Online · preparing offline', offlineFoundationReady ? 'ready' : 'preparing');
+      } else {
+        setConnectionStatus('Offline · local mode','offline');
+      }
+    }
+
+    function saveConversationTurnLocally(userText, assistantText) {
+      const cleanTurnReply = (assistantText || '')
+        .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
+        .replace(/\[CARD\][\s\S]*$/gi, '')
+        .replace(/^\s*PSYCHE\s*:[\s\S]*$/gim, '')
+        .trim();
+      activeConversationHistory.push({ role:'user', content:userText });
+      activeConversationHistory.push({ role:'assistant', content:cleanTurnReply });
+      recordJournalTurn(userText, cleanTurnReply);
+      localStorage.setItem('jesus_active_conversation_history', JSON.stringify(activeConversationHistory));
+      localStorage.setItem('jesus_active_feed_html', chatFeed.innerHTML);
+    }
+
+    function answerWithPrivateLocalMode(text, recipient = '', reason = 'offline') {
+      const engine = window.OneIntoOneOffline;
+      let reply = engine && typeof engine.buildResponse === 'function'
+        ? engine.buildResponse(text, currentPastoralMode)
+        : 'You are offline. Your journal, prayer history, surrender space and cached pages are still available. Reconnect once for deeper cloud guidance.';
+      if (reason === 'network-fallback') {
+        reply = 'Cloud guidance is unavailable right now, so 1into1 is using private local mode.\n\n' + reply;
+      }
+      showThinking(false);
+      appendBotBubble(reply, recipient);
+      saveConversationTurnLocally(text, reply);
+    }
+
+    window.addEventListener('online', updateOnlineState);
+    window.addEventListener('offline', updateOnlineState);
+    window.addEventListener('load', initOfflineFoundation);
+
     /* CHAT CORE */
     function sendQuickPrompt(promptText) {
       messageInput.value = promptText;
@@ -2253,6 +2479,7 @@
       if (e) e.preventDefault();
       const text = messageInput.value.trim();
       if (!text) return;
+      hideMobileHome();
 
       const turnRecipient = currentIntercessoryRecipient;
       currentIntercessoryRecipient = "";
@@ -2262,6 +2489,11 @@
       showThinking(true);
 
       trackSanctuaryEvent('prayer_submitted', { mode: currentPastoralMode });
+
+      if (!navigator.onLine) {
+        setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline'), 180);
+        return;
+      }
 
       let idToken = "";
       if (currentUser && currentUser.getIdToken) {
@@ -2324,22 +2556,11 @@
             updateCreditUI();
           }
 
-          const cleanTurnReply = data.reply
-            .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
-            .replace(/\[CARD\][\s\S]*$/gi, '')
-            .replace(/^\s*PSYCHE\s*:[\s\S]*$/gim, '')
-            .trim();
-
-          activeConversationHistory.push({ role: "user", content: text });
-          activeConversationHistory.push({ role: "assistant", content: cleanTurnReply });
-
-          recordJournalTurn(text, cleanTurnReply);
-          localStorage.setItem("jesus_active_conversation_history", JSON.stringify(activeConversationHistory));
-          localStorage.setItem("jesus_active_feed_html", chatFeed.innerHTML);
+          saveConversationTurnLocally(text, data.reply);
         }
       } catch (err) {
-        showThinking(false);
-        appendBotBubble("Peace be with you. Lay down your burdens, for I am near. “Come to me, all who labor and are heavy laden, and I will give you rest.” (Matthew 11:28)", turnRecipient);
+        console.warn("Cloud guidance unavailable; using local mode:", err);
+        answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback');
       }
     }
     
@@ -2581,7 +2802,11 @@
         chatFeed.innerHTML = `<div class="thinking-box" id="thinkingIndicator"><span class="holy-spirit-dove">🕊️</span><span class="thinking-text">The Holy Spirit is listening to your heart...</span></div>`;
         appendBotBubble(getRandomGreetingMessage());
         messageInput.value = "";
-        messageInput.focus();
+        if (window.matchMedia('(max-width: 640px)').matches) {
+          showMobileHome();
+        } else {
+          messageInput.focus();
+        }
       }
     }
 
@@ -2598,6 +2823,10 @@
     function closePrivacyModal() { privacyModal.style.display = "none"; }
     async function proceedToGoogleAuth() {
       closePrivacyModal();
+      if (!navigator.onLine) {
+        alert("Sign-in needs an internet connection. Your local prayer space and journal still work offline.");
+        return;
+      }
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         await firebase.auth().signInWithPopup(provider);
