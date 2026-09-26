@@ -27,6 +27,26 @@ jobs:
         with:
           node-version: "22"
 
+      # Run repository-level audits before generating dist/ or installing
+      # Playwright so generated/vendor HTML cannot be mistaken for product SEO.
+      - name: Re-run launch safety audit
+        run: python launch_audit.py
+
+      - name: Re-run SEO architecture audit
+        run: python seo_audit.py
+
+      - name: Re-run production readiness audit
+        run: python production_readiness.py
+
+      - name: Re-run release candidate audit
+        run: python release_candidate_audit.py
+
+      - name: Re-run product-flow QA
+        run: node release_flow_qa.mjs
+
+      - name: Re-run JavaScript/PWA parsing
+        run: node launch_js_audit.mjs
+
       - name: Build and audit Cloudflare Pages bundle
         run: python cloudflare_hosting_audit.py
 
@@ -64,21 +84,3 @@ jobs:
           path: cloudflare-visual-qa/
           if-no-files-found: warn
           retention-days: 7
-
-      - name: Re-run launch safety audit
-        run: python launch_audit.py
-
-      - name: Re-run SEO architecture audit
-        run: python seo_audit.py
-
-      - name: Re-run production readiness audit
-        run: python production_readiness.py
-
-      - name: Re-run release candidate audit
-        run: python release_candidate_audit.py
-
-      - name: Re-run product-flow QA
-        run: node release_flow_qa.mjs
-
-      - name: Re-run JavaScript/PWA parsing
-        run: node launch_js_audit.mjs
