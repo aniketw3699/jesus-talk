@@ -536,6 +536,9 @@
       border-radius: 28px;
       max-width: 380px;
       width: 100%;
+      max-height: calc(100dvh - 40px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       padding: 34px 24px 26px;
       text-align: center;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -619,8 +622,9 @@
       flex-direction: column;
       gap: 9px;
       margin-bottom: 14px;
-      max-height: 250px;
+      max-height: 330px;
       overflow-y: auto;
+      scrollbar-width: thin;
     }
     .quiz-opt-btn {
       width: 100%;
@@ -691,6 +695,18 @@
     .connection-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
     @media (max-width: 640px) {
+      /* MOBILE BLESSING MODAL FIT */
+      .blessing-modal-overlay {
+        align-items: flex-start;
+        padding:max(12px,env(safe-area-inset-top)) 14px max(12px,env(safe-area-inset-bottom));
+        overflow-y:auto;
+      }
+      .blessing-modal-card {
+        margin:auto 0;
+        max-height:calc(100dvh - 24px);
+        padding:30px 20px 22px;
+      }
+      .quiz-options-list { max-height:min(330px,48dvh); }
       body { align-items: stretch; background: var(--bg-celestial); }
       .sacred-wallpaper { opacity:.42; background-position:52% top; }
       .sanctuary-app {
