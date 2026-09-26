@@ -12,13 +12,13 @@
   
   <meta name="google-site-verification" content="Dhu9QXDzOPIq4UbVhUBIT_IiKSiG7Y-XPclTy9mWEWk" />
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>1into1 with Jesus | Scripture-Guided Prayer & Biblical Sanctuary</title>
   <meta name="description" content="A private, sacred sanctuary to receive biblical comfort, surrender daily burdens, and find scripture-anchored guidance." />
   <meta property="og:site_name" content="1into1 with Jesus" />
   <meta property="og:title" content="1into1 with Jesus | Scripture-Guided Prayer & Biblical Sanctuary" />
   <meta property="og:description" content="A private, sacred sanctuary to receive biblical comfort, surrender daily burdens, and find scripture-anchored guidance." />
-  <link rel="canonical" href="https://jesus-chat-bd89f.web.app" />
+  <link rel="canonical" href="https://www.1into1.com" />
   <meta name="theme-color" content="#17140f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -731,6 +731,37 @@
       .legal-compliance-footer { display:none !important; }
       .modal-card { width:calc(100% - 20px); max-height:calc(100dvh - 28px); overflow-y:auto; border-radius:20px; }
     }
+
+    /* LAUNCH HARDENING: MOBILE, ACCESSIBILITY & SHORT-SCREEN SAFETY */
+    button, a, input, textarea, select { touch-action: manipulation; }
+    button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(143,101,28,.35);
+      outline-offset: 2px;
+    }
+    .modal-backdrop { overflow-y: auto; overscroll-behavior: contain; }
+    .modal-card { max-height: calc(100dvh - 36px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .modal-close { width: 40px; height: 40px; top: 10px; right: 10px; }
+    .primary-gold-btn, .secondary-soft-btn, .billing-checkout-btn { min-height: 46px; }
+    @media (max-width: 640px) {
+      input, textarea, select, .prayer-input, .intentions-input { font-size: 16px !important; }
+      .mobile-icon-btn { width: 42px; height: 42px; }
+      .mobile-nav-btn { min-height: 48px; }
+      .mode-pill { min-height: 38px; }
+      .send-btn, .mic-btn { width: 42px; height: 42px; }
+      .modal-backdrop {
+        align-items: flex-start;
+        padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+      }
+      .modal-card { width:100%; max-height:calc(100dvh - 20px); margin:auto 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1166,8 +1197,8 @@
       <div class="scripture-card-canvas" id="scriptureCardToExport">
         <div class="card-content-wrap">
           <span class="card-brand-tag" id="cardBrandTag">† WORDS OF PEACE †</span>
-          <p class="card-verse-quote" id="cardQuoteText">Peace be with you. Lay down your burdens, for I am listening.</p>
-          <div class="card-footer-watermark">YOU WITH JESUS • SACRED SANCTUARY</div>
+          <p class="card-verse-quote" id="cardQuoteText">Peace be with you. May God meet you in what you are carrying today.</p>
+          <div class="card-footer-watermark">1INTO1 WITH JESUS • SCRIPTURE & PRAYER</div>
         </div>
       </div>
 
@@ -1177,7 +1208,7 @@
     </div>
   </div>
 
-  <!-- 9. PLANS MODAL (With 6-Month Most Popular Flicker Tag) -->
+  <!-- 9. FREE + PLUS PLANS MODAL -->
   <div class="modal-backdrop" id="plansModal">
     <div class="modal-card">
       <button class="modal-close" onclick="closePlansModal()">✕</button>
@@ -1196,7 +1227,7 @@
       <div class="plans-grid" id="plansContainer"></div>
 
       <button class="billing-checkout-btn" id="billingCheckoutBtn" onclick="executeCheckout()">
-        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Start Your Sacred Walk
+        <span class="holy-cross-icon" style="filter: brightness(2); margin-right: 4px;">✝</span> Continue to Secure Checkout
       </button>
 
       <p class="billing-trust-caption">
@@ -1208,7 +1239,7 @@
   <script src="/billing-config.js"></script>
   <script>
     const BACKEND_API_URL = "https://jesus-talk-dusky.vercel.app";
-    const APP_CANONICAL_URL = "https://jesus-chat-bd89f.web.app";
+    const APP_CANONICAL_URL = "https://www.1into1.com";
     const DEVELOPER_EMAIL = "anuanuu87@gmail.com";
 
     const BILLING_CONFIG = window.ONEINTOONE_BILLING_CONFIG || {};
@@ -1582,7 +1613,7 @@
        CARD TRANSFORMATION FALLBACK ENGINE (40-65 WORDS, ZERO SENDER PII)
        --------------------------------------------------------- */
     function formatCardForSharing(rawText, recipient) {
-      if (!rawText) return "Peace be with you. Lay down your burdens, for I am listening.";
+      if (!rawText) return "Peace be with you. May God meet you in what you are carrying today.";
 
       let clean = rawText
         .replace(/\[CARD\][\s\S]*?\[\/CARD\]/gi, '')
@@ -3157,13 +3188,13 @@
 
       ctx.fillStyle = '#dfb455'; 
       ctx.font = '600 21px "Cinzel", serif';
-      ctx.fillText('YOU WITH JESUS  •  SACRED SANCTUARY', 540, 1235);
+      ctx.fillText('1INTO1 WITH JESUS  •  SCRIPTURE & PRAYER', 540, 1235);
       return canvas;
     }
 
     async function exportScriptureImage() {
       const exportBtn = document.getElementById("exportCardBtn");
-      const formattedCardText = cardQuoteText.textContent || "Peace be with you. Lay down your burdens, for I am listening.";
+      const formattedCardText = cardQuoteText.textContent || "Peace be with you. May God meet you in what you are carrying today.";
       
       const shareUrl = APP_CANONICAL_URL;
       const shareMessage = `A prayer was lifted up for you 🙏\n${shareUrl}`;
@@ -3175,7 +3206,7 @@
         const canvas = drawDirectSacredCard(formattedCardText, activeCardRecipient);
         canvas.toBlob(async (blob) => {
           if (!blob) return;
-          const shareFile = new File([blob], 'words-of-jesus.png', { type: 'image/png' });
+          const shareFile = new File([blob], '1into1-blessing.png', { type: 'image/png' });
           if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
             try {
               await navigator.share({ 
