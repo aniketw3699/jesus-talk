@@ -30,5 +30,7 @@ jobs:
         run: python production_readiness.py
       - name: Run release candidate audit
         run: python release_candidate_audit.py
+      - name: Run release product-flow QA
+        run: node release_flow_qa.mjs
       - name: Parse JavaScript and PWA files
         run: node launch_js_audit.mjs
