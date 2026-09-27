@@ -191,7 +191,7 @@
     } else if (/^(how are you|how are you doing|how is it going|hows it going|how have you been)$/.test(clean)) {
       reply = "I’m here and ready to listen. What’s on your mind today?";
     } else if (/^(who are you|what are you|what is this|what can you do|tell me about yourself)$/.test(clean)) {
-      reply = "I’m 1into1, a Christian digital companion—not Jesus himself. You can ask me about anything: everyday life, difficult decisions, relationships, science, work, Scripture, prayer, or whatever is on your mind. I answer helpfully while staying Jesus-centered and Scripture-guided.";
+      reply = "I’m 1into1, a Christian digital companion—not Jesus himself. You can bring me any question, but I keep the answer within Jesus, the Bible, Christian faith, prayer, and biblical wisdom. If something is outside that world, I’ll help you look at the part Scripture can speak to.";
     } else if (/^(thanks|thank you|thank you so much|thanks a lot|appreciate it)$/.test(clean)) {
       reply = "You’re welcome. I’m here whenever you want to talk, pray, or look at Scripture together.";
     } else if (/^(bye|goodbye|good night|see you|see you later|talk later)$/.test(clean)) {
@@ -357,6 +357,42 @@
     return buildNormalExperience(text, selectedMode, analysis);
   }
 
+  function hasChristianScopeMarker(text) {
+    const clean = normalize(text);
+    return /\b(jesus|christ|christian|christianity|bible|biblical|scripture|gospel|god|lord|holy spirit|trinity|church|prayer|pray|faith|sin|salvation|grace|heaven|hell|resurrection|crucifixion|commandments?|disciple|apostle|saint|mary|joseph|moses|abraham|david|paul|peter|john|matthew|mark|luke|romans|corinthians|genesis|exodus|psalm|proverbs|isaiah|jeremiah|revelation|catholic|orthodox|protestant|baptist|pentecostal|anglican|lutheran|methodist|reformed|eucharist|communion|baptism|confession|repent|forgive|forgiveness|worship|sermon|pastor|priest|pope|archangel|angel)\b/.test(clean);
+  }
+
+  function looksLikeGeneralWorldKnowledge(text) {
+    const clean = normalize(text);
+    if (!clean) return false;
+
+    return /\b(calculate|calculator|divide|divided by|multiply|multiplied by|addition|subtract|equation|algebra|geometry)\b/.test(clean) ||
+      /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|graphics card|shopping|price|discount)\b/.test(clean) ||
+      /\b(stock|stocks|crypto|bitcoin|share price|market price|investment pick|mutual fund|trading)\b/.test(clean) ||
+      /\b(elon musk|donald trump|trump|biden|modi|putin|celebrity|actor|actress|singer|politician|election|poll|latest news|breaking news|current affairs)\b/.test(clean) ||
+      /\b(black hole|quantum|physics|chemistry|biology|evolution|dinosaur|planet|galaxy|computer science|programming|python|javascript|coding|algorithm|artificial intelligence|machine learning)\b/.test(clean) ||
+      /\b(movie|film|netflix|song|album|football|cricket|basketball|sports score|match score|video game|gaming)\b/.test(clean) ||
+      /\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|hinduism|buddha|buddhism|sikh|sikhism|jain|jainism)\b/.test(clean);
+  }
+
+  function looksLikePersonalChristianGuidance(text) {
+    const clean = normalize(text);
+    if (!clean) return false;
+    if (/\b(do you have sex|are you married|do you have a body|do you have feelings|are you real)\b/.test(clean)) return true;
+
+    const personal = /\b(i|im|i'm|me|my|mine|we|our|us|mother|mom|father|dad|wife|husband|girlfriend|boyfriend|family|friend)\b/.test(clean);
+    const lifeIssue = /\b(anxious|anxiety|afraid|fear|sad|grief|died|hospital|sick|ill|cancer|pregnant|pregnancy|abortion|sex|sexual|marriage|relationship|dating|breakup|cheat|betray|anger|angry|forgive|money|debt|rent|job|work|career|boss|decision|choice|habit|addiction|lonely|loneliness|purpose|meaning|guilt|shame|temptation|hurt|pain|suffering|suicide|die|death|abuse|assault)\b/.test(clean);
+    const guidanceForm = /\b(should i|can i|what should i|help me|what do i do|how should i|i want|i need|please help)\b/.test(clean);
+    return personal && (lifeIssue || guidanceForm);
+  }
+
+  function shouldBridgeToChristianScope(text) {
+    if (hasChristianScopeMarker(text)) return false;
+    if (looksLikeGeneralWorldKnowledge(text)) return true;
+    if (looksLikePersonalChristianGuidance(text)) return false;
+    return true;
+  }
+
   function isHighStakesLifeQuestion(text) {
     return /\b(pregnan(?:t|cy)|abortion|miscarriage|ectopic|suicid(?:e|al)|self[- ]?harm|overdose|medical emergency|chest pain|severe bleeding|diagnosis|medication dose|domestic violence|sexual assault|rape|abuse|being abused|immediate danger|emergency room|arrested|criminal charge)\b/i.test(String(text || ""));
   }
@@ -364,41 +400,24 @@
   function premiumDepthScore(text) {
     const value = String(text || "");
     const clean = normalize(value);
-    if (!clean || isHighStakesLifeQuestion(value)) return 0;
+    if (!clean || isHighStakesLifeQuestion(value) || shouldBridgeToChristianScope(value)) return 0;
 
     let score = 0;
-
     if (/\b(deep dive|go deeper|in[- ]depth|detailed analysis|comprehensive analysis|research[- ]level|rigorous analysis|thorough analysis)\b/i.test(value)) score += 5;
     if (/\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation|exegesis|hermeneutics?|original language|verse[- ]by[- ]verse)\b/i.test(value)) score += 4;
-
     if (/\b(compare|contrast|evaluate|analy[sz]e|critique|synthesize|assess)\b/i.test(value)) score += 2;
 
     const denominationMentions = (value.match(/\b(catholic|orthodox|protestant|reformed|pentecostal|anglican|lutheran|baptist|methodist)\b/gi) || []).length;
     if (/\b(compare|contrast|difference|interpretation|view|views)\b/i.test(value) && denominationMentions >= 2) score += 3;
-    if (/\b(pros and cons|trade[- ]offs?|multiple perspectives|arguments? for and against|case for and against|steelman|scenarios?|risk analysis|decision matrix|compare the evidence)\b/i.test(value)) score += 3;
-    if (/\b(roadmap|strategy|framework|business plan|implementation plan|research plan|90[- ]day plan|step[- ]by[- ]step plan)\b/i.test(value)) score += 2;
-    if (/\b(sources?|citations?|evidence|studies|data|historical sources?)\b/i.test(value)) score += 2;
-
-    const domains = [
-      /\bhistor(?:y|ical)\b/i,
-      /\btheolog(?:y|ical)\b/i,
-      /\bbiblical\b/i,
-      /\bscientific\b/i,
-      /\bpsycholog(?:y|ical)\b/i,
-      /\bfinancial|economic\b/i,
-      /\blegal\b/i,
-      /\bethic(?:s|al)\b/i,
-      /\bpractical\b/i
-    ].filter(function(pattern) { return pattern.test(value); }).length;
-    score += Math.min(3, domains);
+    if (/\b(pros and cons|trade[- ]offs?|multiple perspectives|arguments? for and against|case for and against|steelman|scenarios?|compare the evidence|major objections)\b/i.test(value)) score += 3;
+    if (/\b(scripture|biblical|bible|theology|doctrine|christian|church history|discernment|stewardship|vocation)\b/i.test(value)) score += 2;
+    if (/\b(sources?|citations?|evidence|historical sources?)\b/i.test(value)) score += 2;
 
     const connectors = (clean.match(/\b(and|also|then|versus|vs|compare|consider|including|while|but|plus)\b/g) || []).length;
     if (connectors >= 3) score += 1;
     if (connectors >= 6) score += 1;
-
     if (value.length >= 220) score += 1;
     if (value.length >= 420) score += 1;
-
     return score;
   }
 
@@ -444,10 +463,11 @@
       };
     }
 
+    const bridge = shouldBridgeToChristianScope(text);
     return {
       route:isOnline ? "cloud-standard" : "device-general",
-      cloudMode:"conversation",
-      reason:"universal-question",
+      cloudMode:bridge ? "bridge" : "conversation",
+      reason:bridge ? "christian-bridge" : "christian-question",
       analysis:analysis
     };
   }
@@ -473,12 +493,13 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.5.1",
+    version:"2.6.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
     decideRoute:decideRoute,
     premiumDepthScore:premiumDepthScore,
+    shouldBridgeToChristianScope:shouldBridgeToChristianScope,
     shouldHandleLocally:shouldHandleLocally,
     clearLocalMemory:clearLocalMemory,
     getLocalMemorySummary:getLocalMemorySummary
