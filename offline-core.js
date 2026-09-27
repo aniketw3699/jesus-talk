@@ -367,7 +367,7 @@
     if (!clean) return false;
 
     return /\b(calculate|calculator|divide|divided by|multiply|multiplied by|addition|subtract|equation|algebra|geometry)\b/.test(clean) ||
-      /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|graphics card|shopping|price|discount)\b/.test(clean) ||
+      /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|graphics card|shopping|price|discount|business plan|business strategy|start a business|market analysis|market research|revenue model|startup roadmap)\b/.test(clean) ||
       /\b(stock|stocks|crypto|bitcoin|share price|market price|investment pick|mutual fund|trading)\b/.test(clean) ||
       /\b(elon musk|donald trump|trump|biden|modi|putin|celebrity|actor|actress|singer|politician|election|poll|latest news|breaking news|current affairs)\b/.test(clean) ||
       /\b(black hole|quantum|physics|chemistry|biology|evolution|dinosaur|planet|galaxy|computer science|programming|python|javascript|coding|algorithm|artificial intelligence|machine learning)\b/.test(clean) ||
@@ -378,7 +378,7 @@
   function looksLikePersonalChristianGuidance(text) {
     const clean = normalize(text);
     if (!clean) return false;
-    if (/\b(do you have sex|are you married|do you have a body|do you have feelings|are you real)\b/.test(clean)) return true;
+    if (/\b(do (?:you|u) have sex|are (?:you|u) married|do (?:you|u) have a body|do (?:you|u) have feelings|are (?:you|u) real)\b/.test(clean)) return true;
 
     const personal = /\b(i|im|i'm|me|my|mine|we|our|us|mother|mom|father|dad|wife|husband|girlfriend|boyfriend|family|friend)\b/.test(clean);
     const lifeIssue = /\b(anxious|anxiety|afraid|fear|sad|grief|died|hospital|sick|ill|cancer|pregnant|pregnancy|abortion|sex|sexual|marriage|relationship|dating|breakup|cheat|betray|anger|angry|forgive|money|debt|rent|job|work|career|boss|decision|choice|habit|addiction|lonely|loneliness|purpose|meaning|guilt|shame|temptation|hurt|pain|suffering|suicide|die|death|abuse|assault)\b/.test(clean);
