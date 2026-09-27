@@ -120,12 +120,8 @@ async function inspectViewport(device, viewport) {
       return !!card && getComputedStyle(card).display !== "none";
     })(),
     authDiscoveryText:document.getElementById("authDiscoveryCard")?.innerText || "",
-    localLabels:[
-      document.getElementById("modeComfort")?.textContent || "",
-      document.getElementById("modePrayer")?.textContent || "",
-      document.getElementById("modeGuidance")?.textContent || "",
-      document.getElementById("modeStudy")?.textContent || "",
-    ],
+    autoRouteText:document.querySelector(".auto-route-note")?.textContent || "",
+    manualModeCount:document.querySelectorAll("#modeComfort,#modePrayer,#modeGuidance,#modeStudy").length,
   }));
   record(device + " no horizontal overflow", Math.max(metrics.bodyWidth, metrics.docWidth) <= metrics.viewportWidth + 2,
     JSON.stringify({viewport:metrics.viewportWidth,body:metrics.bodyWidth,doc:metrics.docWidth}));
@@ -139,9 +135,9 @@ async function inspectViewport(device, viewport) {
   record(device + " sign-in card preserves no-account core use",
     /without an account/i.test(metrics.authDiscoveryText),
     metrics.authDiscoveryText.slice(0,160));
-  record(device + " Local/Cloud labels visible",
-    metrics.localLabels.some(x => x.includes("Local")) && metrics.localLabels.some(x => x.includes("Cloud")),
-    metrics.localLabels.join(" | "));
+  record(device + " automatic routing replaces manual Local/Cloud labels",
+    /chooses the response path automatically/i.test(metrics.autoRouteText) && metrics.manualModeCount === 0,
+    metrics.autoRouteText);
 
   await page.screenshot({ path:shotName(device,"home"), fullPage:true });
 

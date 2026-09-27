@@ -269,6 +269,21 @@
       text-align:center; flex-shrink:0;
     }
 
+    .device-ai-setup {
+      display:none; flex-direction:column; align-items:center; justify-content:center;
+      gap:2px; padding:2px 12px 5px; text-align:center; flex-shrink:0;
+    }
+    .device-ai-setup.visible { display:flex; }
+    .device-ai-setup-btn {
+      border:1px solid rgba(143, 101, 28, 0.42); background:#fffdf8; color:var(--gold-deep);
+      border-radius:16px; padding:5px 11px; font:700 10.5px 'Plus Jakarta Sans', sans-serif;
+      cursor:pointer; box-shadow:0 2px 6px rgba(143, 101, 28, 0.08);
+    }
+    .device-ai-setup-btn:disabled { cursor:default; opacity:0.72; }
+    .device-ai-setup-status {
+      color:var(--text-muted); font-size:9px; line-height:1.25; max-width:360px;
+    }
+
     /* Named Spiritual Mode Chips */
     .chips-deck {
       padding: 4px 12px 6px 12px; display: flex; gap: 8px; overflow-x: auto;
@@ -960,6 +975,14 @@
     </section>
 
     <div class="auto-route-note">Ask naturally — 1into1 chooses the response path automatically.</div>
+    <div class="device-ai-setup" id="deviceAiSetup" aria-live="polite">
+      <button class="device-ai-setup-btn" id="deviceAiSetupBtn" type="button" onclick="enablePrivateDeviceAI()">
+        ⚡ Enable Private AI
+      </button>
+      <span class="device-ai-setup-status" id="deviceAiSetupStatus">
+        Optional · about 1 GB one-time model download · generation runs on this device
+      </span>
+    </div>
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
@@ -3062,6 +3085,111 @@
       }
     }
 
+    function setDeviceAISetupState(message, busy = false, ready = false) {
+      const panel = document.getElementById('deviceAiSetup');
+      const button = document.getElementById('deviceAiSetupBtn');
+      const status = document.getElementById('deviceAiSetupStatus');
+      if (!panel || !button || !status) return;
+
+      panel.classList.add('visible');
+      button.disabled = Boolean(busy || ready);
+      button.textContent = ready ? '✓ Private AI ready' : (busy ? 'Preparing Private AI…' : '⚡ Enable Private AI');
+      status.textContent = message || (ready
+        ? 'Private conversation AI is ready on this device.'
+        : 'Optional · about 1 GB one-time model download · generation runs on this device');
+    }
+
+    async function refreshDeviceAISetupUI() {
+      const panel = document.getElementById('deviceAiSetup');
+      const engine = window.OneIntoOneDeviceAIEngine;
+      if (!panel || !engine || typeof engine.inspect !== 'function') return;
+
+      const current = typeof engine.getStatus === 'function' ? engine.getStatus() : null;
+      if (current && current.ready) {
+        setDeviceAISetupState('Private conversation AI is ready on this device.', false, true);
+        return;
+      }
+
+      try {
+        const inspected = await engine.inspect();
+        if (inspected && inspected.state === 'available') {
+          setDeviceAISetupState('Optional · about 1 GB one-time model download · generation runs on this device.');
+        } else {
+          panel.classList.remove('visible');
+        }
+      } catch (_) {
+        panel.classList.remove('visible');
+      }
+    }
+
+    async function enablePrivateDeviceAI() {
+      const engine = window.OneIntoOneDeviceAIEngine;
+      if (!engine || typeof engine.prepare !== 'function') return;
+
+      setDeviceAISetupState('Checking this device…', true, false);
+
+      const prepared = await engine.prepare({
+        userInitiated:true,
+        onProgress:function(progress) {
+          const pct = progress && Number.isFinite(Number(progress.progress))
+            ? Math.max(0, Math.min(100, Math.round(Number(progress.progress) * 100)))
+            : null;
+          const label = progress && progress.text ? String(progress.text) : 'Preparing private AI';
+          setDeviceAISetupState(pct === null ? label : label + ' · ' + pct + '%', true, false);
+        }
+      });
+
+      if (prepared && prepared.ready) {
+        localStorage.setItem('oneintoone_device_ai_enabled_v1', 'true');
+        setDeviceAISetupState('Ready · ordinary conversation can now stay on this device.', false, true);
+        trackSanctuaryEvent('device_ai_ready', { model:engine.modelId || 'device-model' });
+        return;
+      }
+
+      const reason = prepared && (prepared.reason || prepared.error)
+        ? String(prepared.reason || prepared.error)
+        : 'device-ai-unavailable';
+
+      setDeviceAISetupState(
+        reason === 'insufficient-device-storage'
+          ? 'Not enough free browser storage for the private model.'
+          : 'Private AI could not start on this device. Existing local and cloud paths still work.',
+        false,
+        false
+      );
+      trackSanctuaryEvent('device_ai_setup_unavailable', { reason:reason });
+    }
+
+    async function answerWithPreparedDeviceAI(text, recipient = '') {
+      const engine = window.OneIntoOneDeviceAIEngine;
+      if (!engine || typeof engine.getStatus !== 'function' || typeof engine.chat !== 'function') return false;
+
+      const status = engine.getStatus();
+      if (!status || !status.ready) return false;
+
+      try {
+        const history = Array.isArray(activeConversationHistory)
+          ? activeConversationHistory.slice(-6)
+          : [];
+
+        const result = await engine.chat(
+          history.concat([{ role:'user', content:text }])
+        );
+
+        if (!result || result.ok !== true || !result.text) return false;
+
+        showThinking(false);
+        appendBotBubble(result.text, recipient);
+        saveConversationTurnLocally(text, result.text);
+        pulsePrivateLocalStatus();
+        trackSanctuaryEvent('device_llm_used', { model:result.modelId || engine.modelId || 'device-model' });
+        return true;
+      } catch (err) {
+        console.warn('Private device AI fallback note:', err);
+        return false;
+      }
+    }
+
     function answerWithPrivateLocalMode(text, recipient = '', reason = 'offline', turnMode = 'comfort') {
       const engine = window.OneIntoOneOffline;
       let experience = null;
@@ -3136,6 +3264,16 @@
         }
 
         if (routeDecision.route === 'local') {
+          if (!navigator.onLine && routeDecision.reason === 'offline') {
+            const onlineEquivalent = localEngine.decideRoute(text, turnMode, true);
+            if (onlineEquivalent &&
+                onlineEquivalent.route === 'cloud-standard' &&
+                onlineEquivalent.reason === 'general-conversation') {
+              const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+              if (deviceHandled) return;
+            }
+          }
+
           const reason = navigator.onLine ? (routeDecision.reason || 'local-first') : 'offline';
           setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason, turnMode), 140);
           return;
@@ -3158,6 +3296,13 @@
         if (!useDeeper) {
           routeDecision = { route:'cloud-standard', cloudMode:'conversation', reason:'ask-deeper-declined' };
         }
+      }
+
+      if (routeDecision &&
+          routeDecision.route === 'cloud-standard' &&
+          routeDecision.reason === 'general-conversation') {
+        const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+        if (deviceHandled) return;
       }
 
       const requestMode = routeDecision && routeDecision.cloudMode
@@ -3676,6 +3821,7 @@
     window.onload = function() {
       applyLaunchFeatureGates();
       restoreActiveChatFeed();
+      refreshDeviceAISetupUI();
       renderPlans();
       updateDailyRitualWidget();
       trackDailyStreak();

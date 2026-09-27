@@ -301,6 +301,8 @@ async function testIndexFlowContracts() {
   const creditUi = functionBody(index, "updateCreditUI");
   const authDiscovery = functionBody(index, "updateAuthDiscoveryUI");
   const entitlementSync = functionBody(index, "syncAccountEntitlements");
+  const deviceAISetup = functionBody(index, "enablePrivateDeviceAI");
+  const deviceAIAnswer = functionBody(index, "answerWithPreparedDeviceAI");
 
   const routeIndex = submit.indexOf("decideRoute");
   const fetchIndex = submit.indexOf("fetch(");
@@ -343,6 +345,12 @@ async function testIndexFlowContracts() {
   check(index.includes("Ask naturally — 1into1 chooses the response path automatically."), "UI explains automatic routing without exposing backend modes");
   check(!index.includes('id="modeComfort"') && !index.includes('id="modePrayer"') && !index.includes('id="modeGuidance"'), "Manual response-mode selector is removed");
   check(index.includes('/local-knowledge.js'), "Chat page loads the device knowledge engine");
+  check(index.includes('id="deviceAiSetup"') && index.includes('enablePrivateDeviceAI()'), "Eligible devices have explicit private AI setup control");
+  check(deviceAISetup.includes("userInitiated:true"), "Private AI model preparation requires explicit setup action");
+  check(deviceAIAnswer.includes("getStatus()") && deviceAIAnswer.includes("status.ready"), "Conversation uses device LLM only after it is ready");
+  check(submit.includes("routeDecision.reason === 'general-conversation'") && submit.includes("answerWithPreparedDeviceAI"), "General conversation can use prepared device LLM before cloud");
+  check(submit.indexOf("answerWithPreparedDeviceAI") >= 0 && submit.indexOf("answerWithPreparedDeviceAI") < fetchIndex, "Prepared device LLM is attempted before cloud fetch");
+  check(!deviceAIAnswer.includes("prepare("), "Conversation routing never triggers a model download");
   check(index.includes("nextTurnModeOverride"), "Explicit Ask Deeper shortcuts apply to one turn only");
   check(index.includes("SERVICE_DEGRADED") && index.includes("answerWithDeviceKnowledge"), "Cloud failure falls back to device knowledge/local response");
   check(index.includes("No account needed"), "UI promises no-account core use");
