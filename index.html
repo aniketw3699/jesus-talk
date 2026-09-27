@@ -59,6 +59,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
+  <script defer src="/bible-manifest.js"></script>
+  <script defer src="/local-bible-engine.js"></script>
+  <script defer src="/local-knowledge.js"></script>
   <script defer src="/local-scripture-data.js"></script>
   <script defer src="/offline-core.js"></script>
   <script defer src="/local-experiences.js"></script>
@@ -259,20 +262,9 @@
     @keyframes doveHover { 0% { transform: translateY(2px) scale(0.95) rotate(-3deg); } 100% { transform: translateY(-4px) scale(1.1) rotate(4deg); } }
     .thinking-text { font-size: 13px; font-style: italic; color: var(--gold-deep); font-family: 'Playfair Display', serif; }
 
-    /* Pastoral Response Mode Strip */
-    .mode-select-strip {
-      padding: 4px 12px 2px 12px; display: flex; align-items: center; gap: 6px;
-      overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-shrink: 0;
-    }
-    .mode-select-strip::-webkit-scrollbar { display: none; }
-    .mode-pill {
-      flex: 0 0 auto; background: #ffffff; border: 1px solid var(--gold-border); color: var(--text-muted);
-      font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 14px; cursor: pointer;
-      transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 4px;
-    }
-    .mode-pill.active {
-      background: linear-gradient(135deg, #dfb455 0%, #b88628 100%);
-      color: #ffffff; border-color: #b88628; box-shadow: 0 2px 8px rgba(184, 134, 40, 0.25);
+    .auto-route-note {
+      padding:4px 14px 2px; color:var(--text-muted); font-size:10px; font-weight:650;
+      text-align:center; flex-shrink:0;
     }
 
     /* Named Spiritual Mode Chips */
@@ -805,16 +797,6 @@
       .bubble-user { max-width:88%; font-size:13.5px; }
       .bubble-bot { max-width:94%; font-size:13.5px; padding:13px 14px; }
       .chips-deck { display:none; }
-      .response-mode-label { display:none !important; }
-      .mode-select-strip {
-        display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px;
-        padding:4px 8px 5px; overflow:visible;
-      }
-      .mode-select-strip::-webkit-scrollbar { display:none; }
-      .mode-pill {
-        min-width:0; width:100%; flex:none; justify-content:center; text-align:center;
-        white-space:normal; line-height:1.08; font-size:9.2px; padding:5px 3px;
-      }
       .input-deck { padding:6px 10px 7px; background:rgba(255,255,255,.96); }
       .input-wrapper { min-height:46px; }
       .prayer-input { font-size:13px; }
@@ -847,7 +829,6 @@
       input, textarea, select, .prayer-input, .intentions-input { font-size: 16px !important; }
       .mobile-icon-btn { width: 42px; height: 42px; }
       .mobile-nav-btn { min-height: 48px; }
-      .mode-pill { min-height: 38px; }
       .send-btn, .mic-btn { width: 42px; height: 42px; }
       .modal-backdrop {
         align-items: flex-start;
@@ -976,16 +957,7 @@
       </div>
     </section>
 
-    <!-- PASTORAL RESPONSE MODE STRIP -->
-    <div class="response-mode-label" style="padding: 4px 14px 2px 14px; font-size: 10.5px; font-weight: 800; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
-      <span>Choose only if you want a specific response:</span>
-    </div>
-    <div class="mode-select-strip">
-      <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')" title="Automatic routing: normal conversation, private local support, or Bible-focused AI as appropriate">💬 Talk · Auto</button>
-      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')" title="Uses premium/deeper cloud Bible reasoning">✨ Ask Deeper</button>
-      <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')" title="Writes a private prayer locally on this device">🙏 Prayer</button>
-      <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')" title="Gives Scripture-grounded practical guidance, locally when possible">🧭 Guidance</button>
-    </div>
+    <div class="auto-route-note">Ask naturally — 1into1 chooses the response path automatically.</div>
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
@@ -996,7 +968,7 @@
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, calm the storms and racing thoughts in my mind right now.')">🕊️ Seek Peace</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, as evening comes, I surrender every stress and debt into your hands.')">🌙 Evening Examen</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Lord, my heart is heavy with grief and loss. Draw near and comfort me.')">💔 Grief & Loss</button>
-      <button class="chip-btn" onclick="setPastoralMode('study'); sendQuickPrompt('Help me study what Scripture teaches about purpose, including the context of the passages you use.')">✨ Ask Deeper: Purpose</button>
+      <button class="chip-btn" onclick="sendQuickPrompt('Help me study what Scripture teaches about purpose, including the context of the passages you use.','study')">✨ Ask Deeper: Purpose</button>
       <button class="chip-btn" onclick="sendQuickPrompt('Teach me how to forgive those who hurt me.')">🤝 Forgiving Others</button>
       <button class="chip-btn" onclick="sendQuickPrompt('I am burdened by financial worry and need your promised provision.')">💼 Financial Peace</button>
       <button class="chip-btn" style="background: var(--gold-soft); border: 1.5px solid var(--gold-deep); font-weight: 700;" onclick="window.location.href='bible.html'">📖 Holy Bible</button>
@@ -1012,7 +984,7 @@
           type="text" 
           id="messageInput" 
           class="prayer-input" 
-          placeholder="Bring your burdens, prayer requests, or Scripture questions..." 
+          placeholder="Ask anything, pray, or tell me what's on your heart..." 
           autocomplete="off"
         />
         <button type="submit" class="send-btn" aria-label="Send Prayer">
