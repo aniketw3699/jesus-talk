@@ -3042,20 +3042,38 @@
       }, 2600);
     }
 
-    function answerWithPrivateLocalMode(text, recipient = '', reason = 'offline') {
+    async function answerWithDeviceKnowledge(text, recipient = '') {
+      const knowledge = window.ONEINTOONE_LOCAL_KNOWLEDGE;
+      if (!knowledge || typeof knowledge.answer !== 'function') return false;
+      try {
+        const result = await knowledge.answer(text);
+        if (!result || !result.reply) return false;
+        showThinking(false);
+        appendBotBubble(result.reply, recipient);
+        saveConversationTurnLocally(text, result.reply);
+        pulsePrivateLocalStatus();
+        trackSanctuaryEvent('device_knowledge_used', { kind: result.kind || 'bible-knowledge' });
+        return true;
+      } catch (err) {
+        console.warn('Device knowledge fallback note:', err);
+        return false;
+      }
+    }
+
+    function answerWithPrivateLocalMode(text, recipient = '', reason = 'offline', turnMode = 'comfort') {
       const engine = window.OneIntoOneOffline;
       let experience = null;
       if (engine && typeof engine.buildExperience === 'function') {
-        experience = engine.buildExperience(text, currentPastoralMode);
+        experience = engine.buildExperience(text, turnMode);
       }
       let reply = experience && experience.reply
         ? experience.reply
         : engine && typeof engine.buildResponse === 'function'
-        ? engine.buildResponse(text, currentPastoralMode)
+        ? engine.buildResponse(text, turnMode)
         : 'You are offline. Your journal, prayer history, surrender space and cached pages are still available. Reconnect for open-ended conversation or Ask Deeper.';
 
       if (reason === 'network-fallback') {
-        reply = 'Cloud guidance is unavailable right now, so 1into1 is using private local mode.\n\n' + reply;
+        reply = 'The cloud conversation path is unavailable right now, so 1into1 is continuing on this device.\n\n' + reply;
       }
 
       showThinking(false);
@@ -3065,7 +3083,7 @@
 
       if (navigator.onLine) {
         trackSanctuaryEvent('local_guidance_used', {
-          mode: currentPastoralMode,
+          mode: turnMode,
           topic: experience && experience.analysis ? (experience.analysis.topic || 'general') : 'general'
         });
       }
