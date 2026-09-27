@@ -372,6 +372,9 @@
     if (/\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation|exegesis|hermeneutics?|original language|verse[- ]by[- ]verse)\b/i.test(value)) score += 4;
 
     if (/\b(compare|contrast|evaluate|analy[sz]e|critique|synthesize|assess)\b/i.test(value)) score += 2;
+
+    const denominationMentions = (value.match(/\b(catholic|orthodox|protestant|reformed|pentecostal|anglican|lutheran|baptist|methodist)\b/gi) || []).length;
+    if (/\b(compare|contrast|difference|interpretation|view|views)\b/i.test(value) && denominationMentions >= 2) score += 3;
     if (/\b(pros and cons|trade[- ]offs?|multiple perspectives|arguments? for and against|case for and against|steelman|scenarios?|risk analysis|decision matrix|compare the evidence)\b/i.test(value)) score += 3;
     if (/\b(roadmap|strategy|framework|business plan|implementation plan|research plan|90[- ]day plan|step[- ]by[- ]step plan)\b/i.test(value)) score += 2;
     if (/\b(sources?|citations?|evidence|studies|data|historical sources?)\b/i.test(value)) score += 2;
@@ -470,7 +473,7 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.5.0",
+    version:"2.5.1",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
