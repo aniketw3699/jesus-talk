@@ -175,6 +175,26 @@ async function testLocalPrayerEngine() {
     "General science question is accepted by universal conversation routing"
   );
 
+  const detailedPregnancyDecision = engine.decideRoute(
+    "Give me an in-depth detailed analysis of abortion options, compare the trade-offs and scenarios because I am pregnant.",
+    "comfort",
+    true
+  );
+  check(
+    detailedPregnancyDecision.route === "cloud-standard",
+    "High-stakes pregnancy question is never automatically paywalled behind Ask Deeper"
+  );
+
+  const emergencyQuestion = engine.decideRoute(
+    "Give me a detailed analysis of severe chest pain and compare what it could mean.",
+    "comfort",
+    true
+  );
+  check(
+    emergencyQuestion.route === "cloud-standard",
+    "Medical emergency wording stays standard instead of triggering paid depth"
+  );
+
   const pregnancyDecision = engine.decideRoute(
     "I am pregnant. Should I have an abortion?",
     "comfort",
