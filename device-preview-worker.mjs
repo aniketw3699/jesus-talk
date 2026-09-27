@@ -21,7 +21,7 @@ async function buildPreviewCheck(request, env) {
   const checks = {
     indexLoaded:index.ok,
     universalTagline:
-      index.text.includes("Ask Anything · Jesus-Centered Guidance & Scripture") &&
+      index.text.includes("Bring Any Question · Through Jesus & Scripture") &&
       !index.text.includes("Scripture Guidance & Daily Prayer Sanctuary"),
     christianKnowledge:
       knowledge.ok &&
@@ -31,7 +31,7 @@ async function buildPreviewCheck(request, env) {
       knowledge.text.includes('id:"jesus-virgin-celibate"'),
     router:
       router.ok &&
-      router.text.includes('version:"2.5.1"'),
+      router.text.includes('version:"2.6.0"'),
     candidateApi:
       launch.ok &&
       apiTarget.includes("universal-preview-oneintoone-jesus-api.aniketw3699.workers.dev") &&
