@@ -81,8 +81,8 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    anxiety.route === "cloud-standard" && anxiety.reason === "universal-question",
-    "Open-ended anxiety/work conversation uses universal reasoning"
+    anxiety.route === "cloud-standard" && anxiety.reason === "christian-question",
+    "Open-ended anxiety/work conversation uses Christian reasoning"
   );
 
   const prayerMode = engine.decideRoute(
@@ -98,8 +98,8 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    guidance.route === "cloud-standard" && guidance.reason === "universal-question",
-    "Life guidance uses universal reasoning instead of a canned topic template"
+    guidance.route === "cloud-standard" && guidance.reason === "christian-question",
+    "Life guidance uses Christian reasoning instead of a canned topic template"
   );
 
   const study = engine.decideRoute(
@@ -177,19 +177,21 @@ async function testLocalPrayerEngine() {
 
   const explicitSex = engine.decideRoute("I'm a girl I want to get fucked", "comfort", true);
   check(
-    explicitSex.route === "cloud-standard" && explicitSex.reason === "universal-question",
+    explicitSex.route === "cloud-standard" && explicitSex.reason === "christian-question",
     "Explicit adult sexual wording remains a valid standard conversation topic"
   );
 
   const bodyQuestion = engine.decideRoute("Do u have sex?", "comfort", true);
   check(
-    bodyQuestion.route === "cloud-standard" && bodyQuestion.reason === "universal-question",
+    bodyQuestion.route === "cloud-standard" && bodyQuestion.reason === "christian-question",
     "Personal-body question routes to ordinary conversation rather than refusal"
   );
   const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
   check(
-    worldScience.route === "cloud-standard" && worldScience.reason === "universal-question",
-    "General science question is accepted by universal conversation routing"
+    worldScience.route === "cloud-standard" &&
+    worldScience.cloudMode === "bridge" &&
+    worldScience.reason === "christian-bridge",
+    "Standalone science is bridged to Jesus/Scripture instead of answered as a science encyclopedia"
   );
 
   const detailedPregnancyDecision = engine.decideRoute(
@@ -218,7 +220,7 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    pregnancyDecision.route === "cloud-standard" && pregnancyDecision.reason === "universal-question",
+    pregnancyDecision.route === "cloud-standard" && pregnancyDecision.reason === "christian-question",
     "Pregnancy decision is routed to real reasoning instead of canned local guidance"
   );
 
@@ -228,8 +230,10 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    shoppingQuestion.route === "cloud-standard" && shoppingQuestion.reason === "universal-question",
-    "Shopping and technology questions remain inside product scope"
+    shoppingQuestion.route === "cloud-standard" &&
+    shoppingQuestion.cloudMode === "bridge" &&
+    shoppingQuestion.reason === "christian-bridge",
+    "Shopping and technology are bridged to Christian stewardship instead of general recommendations"
   );
 
   const offlineWorldQuestion = engine.decideRoute(
@@ -238,8 +242,10 @@ async function testLocalPrayerEngine() {
     false
   );
   check(
-    offlineWorldQuestion.route === "device-general",
-    "Offline world questions route to prepared device AI rather than generic prayer"
+    offlineWorldQuestion.route === "device-general" &&
+    offlineWorldQuestion.cloudMode === "bridge" &&
+    offlineWorldQuestion.reason === "christian-bridge",
+    "Offline world questions preserve the Christian bridge scope"
   );
 
 
@@ -251,8 +257,10 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    deepStrategy.route === "cloud-deep" && deepStrategy.cloudMode === "study",
-    "Complex non-theology strategy can automatically offer Ask Deeper"
+    deepStrategy.route === "cloud-standard" &&
+    deepStrategy.cloudMode === "bridge" &&
+    deepStrategy.reason === "christian-bridge",
+    "Complex non-Christian strategy cannot turn Ask Deeper into a general research product"
   );
 
   const premiumScore = engine.premiumDepthScore(
@@ -272,7 +280,44 @@ async function testLocalPrayerEngine() {
 
 
   const normalScience = engine.decideRoute("Explain black holes simply", "comfort", true);
-  check(normalScience.route === "cloud-standard", "Simple science stays standard and does not trigger Ask Deeper");
+  check(
+    normalScience.route === "cloud-standard" &&
+    normalScience.cloudMode === "bridge" &&
+    normalScience.reason === "christian-bridge",
+    "Simple science is accepted as input but bridged into the Christian scope"
+  );
+
+  const politicsBridge = engine.decideRoute("who is elon musk and what trump has to do about it", "comfort", true);
+  check(
+    politicsBridge.route === "cloud-standard" &&
+    politicsBridge.cloudMode === "bridge" &&
+    politicsBridge.reason === "christian-bridge",
+    "Public-figure/political prompt cannot become general news or biography"
+  );
+
+  const mathBridge = engine.decideRoute("calculate 20 divide by 4", "comfort", true);
+  check(
+    mathBridge.route === "cloud-standard" &&
+    mathBridge.cloudMode === "bridge" &&
+    mathBridge.reason === "christian-bridge",
+    "Standalone calculation remains outside product knowledge scope"
+  );
+
+  const religionBridge = engine.decideRoute("what your view on bhagwan ram?", "comfort", true);
+  check(
+    religionBridge.route === "cloud-standard" &&
+    religionBridge.cloudMode === "bridge" &&
+    religionBridge.reason === "christian-bridge",
+    "Other-religion prompt is handled only through a Christian perspective"
+  );
+
+  const christianComparison = engine.decideRoute("What does Christianity say about worshipping other gods?", "comfort", true);
+  check(
+    christianComparison.route === "cloud-standard" &&
+    christianComparison.cloudMode === "conversation" &&
+    christianComparison.reason === "christian-question",
+    "Explicit Christian comparative question remains directly in Christian conversation"
+  );
 
   const casualMemoryAfter = localStorage.getItem("oneintoone_local_memory_v1");
   check(casualMemoryAfter === casualMemoryBefore, "Casual conversation is not stored as spiritual memory");
@@ -481,7 +526,7 @@ async function testIndexFlowContracts() {
   check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
   check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
-  check(index.includes("Ask Anything · Jesus-Centered Guidance & Scripture"), "Universal ask-anything product tagline is present");
+  check(index.includes("Bring Any Question · Through Jesus & Scripture"), "Universal ask-anything product tagline is present");
   check(!index.includes("Scripture Guidance & Daily Prayer Sanctuary"), "Legacy prayer-only tagline cannot overwrite the universal product identity");
   check(index.includes("Ask naturally — 1into1 chooses the response path automatically."), "UI explains automatic routing without exposing backend modes");
   check(!index.includes('id="modeComfort"') && !index.includes('id="modePrayer"') && !index.includes('id="modeGuidance"'), "Manual response-mode selector is removed");
@@ -489,9 +534,9 @@ async function testIndexFlowContracts() {
   check(index.includes('id="deviceAiSetup"') && index.includes('enablePrivateDeviceAI()'), "Eligible devices have explicit private mode setup control");
   check(deviceAISetup.includes("userInitiated:true"), "Private Mode model preparation requires explicit setup action");
   check(deviceAIAnswer.includes("getStatus()") && deviceAIAnswer.includes("status.ready"), "Conversation uses device LLM only after it is ready");
-  check(submit.includes("routeDecision.route === 'device-general'") && submit.includes("answerWithPreparedDeviceAI"), "Offline universal questions can use prepared device LLM");
-  check(submit.includes('data.error === "SERVICE_DEGRADED"') && submit.includes("answerWithPreparedDeviceAI"), "Cloud failure tries universal device AI before narrower fallbacks");
-  check(submit.includes("do not want to replace it with a generic prayer response"), "Universal cloud failure is never disguised as canned prayer guidance");
+  check(submit.includes("routeDecision.route === 'device-general'") && submit.includes("answerWithPreparedDeviceAI"), "Offline Christian-scope questions can use prepared device model");
+  check(submit.includes('data.error === "SERVICE_DEGRADED"') && submit.includes("answerWithPreparedDeviceAI"), "Cloud failure tries Christian-scoped device model before narrower fallbacks");
+  check(submit.includes("do not want to replace it with a generic prayer response"), "Cloud failure is never disguised as canned prayer guidance");
   check(!deviceAIAnswer.includes("prepare("), "Conversation routing never triggers a model download");
   check(index.includes('id="askDeeperChoiceModal"') && index.includes("requestAskDeeperChoice"), "Automatic higher-depth routing uses an in-product Ask Deeper choice");
   check(submit.includes("openPlansModal()") && submit.includes("jesus_guest_interaction_used"), "Exhausted free Ask Deeper usage leads to sign-in or Plus conversion");
