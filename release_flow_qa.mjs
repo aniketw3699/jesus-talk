@@ -481,6 +481,8 @@ async function testIndexFlowContracts() {
   check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
   check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
+  check(index.includes("Ask Anything · Jesus-Centered Guidance & Scripture"), "Universal ask-anything product tagline is present");
+  check(!index.includes("Scripture Guidance & Daily Prayer Sanctuary"), "Legacy prayer-only tagline cannot overwrite the universal product identity");
   check(index.includes("Ask naturally — 1into1 chooses the response path automatically."), "UI explains automatic routing without exposing backend modes");
   check(!index.includes('id="modeComfort"') && !index.includes('id="modePrayer"') && !index.includes('id="modeGuidance"'), "Manual response-mode selector is removed");
   check(index.includes('/local-knowledge.js'), "Chat page loads the device knowledge engine");
