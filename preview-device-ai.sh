@@ -105,7 +105,7 @@ if [ -z "$API_VERSION_ID" ]; then
 fi
 
 if [ -z "$API_VERSION_URL" ]; then
-  API_VERSION_URL="https://\${API_ALIAS}-oneintoone-jesus-api.aniketw3699.workers.dev"
+  API_VERSION_URL="https://${API_ALIAS}-oneintoone-jesus-api.aniketw3699.workers.dev"
 fi
 
 echo "PASS: uploaded candidate API version $API_VERSION_ID without deploying it."
