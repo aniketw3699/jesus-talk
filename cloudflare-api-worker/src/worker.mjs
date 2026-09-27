@@ -596,7 +596,7 @@ function modelCandidates(env, quality) {
 
   const standard = parseModelList(env.STANDARD_AI_MODELS || "");
   if (standard.length) return standard;
-  const lightweight = configured.filter(function(model) { return /20b/i.test(model); });
+  const lightweight = configured.filter(function(model) { return /(?:^|[-_/])20b(?:$|[-_/])/i.test(model); });
   return lightweight.length ? lightweight : configured.slice(0, 1);
 }
 
