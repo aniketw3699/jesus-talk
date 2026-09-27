@@ -1,5 +1,5 @@
 {
-  "name": "oneintoone-jesus-device-preview",
+  "name": "oneintoone-jesus-final-preview",
   "main": "device-preview-worker.mjs",
   "compatibility_date": "2026-09-26",
   "workers_dev": true,

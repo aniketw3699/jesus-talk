@@ -4,7 +4,7 @@ set -euo pipefail
 EXPECTED_BRANCH="feature/on-device-ai-foundation"
 CURRENT_BRANCH="$(git branch --show-current)"
 API_OUTPUT="/tmp/oneintoone-api-version.ndjson"
-PREVIEW_URL="https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
+PREVIEW_URL="https://oneintoone-jesus-final-preview.aniketw3699.workers.dev"
 API_ALIAS="universal-preview"
 
 rm -rf dist
@@ -197,6 +197,39 @@ if ! printf '%s' "$served_launch" | grep -Fq "$API_VERSION_URL"; then
 fi
 
 echo "PASS: live preview frontend points to the non-deployed universal API candidate."
+
+echo
+echo "Verifying the browser-facing frontend is the FINAL fresh build..."
+served_index="$(curl -fsS -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" || true)"
+served_knowledge="$(curl -fsS -H 'Cache-Control: no-cache' "$PREVIEW_URL/local-knowledge.js?final=$(git rev-parse --short HEAD)" || true)"
+served_router="$(curl -fsS -H 'Cache-Control: no-cache' "$PREVIEW_URL/offline-core.js?final=$(git rev-parse --short HEAD)" || true)"
+served_headers="$(curl -fsSI -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" || true)"
+
+if ! printf '%s' "$served_index" | grep -Fq 'Ask Anything · Jesus-Centered Guidance & Scripture'; then
+  echo "FAIL: live preview index is stale."
+  exit 1
+fi
+
+if ! printf '%s' "$served_knowledge" | grep -Fq 'version:"1.3.0"' || \
+   ! printf '%s' "$served_knowledge" | grep -Fq 'id:"st-michael-prayer"' || \
+   ! printf '%s' "$served_knowledge" | grep -Fq 'id:"world-end-date"' || \
+   ! printf '%s' "$served_knowledge" | grep -Fq 'id:"jesus-virgin-celibate"'; then
+  echo "FAIL: live preview local knowledge is stale."
+  exit 1
+fi
+
+if ! printf '%s' "$served_router" | grep -Fq 'version:"2.5.1"'; then
+  echo "FAIL: live preview router is stale."
+  exit 1
+fi
+
+if ! printf '%s' "$served_headers" | grep -qi '^cache-control: no-store'; then
+  echo "FAIL: final preview is not disabling browser cache."
+  exit 1
+fi
+
+echo "PASS: live browser-facing index, Christian knowledge, and router are the latest build."
+echo "PASS: final preview disables browser caching and service-worker reuse."
 echo "PASS: live preview is using universal API candidate version 5.4.0."
 echo
 echo "Open: $PREVIEW_URL"

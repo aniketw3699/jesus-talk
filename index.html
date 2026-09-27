@@ -3058,6 +3058,25 @@
     }
 
     async function initOfflineFoundation() {
+      const isFreshFinalPreview = location.hostname === 'oneintoone-jesus-final-preview.aniketw3699.workers.dev';
+      if (isFreshFinalPreview) {
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(function(registration) { return registration.unregister(); }));
+          } catch (_) {}
+        }
+        if ('caches' in window) {
+          try {
+            const names = await caches.keys();
+            await Promise.all(names.map(function(name) { return caches.delete(name); }));
+          } catch (_) {}
+        }
+        offlineFoundationReady = false;
+        setConnectionStatus('Final preview · fresh build', 'ready');
+        return;
+      }
+
       if (!('serviceWorker' in navigator)) {
         setConnectionStatus(navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'ready' : 'offline');
         return;

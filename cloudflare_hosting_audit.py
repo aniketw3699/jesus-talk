@@ -150,7 +150,7 @@ try:
 except Exception as exc:
     raise SystemExit(f"FAIL: device preview Wrangler config is not valid JSON: {exc}")
 
-if device_preview.get("name") != "oneintoone-jesus-device-preview":
+if device_preview.get("name") != "oneintoone-jesus-final-preview":
     raise SystemExit("FAIL: device preview Worker must use its isolated Worker name")
 if device_preview.get("main") != "device-preview-worker.mjs":
     raise SystemExit("FAIL: device preview Worker must use the isolated proxy script")
@@ -177,11 +177,13 @@ if not preview_worker_path.is_file():
 preview_worker_source = preview_worker_path.read_text(encoding="utf-8")
 if "env.ASSETS.fetch(request)" not in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker must serve the isolated static bundle")
+if "no-store, no-cache, must-revalidate, max-age=0" not in preview_worker_source:
+    raise SystemExit("FAIL: final preview Worker must disable browser caching")
 if "env.API" in preview_worker_source or "Cloudflare-Workers-Version-Overrides" in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker must not call or pin the deployed production API")
 if "1into1.com" in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker script must not target the production frontend domain")
 
-print("PASS: dedicated device-AI Worker is isolated to workers.dev with no production routes.")
+print("PASS: dedicated final-preview Worker is isolated to workers.dev with no production routes.")
 print("PASS: isolated preview frontend has no binding to the deployed production API.")
 print("PASS: candidate backend testing is isolated through a non-deployed Version URL.")
