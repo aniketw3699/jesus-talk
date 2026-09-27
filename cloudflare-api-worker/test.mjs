@@ -5,6 +5,7 @@ assert.equal(__test.sanitizeInput("  hello\u0000 world  ", 20), "hello world");
 assert.equal(__test.sanitizeMetadata("<script>Ani</script>", 30, "x"), "scriptAniscript");
 assert.equal(__test.selectedMode("STUDY"), "study");
 assert.equal(__test.selectedMode("conversation"), "conversation");
+assert.equal(__test.selectedMode("bridge"), "bridge");
 assert.equal(__test.selectedMode("unknown"), "comfort");
 
 const built = __test.buildMessages({
@@ -29,9 +30,9 @@ const conversational = __test.buildMessages({
   userIntentions: "faith"
 });
 assert.equal(conversational.mode, "conversation");
-assert.match(conversational.messages[0].content, /user may ask about ANY subject/i);
-assert.match(conversational.messages[0].content, /Do not refuse a question merely because its subject is not explicitly religious/i);
-assert.match(conversational.messages[0].content, /boundary is identity and worldview, not topic access/i);
+assert.match(conversational.messages[0].content, /INPUT IS OPEN; KNOWLEDGE SCOPE IS NOT/i);
+assert.match(conversational.messages[0].content, /must not become a general-purpose assistant/i);
+assert.match(conversational.messages[0].content, /general-world questions/i);
 assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
 assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
 assert.match(conversational.messages[0].content, /Do not automatically append a Reflection, Prayer, Scripture anchors, or a sermon/i);
@@ -42,24 +43,30 @@ assert.match(conversational.messages[0].content, /Better to omit a Bible citatio
 assert.match(conversational.messages[0].content, /Never improvise the wording of a named traditional prayer/i);
 
 
-const deepGeneral = __test.buildMessages({
-  message: "Give me an in-depth strategic analysis comparing three business options with trade-offs, risks, scenarios, and a 90-day roadmap.",
+const deepChristian = __test.buildMessages({
+  message: "Compare Catholic and Orthodox views of salvation using Scripture, church history, and major objections.",
   mode: "study",
   userName: "beloved",
   userPsyche: "focused",
-  userIntentions: "decision"
+  userIntentions: "faith"
 });
-assert.match(deepGeneral.messages[0].content, /complex research, comparisons, planning, difficult trade-offs/i);
+assert.match(deepChristian.messages[0].content, /deep Bible study, theology/i);
 
-const universalWorldQuestion = __test.buildMessages({
-  message: "Explain how black holes work.",
-  mode: "conversation",
+const worldBridge = __test.buildMessages({
+  message: "Who is Elon Musk and what does Trump have to do with him?",
+  mode: "bridge",
   userName: "beloved",
   userPsyche: "curious",
   userIntentions: "learning"
 });
-assert.match(universalWorldQuestion.messages[0].content, /science, technology, work, money, history, politics, culture, shopping/i);
-assert.match(universalWorldQuestion.messages[0].content, /answer directly first/i);
+assert.equal(worldBridge.mode, "bridge");
+assert.match(worldBridge.messages[0].content, /Do NOT answer it as a general encyclopedia/i);
+assert.match(worldBridge.messages[0].content, /Jesus or Scripture/i);
+
+assert.equal(__test.bridgeReplyIsChristian("Elon Musk leads Tesla and SpaceX."), false);
+assert.equal(__test.bridgeReplyIsChristian("Scripture can help us think about wealth, power, and leadership."), true);
+assert.match(__test.bridgeFallback("Who is Trump?"), /leadership, truth, justice/i);
+assert.match(__test.bridgeFallback("What is Bhagwan Ram?"), /Christian perspective/i);
 
 const universalMedicalDecision = __test.buildMessages({
   message: "I am pregnant. Should I have an abortion?",
