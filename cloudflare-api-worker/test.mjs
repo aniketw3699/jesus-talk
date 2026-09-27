@@ -33,6 +33,20 @@ assert.match(conversational.messages[0].content, /user may ask about ANY subject
 assert.match(conversational.messages[0].content, /Do not refuse a question merely because its subject is not explicitly religious/i);
 assert.match(conversational.messages[0].content, /boundary is identity and worldview, not topic access/i);
 assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
+assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
+assert.match(conversational.messages[0].content, /Do not automatically append a Reflection, Prayer, Scripture anchors, or a sermon/i);
+assert.match(conversational.messages[0].content, /named traditional prayer/i);
+assert.match(conversational.messages[0].content, /does not have a physical body or personal sex\/relationship life/i);
+
+
+const deepGeneral = __test.buildMessages({
+  message: "Give me an in-depth strategic analysis comparing three business options with trade-offs, risks, scenarios, and a 90-day roadmap.",
+  mode: "study",
+  userName: "beloved",
+  userPsyche: "focused",
+  userIntentions: "decision"
+});
+assert.match(deepGeneral.messages[0].content, /complex research, comparisons, planning, difficult trade-offs/i);
 
 const universalWorldQuestion = __test.buildMessages({
   message: "Explain how black holes work.",

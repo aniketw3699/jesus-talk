@@ -109,6 +109,44 @@
       }
     },
     {
+      id:"st-michael-prayer",
+      match:function(clean) {
+        return /\b(st|saint)\.?\s*michael(?: the archangel)?\b.*\b(prayer|pray)\b/.test(clean) ||
+          /\b(prayer|pray)\b.*\b(st|saint)\.?\s*michael(?: the archangel)?\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "A traditional English form of the Prayer to Saint Michael is:",
+            "",
+            "Saint Michael the Archangel, defend us in battle; be our protection against the wickedness and snares of the devil. May God rebuke him, we humbly pray; and do thou, O Prince of the heavenly host, by the power of God, cast into hell Satan and all the evil spirits who prowl through the world seeking the ruin of souls. Amen.",
+            "",
+            "This is a traditional Catholic prayer associated with Pope Leo XIII; it is not a Bible passage."
+          ].join("\n"),
+          [],
+          "traditional-prayer"
+        );
+      }
+    },
+    {
+      id:"jesus-crucifixion-date",
+      match:function(clean) {
+        return /\b(when|what year|which year)\b.*\b(jesus|christ)\b.*\b(die|died|death|crucified|crucifixion)\b/.test(clean) ||
+          /\b(jesus|christ)\b.*\b(die|died|death|crucified|crucifixion)\b.*\b(when|what year|which year)\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "Jesus was crucified under the Roman governor Pontius Pilate around Passover. The exact year is uncertain; AD 30 and AD 33 are the two dates most commonly proposed.",
+            "",
+            "Christian tradition places the crucifixion on a Friday. The Gospel accounts are Matthew 27, Mark 15, Luke 23, and John 19. The precise relationship between the Gospel chronologies and the Passover calendar is debated, so it is better not to claim an exact Nisan date without explaining that debate."
+          ].join("\n"),
+          ["Matthew 27", "Mark 15", "Luke 23", "John 19"],
+          "christian-history"
+        );
+      }
+    },
+    {
       id:"mother-mary",
       match:function(clean) {
         return /^(who (is|was) )?(mother |virgin )?mary( of nazareth)?\??$/.test(clean);
@@ -189,7 +227,7 @@
   }
 
   window.ONEINTOONE_LOCAL_KNOWLEDGE = Object.freeze({
-    version:"1.0.1",
+    version:"1.1.0",
     canAnswer:canAnswer,
     answer:answer,
     extractReference:extractReference

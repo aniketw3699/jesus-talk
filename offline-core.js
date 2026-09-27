@@ -191,7 +191,7 @@
     } else if (/^(how are you|how are you doing|how is it going|hows it going|how have you been)$/.test(clean)) {
       reply = "I’m here and ready to listen. What’s on your mind today?";
     } else if (/^(who are you|what are you|what is this|what can you do|tell me about yourself)$/.test(clean)) {
-      reply = "I’m 1into1, a Christian digital companion—not Jesus himself. I can listen, help you pray, explore the Bible, or talk through what you’re carrying.";
+      reply = "I’m 1into1, a Christian digital companion—not Jesus himself. You can ask me about anything: everyday life, difficult decisions, relationships, science, work, Scripture, prayer, or whatever is on your mind. I answer helpfully while staying Jesus-centered and Scripture-guided.";
     } else if (/^(thanks|thank you|thank you so much|thanks a lot|appreciate it)$/.test(clean)) {
       reply = "You’re welcome. I’m here whenever you want to talk, pray, or look at Scripture together.";
     } else if (/^(bye|goodbye|good night|see you|see you later|talk later)$/.test(clean)) {
@@ -199,7 +199,7 @@
     } else if (/^(can we talk|i want to talk|i just want to talk|talk to me|can i talk to you)$/.test(clean)) {
       reply = "Of course. You don’t have to turn everything into a prayer immediately. Tell me what’s on your mind, and we can take it from there.";
     } else if (/\b(fuck you|fuck off|go away|i hate you|i dont like you|i don't like you|you are stupid|youre stupid|you're stupid|idiot)\b/.test(clean)) {
-      reply = "I hear that you’re frustrated. I won’t argue with you or force this into a prayer. If something in my response felt wrong, tell me what missed the mark and I’ll try to respond more clearly within the Christian and Scripture-focused space.";
+      reply = "I hear that you’re frustrated. I won’t argue with you or force this into a prayer. Tell me what missed the mark and I’ll try to answer the actual question more clearly while staying grounded in Christian values.";
     } else {
       return null;
     }
@@ -359,16 +359,31 @@
 
   function containsPremiumDeepQuestion(text) {
     const value = String(text || "");
-    const patterns = [
+    const clean = normalize(value);
+
+    const scriptureDepthPatterns = [
       /\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation)\b/i,
-      /\b(theology|theological|doctrine|doctrinal|trinity|trinitarian|predestination|eschatology|soteriology|christology)\b/i,
-      /\b(historical context|literary context|original language|verse[- ]by[- ]verse|exegesis|hermeneutic|hermeneutics)\b/i,
-      /\b(compare|difference between|catholic|orthodox|protestant|reformed|pentecostal)\b.*\b(view|views|teaching|teachings|interpretation|interpretations)\b/i,
-      /\b(contradiction|contradictions|contradict)\b/i,
-      /\bwhy did (jesus|paul|god|moses|peter)\b/i
+      /\b(exegesis|hermeneutic|hermeneutics|original language|verse[- ]by[- ]verse)\b/i,
+      /\b(historical context|literary context)\b.*\b(scripture|bible|gospel|epistle|psalm|verse|chapter)\b/i,
+      /\b(compare|difference between)\b.*\b(catholic|orthodox|protestant|reformed|pentecostal)\b.*\b(view|views|teaching|teachings|interpretation|interpretations)\b/i,
+      /\b(contradiction|contradictions|contradict)\b.*\b(bible|scripture|gospel|testament|verse|verses)\b/i
     ];
-    if (patterns.some(function(pattern) { return pattern.test(value); })) return true;
-    return value.length > 700 && /\?/.test(value);
+
+    const generalDepthPatterns = [
+      /\b(deep dive|go deeper|in[- ]depth|detailed analysis|comprehensive analysis|research[- ]level|rigorous analysis)\b/i,
+      /\b(compare|evaluate|analyze|critique)\b.*\b(pros and cons|trade[- ]offs|multiple perspectives|several perspectives|options|alternatives|scenarios)\b/i,
+      /\b(decision matrix|scenario analysis|risk analysis|root cause analysis|strategic analysis)\b/i,
+      /\b(build|create|design|develop)\b.*\b(roadmap|strategy|framework|90[- ]day plan|business plan|research plan|implementation plan)\b/i,
+      /\b(argue both sides|case for and against|steelman both sides|compare the evidence)\b/i
+    ];
+
+    if (scriptureDepthPatterns.some(function(pattern) { return pattern.test(value); })) return true;
+    if (generalDepthPatterns.some(function(pattern) { return pattern.test(value); })) return true;
+
+    const connectors = (clean.match(/\b(and|also|then|versus|vs|compare|consider|including|while|but)\b/g) || []).length;
+    const complexityVerb = /\b(compare|evaluate|analyze|design|build|plan|research|critique|synthesize|recommend)\b/i.test(value);
+
+    return value.length > 650 && connectors >= 3 && complexityVerb;
   }
 
   function looksLikeExplicitPrayerRequest(text) {
@@ -438,7 +453,7 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.3.0",
+    version:"2.4.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
