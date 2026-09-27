@@ -141,9 +141,33 @@ async function testLocalPrayerEngine() {
 
   const namedPrayerLookup = engine.decideRoute("Tell me the St Michael prayer", "comfort", true);
   check(
-    namedPrayerLookup.route === "cloud-standard" &&
-    namedPrayerLookup.reason === "universal-question",
-    "Named prayer lookup uses real conversation instead of the generic prayer generator"
+    namedPrayerLookup.route === "local-knowledge",
+    "Named Saint Michael prayer uses curated local knowledge"
+  );
+  const stMichaelAnswer = await knowledge.answer("Tell me the St Michael prayer");
+  check(
+    Boolean(stMichaelAnswer && /Saint Michael the Archangel, defend us in battle/i.test(stMichaelAnswer.reply)),
+    "Saint Michael prayer is available directly on device"
+  );
+
+  const jesusDeathRoute = engine.decideRoute("When was Jesus died?", "comfort", true);
+  check(jesusDeathRoute.route === "local-knowledge", "Jesus crucifixion date uses curated Christian history");
+  const jesusDeathAnswer = await knowledge.answer("When was Jesus died?");
+  check(
+    Boolean(jesusDeathAnswer && /AD 30 and AD 33/i.test(jesusDeathAnswer.reply) && !/first week of.*Nisan/i.test(jesusDeathAnswer.reply)),
+    "Jesus death answer keeps historical uncertainty and avoids the incorrect first-week-of-Nisan claim"
+  );
+
+  const explicitSex = engine.decideRoute("I'm a girl I want to get fucked", "comfort", true);
+  check(
+    explicitSex.route === "cloud-standard" && explicitSex.reason === "universal-question",
+    "Explicit adult sexual wording remains a valid standard conversation topic"
+  );
+
+  const bodyQuestion = engine.decideRoute("Do u have sex?", "comfort", true);
+  check(
+    bodyQuestion.route === "cloud-standard" && bodyQuestion.reason === "universal-question",
+    "Personal-body question routes to ordinary conversation rather than refusal"
   );
   const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
   check(
@@ -184,6 +208,19 @@ async function testLocalPrayerEngine() {
 
   const deepTheology = engine.decideRoute("Compare Catholic and Protestant interpretations of Mary", "comfort", true);
   check(deepTheology.route === "cloud-deep" && deepTheology.cloudMode === "study", "Comparative theology routes to Ask Deeper");
+  const deepStrategy = engine.decideRoute(
+    "Give me an in-depth strategic analysis comparing three ways to leave my job, start a business, evaluate the trade-offs, risks and scenarios, and build a 90-day roadmap.",
+    "comfort",
+    true
+  );
+  check(
+    deepStrategy.route === "cloud-deep" && deepStrategy.cloudMode === "study",
+    "Complex non-theology strategy can automatically offer Ask Deeper"
+  );
+
+  const normalScience = engine.decideRoute("Explain black holes simply", "comfort", true);
+  check(normalScience.route === "cloud-standard", "Simple science stays standard and does not trigger Ask Deeper");
+
   const casualMemoryAfter = localStorage.getItem("oneintoone_local_memory_v1");
   check(casualMemoryAfter === casualMemoryBefore, "Casual conversation is not stored as spiritual memory");
 
@@ -401,6 +438,8 @@ async function testIndexFlowContracts() {
   check(submit.includes('data.error === "SERVICE_DEGRADED"') && submit.includes("answerWithPreparedDeviceAI"), "Cloud failure tries universal device AI before narrower fallbacks");
   check(submit.includes("do not want to replace it with a generic prayer response"), "Universal cloud failure is never disguised as canned prayer guidance");
   check(!deviceAIAnswer.includes("prepare("), "Conversation routing never triggers a model download");
+  check(index.includes('id="askDeeperChoiceModal"') && index.includes("requestAskDeeperChoice"), "Automatic higher-depth routing uses an in-product Ask Deeper choice");
+  check(submit.includes("openPlansModal()") && submit.includes("jesus_guest_interaction_used"), "Exhausted free Ask Deeper usage leads to sign-in or Plus conversion");
   check(index.includes("nextTurnModeOverride"), "Explicit Ask Deeper shortcuts apply to one turn only");
   check(index.includes("SERVICE_DEGRADED") && index.includes("answerWithDeviceKnowledge"), "Cloud failure falls back to device knowledge/local response");
   check(index.includes("No account needed"), "UI promises no-account core use");
