@@ -128,12 +128,7 @@
   ];
 
   function escapeRegex(value) {
-    return String(value || "").replace(/[.*+?^$\{\}()|[\]\\]/g, "\\  function extractReference(text) {
-    const source = String(text || "");
-    const match = source.match(/\b((?:[1-3]\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+(\d+):(\d+)(?:\s*[-–—]\s*(\d+))?/);
-    if (!match) return "";
-    return match[1] + " " + match[2] + ":" + match[3] + (match[4] ? "-" + match[4] : "");
-  }");
+    return String(value || "").replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, "\\$&");
   }
 
   function extractReference(text) {
@@ -157,7 +152,6 @@
     }
     return "";
   }
-
   async function answerDirectReference(text) {
     const bible = window.ONEINTOONE_BIBLE;
     if (!bible || typeof bible.getReference !== "function") return null;
@@ -195,7 +189,7 @@
   }
 
   window.ONEINTOONE_LOCAL_KNOWLEDGE = Object.freeze({
-    version:"1.0.0",
+    version:"1.0.1",
     canAnswer:canAnswer,
     answer:answer,
     extractReference:extractReference
