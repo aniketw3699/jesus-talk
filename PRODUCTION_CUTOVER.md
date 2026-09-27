@@ -2,15 +2,16 @@
 
 This runbook prepares the switch from the former 1into1 PDF site to **1into1 with Jesus**. It does not authorize an automatic domain change.
 
-## Current safe state
+## Current verified pre-cutover state
 
-`launch-config.js` intentionally starts in:
+`launch-config.js` currently has:
 
 - `environment: "prelaunch"`
-- `plusCheckoutEnabled: false`
-- `encryptedBackupEnabled: false`
+- `plusCheckoutEnabled: true`
+- `encryptedBackupEnabled: true`
+- Cloudflare Ask Deeper backend configured
 
-That means the core free product can be previewed without accidentally exposing an unconfigured checkout or backup feature.
+Plus checkout, Lemon webhooks, Firebase entitlement, Firestore rules, and encrypted-backup create/restore/wrong-password/new-device/delete flows have been verified on the Cloudflare preview. The remaining gate is production domain cutover + strict production smoke.
 
 ## External items that must be completed before full monetized launch
 
@@ -42,7 +43,7 @@ Production backend should have, as applicable:
 - configured Ask Deeper AI provider credentials/model
 - optional developer/test email only as a server environment variable, never in frontend source
 
-Verify `https://jesus-talk-dusky.vercel.app/api/readiness`.
+Verify `https://oneintoone-jesus-api.aniketw3699.workers.dev/api/readiness`.
 
 The response reports configuration booleans only; it does not return secrets.
 
