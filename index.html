@@ -1196,12 +1196,13 @@
       <button class="modal-close" onclick="closePrivacyModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">YOUR PRIVACY COMES FIRST</h3>
-        <p class="modal-desc">Local-first by default, with cloud features only when you choose them.</p>
+        <p class="modal-desc">Private prayer stays local; open-ended Talk can use cloud AI automatically when the local engine is not the right fit.</p>
       </div>
 
       <div class="privacy-notice-box">
-        <p><strong>Local prayer:</strong> Your local prayer conversations, journal, journeys, and Lay It Down experience stay on this device by default. Lay It Down text is never saved.</p>
-        <p><strong>Ask Deeper:</strong> When you choose Ask Deeper, your question and limited recent context are sent to the configured cloud AI provider so it can answer.</p>
+        <p><strong>Local prayer:</strong> Explicit prayer, many burden/support flows, journal, journeys, and Lay It Down are designed to stay on this device by default. Lay It Down text is never saved.</p>
+        <p><strong>Talk · Auto:</strong> Open-ended conversation, general Christian/Bible questions, and situations needing more nuanced language may be routed automatically to the configured standard cloud AI. The submitted message and limited recent context are sent so it can answer.</p>
+        <p><strong>Ask Deeper:</strong> Deeper theology, historical context, original-language study, and comparative interpretation use the higher-depth cloud path and may count against Ask Deeper limits.</p>
         <p><strong>Account:</strong> Signing in syncs only account/entitlement information by default. Plus encrypted backup is optional and must be started by you; backup content is encrypted in your browser before upload.</p>
         <p><strong>Analytics:</strong> We may collect product-usage events such as feature opens or mode changes. Prayer text is not deliberately included in those analytics events.</p>
       </div>
@@ -3079,7 +3080,7 @@
         ? experience.reply
         : engine && typeof engine.buildResponse === 'function'
         ? engine.buildResponse(text, currentPastoralMode)
-        : 'You are offline. Your journal, prayer history, surrender space and cached pages are still available. Reconnect once for deeper cloud guidance.';
+        : 'You are offline. Your journal, prayer history, surrender space and cached pages are still available. Reconnect for open-ended conversation or Ask Deeper.';
 
       if (reason === 'network-fallback') {
         reply = 'Cloud guidance is unavailable right now, so 1into1 is using private local mode.\n\n' + reply;
