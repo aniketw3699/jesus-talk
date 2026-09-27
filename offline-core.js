@@ -198,6 +198,8 @@
       reply = "Take care. When you come back, we can continue from here.";
     } else if (/^(can we talk|i want to talk|i just want to talk|talk to me|can i talk to you)$/.test(clean)) {
       reply = "Of course. You don’t have to turn everything into a prayer immediately. Tell me what’s on your mind, and we can take it from there.";
+    } else if (/\b(fuck you|fuck off|go away|i hate you|i dont like you|i don't like you|you are stupid|youre stupid|you're stupid|idiot)\b/.test(clean)) {
+      reply = "I hear that you’re frustrated. I won’t argue with you or force this into a prayer. If something in my response felt wrong, tell me what missed the mark and I’ll try to respond more clearly within the Christian and Scripture-focused space.";
     } else {
       return null;
     }
