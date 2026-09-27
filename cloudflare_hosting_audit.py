@@ -164,15 +164,8 @@ if preview_assets.get("directory") != "./dist":
 if preview_assets.get("binding") != "ASSETS":
     raise SystemExit("FAIL: device preview Worker must expose the static bundle through ASSETS")
 
-services = device_preview.get("services") or []
-api_bindings = [
-    item for item in services
-    if isinstance(item, dict)
-    and item.get("binding") == "API"
-    and item.get("service") == "oneintoone-jesus-api"
-]
-if len(api_bindings) != 1:
-    raise SystemExit("FAIL: device preview Worker must bind internally to oneintoone-jesus-api exactly once")
+if device_preview.get("services"):
+    raise SystemExit("FAIL: device preview Worker must not bind to the deployed production API")
 if preview_assets.get("not_found_handling") != "404-page":
     raise SystemExit("FAIL: device preview Worker must preserve real 404 handling")
 if preview_assets.get("html_handling") != "auto-trailing-slash":
@@ -182,15 +175,13 @@ preview_worker_path = ROOT / "device-preview-worker.mjs"
 if not preview_worker_path.is_file():
     raise SystemExit("FAIL: device-preview-worker.mjs is missing")
 preview_worker_source = preview_worker_path.read_text(encoding="utf-8")
-if '"/api-preview"' not in preview_worker_source or "env.ASSETS.fetch(request)" not in preview_worker_source:
-    raise SystemExit("FAIL: device preview Worker must proxy preview API traffic and serve static assets")
-if "env.API.fetch" not in preview_worker_source:
-    raise SystemExit("FAIL: device preview Worker must call the API through its internal Service Binding")
-if "Cloudflare-Workers-Version-Overrides" not in preview_worker_source:
-    raise SystemExit("FAIL: device preview Worker must pin the downstream API candidate version")
+if "env.ASSETS.fetch(request)" not in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker must serve the isolated static bundle")
+if "env.API" in preview_worker_source or "Cloudflare-Workers-Version-Overrides" in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker must not call or pin the deployed production API")
 if "1into1.com" in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker script must not target the production frontend domain")
 
 print("PASS: dedicated device-AI Worker is isolated to workers.dev with no production routes.")
-print("PASS: isolated preview has a same-origin API proxy backed by an internal Service Binding.")
-print("PASS: preview proxy can pin a non-deployed API candidate version without production traffic.")
+print("PASS: isolated preview frontend has no binding to the deployed production API.")
+print("PASS: candidate backend testing is isolated through a non-deployed Version URL.")
