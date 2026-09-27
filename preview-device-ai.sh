@@ -121,7 +121,7 @@ for i in {1..15}; do
     -o /tmp/oneintoone-preview-health.json 2>/dev/null || true
 
   if grep -q '"status":"active"' /tmp/oneintoone-preview-health.json 2>/dev/null && \
-     grep -q '"version":"5.5.0"' /tmp/oneintoone-preview-health.json 2>/dev/null && \
+     grep -q '"version":"5.6.0"' /tmp/oneintoone-preview-health.json 2>/dev/null && \
      grep -qi "^access-control-allow-origin: $PREVIEW_URL" /tmp/oneintoone-preview-headers.txt 2>/dev/null; then
     candidate_ok=1
     break
@@ -130,7 +130,7 @@ for i in {1..15}; do
 done
 
 if [ "$candidate_ok" -ne 1 ]; then
-  echo "FAIL: candidate API Version URL is not ready with universal version 5.5.0 + preview CORS."
+  echo "FAIL: candidate API Version URL is not ready with universal version 5.6.0 + preview CORS."
   echo "Health body:"
   cat /tmp/oneintoone-preview-health.json 2>/dev/null || true
   echo
@@ -139,7 +139,7 @@ if [ "$candidate_ok" -ne 1 ]; then
   exit 1
 fi
 
-echo "PASS: non-deployed candidate API Version URL is live as version 5.5.0 with preview CORS."
+echo "PASS: non-deployed candidate API Version URL is live as version 5.6.0 with preview CORS."
 
 echo
 echo "Checking chat preflight against the candidate API..."
@@ -243,7 +243,7 @@ fi
 echo "PASS: final preview self-check verified the exact deployed index, Christian knowledge, router, and API target."
 echo "PASS: live preview frontend points to the non-deployed universal API candidate."
 echo "PASS: final preview disables browser caching and service-worker reuse."
-echo "PASS: live preview is using universal API candidate version 5.5.0."
+echo "PASS: live preview is using universal API candidate version 5.6.0."
 echo
 echo "Open: $PREVIEW_URL"
 echo "Production 1into1.com and deployed API traffic were not targeted by this command."
