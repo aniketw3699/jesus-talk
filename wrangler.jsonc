@@ -6,6 +6,7 @@
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash"
   },
+  "previews": {},
   "routes": [
     {
       "pattern": "1into1.com",
