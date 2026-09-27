@@ -62,6 +62,7 @@ const SYSTEM_PROMPT_LINES = [
   "12. Prefer one clear paragraph or a short list over many headings. Do not use a numbered list unless the question genuinely benefits from one.",
   "13. Do not open with phrases such as 'It sounds like you're wrestling with...' when the user's meaning is already clear. Respond to what they actually said.",
   "14. Better to omit a Bible citation than attach a valid verse that does not directly support the claim being made. Never use a verse as a decorative citation.",
+  "14A. Never drop a bare Bible reference into advice without explaining what the passage teaches and why it supports the point. If the connection is weak or uncertain, omit the reference.",
   "15. When the user expresses sexual desire without asking for a sermon, acknowledge it plainly. Traditional Christian teaching places sex within marriage; consent, respect, emotional readiness, and sexual health still matter. Avoid shame, euphemistic lecturing, or excessive citations.",
   "16. Never improvise the wording of a named traditional prayer and present it as authentic. If exact wording is not verified or confidently known, say so rather than inventing lines.",
   "",
@@ -640,6 +641,65 @@ function standardQualityTier(message) {
   return "standard";
 }
 
+function normalizedScopeText(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9'\s-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function hasChristianScopeMarker(message) {
+  const text = normalizedScopeText(message);
+  return /\b(jesus|christ|christian|christianity|bible|biblical|scripture|gospel|god|lord|holy spirit|trinity|church|prayer|pray|faith|sin|salvation|grace|heaven|hell|resurrection|crucifixion|commandments?|disciple|apostle|saint|mary|joseph|moses|abraham|david|paul|peter|john|matthew|mark|luke|romans|corinthians|genesis|exodus|psalm|proverbs|isaiah|jeremiah|revelation|catholic|orthodox|protestant|baptist|pentecostal|anglican|lutheran|methodist|reformed|eucharist|communion|baptism|confession|repent|forgive|forgiveness|worship|sermon|pastor|priest|pope|archangel|angel)\b/.test(text);
+}
+
+function looksLikeGeneralWorldRequest(message) {
+  const text = normalizedScopeText(message);
+  return /\b(calculate|calculator|divide|divided by|multiply|addition|subtract|equation|algebra|geometry)\b/.test(text) ||
+    /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|shopping|price|discount|product|buy)\b/.test(text) ||
+    /\b(business|business ideas?|business plan|business strategy|startup|side hustle|earn money|make money|money-making|market analysis|market research|revenue model)\b/.test(text) ||
+    /\b(stock|stocks|crypto|bitcoin|share price|market price|investment pick|mutual fund|trading)\b/.test(text) ||
+    /\b(elon musk|donald trump|trump|biden|modi|putin|celebrity|actor|actress|singer|politician|election|poll|latest news|breaking news|current affairs)\b/.test(text) ||
+    /\b(black hole|quantum|physics|chemistry|biology|evolution|dinosaur|planet|galaxy|programming|python|javascript|coding|algorithm|artificial intelligence|machine learning)\b/.test(text) ||
+    /\b(movie|film|netflix|song|album|football|cricket|basketball|sports|game|gaming)\b/.test(text) ||
+    /\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|hinduism|buddha|buddhism|sikh|sikhism|jain|jainism)\b/.test(text);
+}
+
+function looksLikePersonalPastoralQuestion(message) {
+  const text = normalizedScopeText(message);
+  if (/\b(do (?:you|u) have sex|are (?:you|u) married|do (?:you|u) have a body|do (?:you|u) have feelings|are (?:you|u) real)\b/.test(text)) return true;
+
+  const personal = /\b(i|im|i'm|me|my|mine|we|our|us|mother|mom|father|dad|wife|husband|girlfriend|boyfriend|family|friend)\b/.test(text);
+  const pastoralIssue = /\b(anxious|anxiety|afraid|fear|sad|grief|died|hospital|sick|ill|cancer|pregnant|pregnancy|abortion|sex|sexual|marriage|relationship|dating|breakup|cheat|betray|anger|angry|forgive|debt|rent|job loss|work stress|career decision|boss|decision|choice|habit|addiction|lonely|loneliness|purpose|meaning|guilt|shame|temptation|hurt|pain|suffering|suicide|die|death|abuse|assault)\b/.test(text);
+  return personal && pastoralIssue;
+}
+
+function mustUseBibleScopeRedirect(message) {
+  if (hasChristianScopeMarker(message)) return false;
+  if (looksLikeGeneralWorldRequest(message)) return true;
+  if (looksLikePersonalPastoralQuestion(message)) return false;
+  return true;
+}
+
+function bibleScopeRedirect(message) {
+  const text = normalizedScopeText(message);
+
+  if (/\b(business|startup|side hustle|earn money|make money|money-making|revenue|market|investment|stock|crypto|bitcoin)\b/.test(text)) {
+    return "1into1 does not generate business ideas, money-making strategies, investment picks, or market advice. Its world is Jesus and the Bible only. I can help you explore what Scripture teaches about work, money, stewardship, greed, generosity, contentment, honesty, and serving others.";
+  }
+  if (/\b(elon musk|donald trump|trump|biden|modi|putin|politic|election|president|government|celebrity|actor|actress|singer)\b/.test(text)) {
+    return "1into1 does not explain public figures, celebrities, politics, elections, or current affairs. Its world is Jesus and the Bible only. I can help you study what Scripture teaches about leadership, truth, justice, humility, power, service, and loving people you disagree with.";
+  }
+  if (/\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|buddha|sikh|jain)\b/.test(text)) {
+    return "1into1 does not teach or explain other religions as an outside subject. Its world is Jesus and the Bible only. I can help you study what Scripture teaches about worship, idolatry, loving your neighbor, witness, and faith in Jesus.";
+  }
+  if (/\b(calculate|calculator|divide|multiply|equation|black hole|quantum|physics|chemistry|biology|programming|coding|algorithm|artificial intelligence|machine learning)\b/.test(text)) {
+    return "1into1 does not act as a calculator, science tutor, or technology teacher. Its world is Jesus and the Bible only. I can help you explore biblical themes such as creation, wisdom, truth, human limits, responsibility, and stewardship.";
+  }
+  if (/\b(laptop|phone|camera|car|headphones|shopping|price|discount|buy|product|movie|film|netflix|song|football|cricket|basketball|sports|game|gaming)\b/.test(text)) {
+    return "1into1 does not recommend products or provide entertainment or sports information. Its world is Jesus and the Bible only. I can help you explore biblical themes such as stewardship, contentment, discipline, use of time, wisdom, and what we give our attention to.";
+  }
+
+  return "That question is outside 1into1's world. 1into1 speaks only about Jesus, the Bible, Christian faith, prayer, and biblical wisdom. If there is a biblical question underneath what you are asking, I can help you explore that part.";
+}
+
 function bridgeReplyIsChristian(reply) {
   return /\b(Jesus|Christ|Christian|Scripture|Bible|biblical|God|gospel|faith|prayer|church|discipleship|stewardship)\b/i.test(String(reply || ""));
 }
@@ -1183,6 +1243,16 @@ async function handleChat(request, env) {
     });
   }
 
+  if (mode === "bridge" || mustUseBibleScopeRedirect(message)) {
+    return jsonResponse(request, env, {
+      reply:bibleScopeRedirect(message),
+      cardText:"",
+      updatedPsyche:sanitizeMetadata(payload && payload.userPsyche, 80, "Seeking biblical wisdom"),
+      mode:"scope",
+      intelligence:"bible-scope"
+    });
+  }
+
   const isDeep = mode === "study";
   const fallbackPsyche = sanitizeMetadata(payload && payload.userPsyche, 80, "A soul seeking peace");
   let user = null;
@@ -1429,7 +1499,7 @@ function health(env) {
   return {
     status:"active",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.6.0",
+    version:"5.7.0",
     cloud_provider:"groq-fetch",
     cloud_configured:Boolean(env.AI_API_KEY || env.GROQ_API_KEY),
     db_connected:Boolean(env.FIREBASE_SERVICE_ACCOUNT && env.FIREBASE_PROJECT_ID)
@@ -1451,7 +1521,7 @@ function readiness(env) {
     checks:checks,
     cloud_provider:"groq-fetch",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.6.0"
+    version:"5.7.0"
   };
 }
 
@@ -1464,6 +1534,8 @@ export const __test = {
   standardQualityTier:standardQualityTier,
   bridgeReplyIsChristian:bridgeReplyIsChristian,
   bridgeFallback:bridgeFallback,
+  mustUseBibleScopeRedirect:mustUseBibleScopeRedirect,
+  bibleScopeRedirect:bibleScopeRedirect,
   needsStandardQualityUpgrade:needsStandardQualityUpgrade,
   buildQualityUpgradeMessages:buildQualityUpgradeMessages,
   normalizeBibleBook:normalizeBibleBook,
