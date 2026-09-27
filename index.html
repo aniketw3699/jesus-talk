@@ -3342,6 +3342,21 @@
           return;
         }
 
+        if (routeDecision.route === 'local-scope') {
+          const scopeExperience = localEngine && typeof localEngine.buildScopeRedirect === 'function'
+            ? localEngine.buildScopeRedirect(text)
+            : null;
+          const scopeReply = scopeExperience && scopeExperience.reply
+            ? scopeExperience.reply
+            : "That question is outside 1into1's world. 1into1 speaks only about Jesus and the Bible.";
+
+          showThinking(false);
+          appendBotBubble(scopeReply, turnRecipient);
+          saveConversationTurnLocally(text, scopeReply);
+          trackSanctuaryEvent('bible_scope_redirect', { reason:routeDecision.reason || 'bible-scope-boundary' });
+          return;
+        }
+
         if (routeDecision.route === 'device-general') {
           const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
           if (deviceHandled) return;
