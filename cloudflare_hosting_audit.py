@@ -140,3 +140,28 @@ if wrangler.get("preview_urls") is not True:
 print("PASS: Workers Static Assets configuration points only to ./dist.")
 print("PASS: Workers Preview configuration exposes isolated workers.dev URLs without changing production routes.")
 print("PASS: Worker routing preserves clean HTML URLs and custom 404 behavior.")
+
+# Dedicated live-test Worker must never contain production/custom-domain routes.
+device_preview_path = ROOT / "wrangler.device-preview.jsonc"
+if not device_preview_path.is_file():
+    raise SystemExit("FAIL: wrangler.device-preview.jsonc is missing")
+try:
+    device_preview = json.loads(device_preview_path.read_text(encoding="utf-8"))
+except Exception as exc:
+    raise SystemExit(f"FAIL: device preview Wrangler config is not valid JSON: {exc}")
+
+if device_preview.get("name") != "oneintoone-jesus-device-preview":
+    raise SystemExit("FAIL: device preview Worker must use its isolated Worker name")
+if device_preview.get("workers_dev") is not True:
+    raise SystemExit("FAIL: device preview Worker must use workers.dev")
+if device_preview.get("routes") or device_preview.get("route"):
+    raise SystemExit("FAIL: device preview Worker must not contain custom-domain or production routes")
+preview_assets = device_preview.get("assets") or {}
+if preview_assets.get("directory") != "./dist":
+    raise SystemExit("FAIL: device preview Worker must serve only ./dist")
+if preview_assets.get("not_found_handling") != "404-page":
+    raise SystemExit("FAIL: device preview Worker must preserve real 404 handling")
+if preview_assets.get("html_handling") != "auto-trailing-slash":
+    raise SystemExit("FAIL: device preview Worker must preserve clean HTML routing")
+
+print("PASS: dedicated device-AI Worker is isolated to workers.dev with no production routes.")
