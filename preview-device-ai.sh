@@ -202,6 +202,7 @@ for i in {1..30}; do
 
   if [[ "$served_launch" == *"$API_VERSION_URL"* ]] && \
      [[ "$served_index" == *"Ask Anything · Jesus-Centered Guidance & Scripture"* ]] && \
+     [[ "$served_index" != *"Scripture Guidance & Daily Prayer Sanctuary"* ]] && \
      [[ "$served_knowledge" == *'version:"1.3.0"'* ]] && \
      [[ "$served_knowledge" == *'id:"st-michael-prayer"'* ]] && \
      [[ "$served_knowledge" == *'id:"world-end-date"'* ]] && \
