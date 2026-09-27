@@ -509,8 +509,8 @@
 
     .save-tag-pill { background: #e8f5e9; color: #2e7d32; border: 1px solid rgba(46, 125, 50, 0.3); font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 8px; margin-left: 6px; }
     .save-tag-pill.popular-pill { background: #fff4e5; color: #b88628; border-color: rgba(184, 134, 40, 0.4); }
-    .plan-left-wrap { display: flex; align-items: center; gap: 12px; }
-    .plan-radio-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #c99839; display: flex; align-items: center; justify-content: center; }
+    .plan-left-wrap { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1 1 auto; }
+    .plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px; border-radius: 50%; border: 2px solid #c99839; display: flex; align-items: center; justify-content: center; }
     .plan-box.selected .plan-radio-circle { background: #b88628; border-color: #b88628; }
     .plan-radio-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffffff; }
     .plan-price .amount { font-size: 17.5px; font-weight: 800; color: var(--gold-deep); }
@@ -3571,7 +3571,11 @@
 
           if (doc.exists) {
             const data = doc.data() || {};
-            userCredits = data.credits !== undefined ? data.credits : 5;
+            const todayUtc = new Date().toISOString().slice(0, 10);
+            const freeAllowanceIsCurrent = data.lastResetDate === todayUtc;
+            userCredits = freeAllowanceIsCurrent
+              ? (data.credits !== undefined ? data.credits : 5)
+              : 5;
             isSubscribed = Boolean(data.isSubscribed);
 
             if (!isSubscribed && data.passExpiresAt) {
