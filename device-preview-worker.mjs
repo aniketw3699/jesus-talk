@@ -24,6 +24,7 @@ async function proxyApi(request) {
   headers.delete("host");
   headers.delete("origin");
   headers.delete("referer");
+  headers.delete("content-length");
 
   const init = {
     method:request.method,
@@ -32,7 +33,7 @@ async function proxyApi(request) {
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = request.body;
+    init.body = await request.arrayBuffer();
   }
 
   const response = await fetch(new Request(upstream.toString(), init));
