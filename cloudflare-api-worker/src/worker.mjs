@@ -1148,10 +1148,22 @@ async function verifyLemonSignature(rawBody, signatureHex, secret) {
   return mismatch === 0;
 }
 
+async function verifyConfiguredLemonSignature(rawBody, signatureHex, env) {
+  const secrets = [
+    env.LEMON_WEBHOOK_SECRET,
+    env.LEMON_TEST_WEBHOOK_SECRET
+  ].filter(Boolean);
+
+  for (const secret of secrets) {
+    if (await verifyLemonSignature(rawBody, signatureHex, secret)) return true;
+  }
+  return false;
+}
+
 async function handleLemonWebhook(request, env) {
   const rawBody = await request.text();
   const signature = request.headers.get("X-Signature") || "";
-  if (!(await verifyLemonSignature(rawBody, signature, env.LEMON_WEBHOOK_SECRET))) {
+  if (!(await verifyConfiguredLemonSignature(rawBody, signature, env))) {
     return jsonResponse(request, env, { detail:"Invalid signature." }, 400);
   }
 
@@ -1281,6 +1293,7 @@ export const __test = {
   buildCorrectionMessages:buildCorrectionMessages,
   cleanCloudReply:cleanCloudReply,
   verifyLemonSignature:verifyLemonSignature,
+  verifyConfiguredLemonSignature:verifyConfiguredLemonSignature,
   parseFsDocument:parseFsDocument,
   fsValue:fsValue
 };
