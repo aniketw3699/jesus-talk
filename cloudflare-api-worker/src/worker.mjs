@@ -46,7 +46,7 @@ const SYSTEM_PROMPT_LINES = [
   "- Every normal cloud answer must contain one directly relevant Scripture anchor.",
   "- In the user-facing answer, place the token [VERSE] exactly once where the Scripture quotation should appear.",
   "- On the final line, output ANCHOR: Book Chapter:Verse (or a short verse range). Choose a real, directly relevant Bible reference.",
-  "- Do NOT write the verse wording yourself at [VERSE]. The server will replace [VERSE] with verified World English Bible wording.",
+  "- Do NOT write the verse wording yourself at [VERSE]. The server will replace [VERSE] with verified World English Bible (WEB) wording.",
   "- Explain in your own words why that Scripture actually connects to this person's question. Never drop a bare verse number without explanation.",
   "- Use one anchor only unless the user explicitly asks for multiple passages or cross-references.",
   "- Never invent a Bible reference, verse boundary, Hebrew/Greek word, transliteration, or lexical definition.",
