@@ -139,14 +139,14 @@ async function testLocalPrayerEngine() {
   const prayerStillLocal = engine.decideRoute("Please write a prayer for my mother", "comfort", true);
   check(prayerStillLocal.route === "local", "Explicit prayer request remains private local");
 
-  const namedPrayerLookup = engine.decideRoute("Tell me the St Michael prayer", "comfort", true);
+  const namedPrayerLookup = engine.decideRoute("tell me the st micheals prayer", "comfort", true);
   check(
     namedPrayerLookup.route === "local-knowledge",
     "Named Saint Michael prayer uses curated local knowledge"
   );
-  const stMichaelAnswer = await knowledge.answer("Tell me the St Michael prayer");
+  const stMichaelAnswer = await knowledge.answer("tell me the st micheals prayer");
   check(
-    Boolean(stMichaelAnswer && /Saint Michael the Archangel, defend us in battle/i.test(stMichaelAnswer.reply)),
+    Boolean(stMichaelAnswer && /Saint Michael, the Archangel, defend us in battle/i.test(stMichaelAnswer.reply) && /Seeking the ruin of souls\. Amen\./i.test(stMichaelAnswer.reply)),
     "Saint Michael prayer is available directly on device"
   );
 

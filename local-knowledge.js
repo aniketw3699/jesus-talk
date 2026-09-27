@@ -111,15 +111,21 @@
     {
       id:"st-michael-prayer",
       match:function(clean) {
-        return /\b(st|saint)\.?\s*michael(?: the archangel)?\b.*\b(prayer|pray)\b/.test(clean) ||
-          /\b(prayer|pray)\b.*\b(st|saint)\.?\s*michael(?: the archangel)?\b/.test(clean);
+        const michael = /\b(st|saint)\s+mich(?:ael|eal)(?:'s|s)?(?:\s+the\s+archangel)?\b/;
+        return (michael.test(clean) && /\b(prayer|pray)\b/.test(clean));
       },
       build:function() {
         return response(
           [
-            "A traditional English form of the Prayer to Saint Michael is:",
+            "Prayer to Saint Michael the Archangel:",
             "",
-            "Saint Michael the Archangel, defend us in battle; be our protection against the wickedness and snares of the devil. May God rebuke him, we humbly pray; and do thou, O Prince of the heavenly host, by the power of God, cast into hell Satan and all the evil spirits who prowl through the world seeking the ruin of souls. Amen.",
+            "Saint Michael, the Archangel, defend us in battle,",
+            "Be our protection against the malice and snares of the devil.",
+            "We humbly beseech God to command him,",
+            "And do thou, O prince of the heavenly host,",
+            "By the divine power thrust into hell Satan",
+            "And the other evil spirits who roam through the world",
+            "Seeking the ruin of souls. Amen.",
             "",
             "This is a traditional Catholic prayer associated with Pope Leo XIII; it is not a Bible passage."
           ].join("\n"),
@@ -227,7 +233,7 @@
   }
 
   window.ONEINTOONE_LOCAL_KNOWLEDGE = Object.freeze({
-    version:"1.1.0",
+    version:"1.2.0",
     canAnswer:canAnswer,
     answer:answer,
     extractReference:extractReference

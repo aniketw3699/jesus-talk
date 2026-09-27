@@ -55,9 +55,15 @@ const SYSTEM_PROMPT_LINES = [
   "8. For study questions, explain context and interpretation clearly, then offer a short practical takeaway only when useful.",
   "9. For guidance questions, separate Scripture-grounded principles from practical suggestions and acknowledge meaningful Christian disagreements when relevant.",
   "10. Keep answers complete, natural, and free of repetitive boilerplate. Continue numbered/multi-step requests from conversation history rather than restarting.",
+  "11. For a short one-sentence prompt, normally answer in about 60-180 words unless the user asks for detail. Do not turn a simple statement into a six-part lesson.",
+  "12. Prefer one clear paragraph or a short list over many headings. Do not use a numbered list unless the question genuinely benefits from one.",
+  "13. Do not open with phrases such as 'It sounds like you're wrestling with...' when the user's meaning is already clear. Respond to what they actually said.",
+  "14. Better to omit a Bible citation than attach a valid verse that does not directly support the claim being made. Never use a verse as a decorative citation.",
+  "15. When the user expresses sexual desire without asking for a sermon, acknowledge it plainly. Traditional Christian teaching places sex within marriage; consent, respect, emotional readiness, and sexual health still matter. Avoid shame, euphemistic lecturing, or excessive citations.",
+  "16. Never improvise the wording of a named traditional prayer and present it as authentic. If exact wording is not verified or confidently known, say so rather than inventing lines.",
   "",
   "SHARE CARD:",
-  "After the main response, append a [CARD]...[/CARD] block containing a concise 30-45 word Scripture-grounded blessing suitable for sharing. Do not put private identifying details in the card unless the user explicitly asked to pray for a named loved one.",
+  "For prayer, Scripture study, spiritual encouragement, or explicitly Christian guidance, you may append a [CARD]...[/CARD] block containing a concise 30-45 word blessing suitable for sharing. For neutral factual or practical answers, omit the card. Do not put private identifying details in a card unless the user explicitly asked to pray for a named loved one.",
   "",
   "PSYCHE:",
   "At the very end, after the [CARD] block, output on its own line:",
@@ -594,9 +600,17 @@ function parseModelList(value) {
 
 function modelCandidates(env, quality) {
   const configured = parseModelList(env.AI_MODELS || "openai/gpt-oss-20b,openai/gpt-oss-120b");
+
   if (quality === "deep") {
     const deep = parseModelList(env.DEEP_AI_MODELS || "");
     if (deep.length) return deep;
+    const preferred = configured.filter(function(model) { return /120b/i.test(model); });
+    return preferred.concat(configured.filter(function(model) { return !preferred.includes(model); }));
+  }
+
+  if (quality === "standard-high") {
+    const high = parseModelList(env.STANDARD_HIGH_AI_MODELS || "");
+    if (high.length) return high;
     const preferred = configured.filter(function(model) { return /120b/i.test(model); });
     return preferred.concat(configured.filter(function(model) { return !preferred.includes(model); }));
   }
@@ -606,6 +620,50 @@ function modelCandidates(env, quality) {
   const lightweight = configured.filter(function(model) { return /(?:^|[-_/])20b(?:$|[-_/])/i.test(model); });
   const fallback = configured.filter(function(model) { return !lightweight.includes(model); });
   return lightweight.concat(fallback);
+}
+
+function needsStandardQualityUpgrade(message, reply) {
+  const user = String(message || "").trim();
+  const text = String(reply || "").trim();
+  if (!text) return true;
+
+  const refusal = /\b(i(?:'m| am) sorry[, ]+but i can'?t help|i can'?t help with that|i cannot help with that|i can'?t assist|i cannot assist)\b/i;
+  if (refusal.test(text)) return true;
+
+  const forcedDevotionalHeading = /(?:^|\n)\s*(?:\*\*|#{1,3}\s*)?(reflection|prayer|scripture anchors?)(?:\*\*)?\s*:?(?:\n|$)/im;
+  const explicitlyAskedForPrayer = /\b(pray|prayer|devotional|reflection)\b/i.test(user);
+  if (!explicitlyAskedForPrayer && forcedDevotionalHeading.test(text)) return true;
+
+  const simplePrompt = user.length <= 120 && !/\b(explain|teach|compare|analy[sz]e|detailed|detail|list|steps?|why|how|research|plan)\b/i.test(user);
+  if (simplePrompt && text.length > 950) return true;
+
+  if (/\b(sex|sexual|fuck(?:ed|ing)?)\b/i.test(user) && text.length > 900) return true;
+
+  if (/\bgreatest commandment\b/i.test(text) && /\bJohn\s+13:34(?:[-–—]35)?\b/i.test(text)) return true;
+
+  if (simplePrompt && /\bit sounds like you(?:'re| are) (?:wrestling|struggling)\b/i.test(text) && text.length > 500) return true;
+
+  return false;
+}
+
+function buildQualityUpgradeMessages(messages) {
+  const upgraded = (Array.isArray(messages) ? messages : []).map(function(message) {
+    return { role:message.role, content:message.content };
+  });
+  if (!upgraded.length || upgraded[0].role !== "system") return upgraded;
+
+  upgraded[0].content += [
+    "",
+    "STANDARD QUALITY ESCALATION:",
+    "- Produce a fresh replacement answer to the user's latest message.",
+    "- Be direct, concise, natural, and useful.",
+    "- For a short ordinary prompt, stay under about 180 words unless more detail is clearly needed.",
+    "- Do not add Reflection, Prayer, Scripture anchors, or a sermon unless the user asked for them.",
+    "- Do not refuse ordinary safe questions merely because they mention sex, profanity, money, science, relationships, or another non-religious subject.",
+    "- Use only Bible references that directly support the exact claim. Omit uncertain or decorative citations.",
+    "- Do not mention this quality escalation or the earlier draft."
+  ].join("\n");
+  return upgraded;
 }
 
 async function groqComplete(messages, env, quality) {
@@ -629,8 +687,8 @@ async function groqComplete(messages, env, quality) {
           body:JSON.stringify({
             model:model,
             messages:messages,
-            temperature:0.7,
-            max_tokens:requestedQuality === "deep" ? 4096 : 1800,
+            temperature:requestedQuality === "deep" ? 0.45 : (requestedQuality === "standard-high" ? 0.3 : 0.25),
+            max_tokens:requestedQuality === "deep" ? 4096 : (requestedQuality === "standard-high" ? 1800 : 1400),
             stream:false
           })
         });
@@ -1113,6 +1171,18 @@ async function handleChat(request, env) {
     });
   }
 
+  if (!isDeep && needsStandardQualityUpgrade(message, rawReply)) {
+    try {
+      rawReply = await groqComplete(
+        buildQualityUpgradeMessages(built.messages),
+        env,
+        "standard-high"
+      );
+    } catch (error) {
+      console.warn("Standard quality escalation failed; keeping first valid draft:", error && error.message ? error.message : error);
+    }
+  }
+
   let validationProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
   let invalidReferences = await invalidWebReferences(rawReply);
   invalidReferences.forEach(function (reference) {
@@ -1301,7 +1371,7 @@ function health(env) {
   return {
     status:"active",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.2.0",
+    version:"5.3.0",
     cloud_provider:"groq-fetch",
     cloud_configured:Boolean(env.AI_API_KEY || env.GROQ_API_KEY),
     db_connected:Boolean(env.FIREBASE_SERVICE_ACCOUNT && env.FIREBASE_PROJECT_ID)
@@ -1323,7 +1393,7 @@ function readiness(env) {
     checks:checks,
     cloud_provider:"groq-fetch",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.0.0"
+    version:"5.3.0"
   };
 }
 
@@ -1333,6 +1403,8 @@ export const __test = {
   selectedMode:selectedMode,
   buildMessages:buildMessages,
   modelCandidates:modelCandidates,
+  needsStandardQualityUpgrade:needsStandardQualityUpgrade,
+  buildQualityUpgradeMessages:buildQualityUpgradeMessages,
   normalizeBibleBook:normalizeBibleBook,
   extractBibleReferences:extractBibleReferences,
   verseRefExists:verseRefExists,

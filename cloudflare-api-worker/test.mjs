@@ -37,6 +37,9 @@ assert.match(conversational.messages[0].content, /Ordinary adult questions about
 assert.match(conversational.messages[0].content, /Do not automatically append a Reflection, Prayer, Scripture anchors, or a sermon/i);
 assert.match(conversational.messages[0].content, /named traditional prayer/i);
 assert.match(conversational.messages[0].content, /does not have a physical body or personal sex\/relationship life/i);
+assert.match(conversational.messages[0].content, /60-180 words/i);
+assert.match(conversational.messages[0].content, /Better to omit a Bible citation/i);
+assert.match(conversational.messages[0].content, /Never improvise the wording of a named traditional prayer/i);
 
 
 const deepGeneral = __test.buildMessages({
@@ -76,6 +79,40 @@ assert.equal(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "deep")[0],
   "openai/gpt-oss-120b"
 );
+
+assert.equal(
+  __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard-high")[0],
+  "openai/gpt-oss-120b"
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "i want to have sex",
+    "It sounds like you're wrestling with a deeply personal question.\n\n**Reflection**\nHere is a very long sermon-like response ".repeat(12)
+  ),
+  true
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "do u have sex?",
+    "I’m sorry, but I can’t help with that."
+  ),
+  true
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "Explain black holes simply",
+    "A black hole is a region where gravity is so strong that, beyond the event horizon, not even light can escape. It forms when enough mass is compressed into a very small region."
+  ),
+  false
+);
+
+const upgradedMessages = __test.buildQualityUpgradeMessages(conversational.messages);
+assert.match(upgradedMessages[0].content, /STANDARD QUALITY ESCALATION/);
+assert.match(upgradedMessages[0].content, /under about 180 words/);
+
 
 const psalm23Rows = [
   { type:"header", value:"A Psalm by David." },
