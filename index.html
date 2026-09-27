@@ -912,7 +912,7 @@
       </div>
       <div class="header-titles">
         <h1 class="title-main"><span class="brand-one">1into1</span> <span class="brand-with">with Jesus</span></h1>
-        <p class="subtitle-grace" id="userGreeting">Ask Anything · Jesus-Centered Guidance & Scripture</p>
+        <p class="subtitle-grace" id="userGreeting">Bring Any Question · Through Jesus & Scripture</p>
         <div class="connection-status preparing" id="connectionStatus" aria-live="polite"><span class="connection-dot"></span><span id="connectionStatusText">Preparing offline access</span></div>
       </div>
     </header>
@@ -1008,7 +1008,7 @@
           type="text" 
           id="messageInput" 
           class="prayer-input" 
-          placeholder="Ask anything, pray, or tell me what's on your heart..." 
+          placeholder="Bring any question — through Jesus & Scripture..." 
           autocomplete="off"
         />
         <button type="submit" class="send-btn" aria-label="Send message">
@@ -1719,7 +1719,7 @@
           study:"Ask the deeper Bible or theology question you want to explore...",
           prayer:"Tell me what you want to bring to God in prayer...",
           guidance:"Describe the decision or situation you want help discerning...",
-          comfort:"Ask anything, pray, or tell me what's on your heart..."
+          comfort:"Bring any question — through Jesus & Scripture..."
         };
         messageInput.placeholder = prompts[currentPastoralMode] || prompts.comfort;
       }
@@ -3315,7 +3315,7 @@
       const turnMode = nextTurnModeOverride || "comfort";
       nextTurnModeOverride = "";
       currentPastoralMode = "comfort";
-      messageInput.placeholder = "Ask anything, pray, or tell me what's on your heart...";
+      messageInput.placeholder = "Bring any question — through Jesus & Scripture...";
 
       appendUserBubble(text);
       messageInput.value = "";
@@ -3850,7 +3850,7 @@
           isSubscribed = false;
           userCredits = 5;
           currentUserName = "beloved";
-          userGreeting.textContent = "Ask Anything · Jesus-Centered Guidance & Scripture";
+          userGreeting.textContent = "Bring Any Question · Through Jesus & Scripture";
           authBtn.textContent = "Sign In";
           updateCreditUI();
           updateAuthDiscoveryUI();
@@ -3970,7 +3970,7 @@
             isSubscribed = false;
             userCredits = 5;
             currentUserName = "beloved";
-            userGreeting.textContent = "Ask Anything · Jesus-Centered Guidance & Scripture";
+            userGreeting.textContent = "Bring Any Question · Through Jesus & Scripture";
             authBtn.textContent = "Sign In";
             entitlementsHaveResolved = true;
             updateCreditUI();
