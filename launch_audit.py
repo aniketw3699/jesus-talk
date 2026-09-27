@@ -94,11 +94,11 @@ def main():
         "1into1 with Jesus",
         "Ask Deeper",
         "FREE FOREVER · $0",
-        "Local-first by default",
+        "Talk · Auto",
         "private-sync.js",
         "Unlimited local prayer",
         "No app install required",
-        "Ask Deeper · Cloud",
+        "Ask Deeper",
     ]:
         if marker not in index:
             failures.append(f"index.html: required launch marker missing -> {marker!r}")
@@ -114,7 +114,7 @@ def main():
         failures.append("terms.html: Ask Deeper fair-use disclosure is missing")
 
     privacy = (ROOT / "privacy.html").read_text(encoding="utf-8")
-    for marker in ["Ask Deeper Cloud Processing", "Optional Plus Encrypted Backup", "Google Analytics"]:
+    for marker in ["Cloud Conversation & Ask Deeper Processing", "Optional Plus Encrypted Backup", "Google Analytics"]:
         if marker not in privacy:
             failures.append(f"privacy.html: required disclosure missing -> {marker!r}")
 
