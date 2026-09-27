@@ -626,7 +626,7 @@ function modelCandidates(env, quality) {
 function standardQualityTier(message) {
   const text = String(message || "");
 
-  const highStakes = /\b(pregnan(?:t|cy)|abortion|miscarriage|medical|doctor|hospital|diagnos|medication|chest pain|bleeding|suicid|self[- ]?harm|abuse|assault|legal|lawsuit|arrest|investment|debt|loan|bankruptcy)\b/i.test(text);
+  const highStakes = /\b(pregnan(?:t|cy)|abortion|miscarriage|medical|doctor|hospital|icu|critical care|intensive care|diagnos|medication|chest pain|bleeding|suicid|self[- ]?harm|abuse|assault|legal|lawsuit|arrest|investment|debt|loan|bankruptcy)\b/i.test(text);
   if (highStakes) return "standard-high";
 
   const christianFact = /\b(jesus|christ|bible|scripture|gospel|apostle|mary|saint|archangel|christian|catholic|orthodox|protestant|trinity|resurrection|salvation|heaven|hell|virgin|commandments?|second coming|world end|church history|prayer)\b/i.test(text);
@@ -659,6 +659,8 @@ function needsStandardQualityUpgrade(message, reply) {
   if (/\bgreatest commandment\b/i.test(text) && /\bJohn\s+13:34(?:[-–—]35)?\b/i.test(text)) return true;
 
   if (simplePrompt && /\bit sounds like you(?:'re| are) (?:wrestling|struggling)\b/i.test(text) && text.length > 500) return true;
+
+  if (!/\[\s*VERSE\s*\]/i.test(text) || !/^\s*ANCHOR\s*:/im.test(text)) return true;
 
   return false;
 }
