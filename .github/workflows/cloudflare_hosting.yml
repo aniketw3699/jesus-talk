@@ -56,6 +56,9 @@ jobs:
       - name: Validate isolated device preview Worker without deploying
         run: npx --yes wrangler@4.141.0 deploy --dry-run --config wrangler.device-preview.jsonc
 
+      - name: Test isolated preview API proxy contract
+        run: node device-preview-worker.test.mjs
+
       - name: Install Playwright
         run: |
           npm install --no-save playwright@1.55.0
