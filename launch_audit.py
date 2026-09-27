@@ -77,6 +77,7 @@ def main():
         "/private-sync.js",
         "/billing-config.js",
         "/local-bible-engine.js",
+        "/local-knowledge.js",
     ]:
         if f'"{cached}"' not in sw:
             failures.append(f"service-worker.js: app shell missing {cached}")
@@ -94,7 +95,7 @@ def main():
         "1into1 with Jesus",
         "Ask Deeper",
         "FREE FOREVER · $0",
-        "Talk · Auto",
+        "Ask naturally — 1into1 chooses the response path automatically.",
         "private-sync.js",
         "Unlimited local prayer",
         "No app install required",
