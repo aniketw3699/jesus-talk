@@ -361,6 +361,16 @@
     const value = String(text || "");
     const clean = normalize(value);
 
+    const highStakesLifeQuestion =
+      /\b(pregnan(?:t|cy)|abortion|miscarriage|ectopic|suicid(?:e|al)|self[- ]?harm|overdose|medical emergency|chest pain|severe bleeding|diagnosis|medication dose|domestic violence|sexual assault|rape|abuse|being abused|immediate danger|emergency room|arrested|criminal charge)\b/i.test(value);
+
+    /*
+     * Never auto-upsell a person merely because a medical, abuse, emergency,
+     * or similarly vulnerable question is complex. Standard conversation must
+     * still answer it. The user can deliberately choose Ask Deeper themselves.
+     */
+    if (highStakesLifeQuestion) return false;
+
     const scriptureDepthPatterns = [
       /\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation)\b/i,
       /\b(exegesis|hermeneutic|hermeneutics|original language|verse[- ]by[- ]verse)\b/i,
@@ -453,7 +463,7 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.4.0",
+    version:"2.4.1",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
