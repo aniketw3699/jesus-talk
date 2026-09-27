@@ -4,7 +4,7 @@ import previewWorker from "./device-preview-worker.mjs";
 const files = {
   "/":"<html><p id=\"userGreeting\">Bring Any Question · Through Jesus & Scripture</p></html>",
   "/local-knowledge.js":'version:"1.3.0"; id:"st-michael-prayer"; id:"world-end-date"; id:"jesus-virgin-celibate";',
-  "/offline-core.js":'version:"2.7.0";',
+  "/offline-core.js":'version:"2.8.0";',
   "/launch-config.js":'backendApiUrl: "https://universal-preview-oneintoone-jesus-api.aniketw3699.workers.dev"'
 };
 
