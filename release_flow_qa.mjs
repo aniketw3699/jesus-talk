@@ -260,6 +260,8 @@ async function testIndexFlowContracts() {
   const journey = functionBody(index, "startJourneyDay");
   const privateSync = functionBody(index, "openPrivateSyncModal");
   const googleAuth = functionBody(index, "proceedToGoogleAuth");
+  const creditUi = functionBody(index, "updateCreditUI");
+  const authDiscovery = functionBody(index, "updateAuthDiscoveryUI");
 
   const routeIndex = submit.indexOf("decideRoute");
   const fetchIndex = submit.indexOf("fetch(");
@@ -289,6 +291,10 @@ async function testIndexFlowContracts() {
   check(index.includes('id="authDiscoveryCard"'), "Signed-out users get a front-of-experience account discovery card");
   check(index.includes("Sign in for 5 Ask Deeper questions each day"), "Account discovery card communicates the free Ask Deeper allowance");
   check(index.includes("local prayer, Bible, journal and journeys still work without an account"), "Account discovery keeps no-account core use explicit");
+  check(index.includes('id="creditBadge" onclick="handleCreditPillAction()">✨ Ask Deeper</button>'), "Initial credit badge is auth-neutral to prevent refresh flicker");
+  check(index.includes('id="authBtn" onclick="handleAuthAction()">Account</button>'), "Initial desktop account label is auth-neutral");
+  check(creditUi.includes("!authHasResolved") && creditUi.includes('badge.textContent = "✨ Ask Deeper"'), "Credit badge waits for Firebase auth resolution");
+  check(authDiscovery.includes("!authHasResolved") && authDiscovery.includes('card.style.display = "none"'), "Sign-in discovery card stays hidden until auth resolution");
 
   check(index.includes("Comfort · Local"), "UI labels Comfort as Local");
   check(index.includes("Written Prayer · Local"), "UI labels Written Prayer as Local");
