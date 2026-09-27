@@ -424,12 +424,223 @@ async function testDeviceAIFoundation() {
   );
 }
 
+
+async function testDeviceAIEngineFoundation() {
+  const loaded = loadIntoSandbox([
+    "device-ai-capability.js",
+    "device-ai-engine.js"
+  ], {
+    isSecureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      gpu: {
+        requestAdapter: async function() {
+          return {};
+        }
+      },
+      storage: {
+        estimate: async function() {
+          return {
+            quota: 4 * 1024 * 1024 * 1024,
+            usage: 256 * 1024 * 1024
+          };
+        }
+      }
+    }
+  });
+
+  const localAI = loaded.sandbox.OneIntoOneDeviceAIEngine;
+
+  check(
+    Boolean(localAI && typeof localAI.prepare === "function"),
+    "On-device LLM engine foundation loads"
+  );
+
+  check(
+    localAI.modelId === "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "On-device LLM uses pinned low-resource model"
+  );
+
+  check(
+    localAI.runtimeUrl === "https://esm.run/@mlc-ai/web-llm@0.2.85",
+    "WebLLM runtime version is pinned"
+  );
+
+  const profile = localAI.getModelProfile();
+
+  check(
+    profile.hostedByOwner === false &&
+    profile.inferenceLocation === "user-device" &&
+    profile.automaticDownload === false,
+    "On-device model profile preserves zero-owner-spend architecture"
+  );
+
+  check(
+    localAI.getStatus().state === "idle",
+    "On-device model does not load automatically"
+  );
+
+  const blocked = await localAI.prepare({
+    userInitiated: false
+  });
+
+  check(
+    blocked.blocked === true &&
+    blocked.reason === "explicit-user-action-required",
+    "On-device model download requires explicit user action"
+  );
+
+  check(
+    localAI.getStatus().state === "idle",
+    "Blocked model preparation performs no initialization"
+  );
+
+  const beforeReady = await localAI.chat([
+    { role: "user", content: "Please pray with me" }
+  ]);
+
+  check(
+    beforeReady.ok === false &&
+    beforeReady.reason === "device-ai-not-ready",
+    "On-device generation cannot run before readiness"
+  );
+
+  let createCalls = 0;
+  let workerCalls = 0;
+
+  const prepared = await localAI.prepare({
+    userInitiated: true,
+    workerFactory: function() {
+      workerCalls += 1;
+      return {
+        terminate: function() {}
+      };
+    },
+    runtimeLoader: async function() {
+      return {
+        CreateWebWorkerMLCEngine: async function(worker, modelId, config) {
+          createCalls += 1;
+          if (config && typeof config.initProgressCallback === "function") {
+            config.initProgressCallback({
+              progress: 0.5,
+              text: "Loading test model"
+            });
+          }
+          return {
+            chat: {
+              completions: {
+                create: async function(request) {
+                  return {
+                    choices: [{
+                      message: {
+                        content: request.messages.length
+                          ? "A private device response."
+                          : ""
+                      }
+                    }]
+                  };
+                }
+              }
+            },
+            unload: async function() {}
+          };
+        }
+      };
+    }
+  });
+
+  check(
+    prepared.ready === true &&
+    createCalls === 1 &&
+    workerCalls === 1,
+    "Eligible device can prepare WebLLM in a dedicated worker"
+  );
+
+  const generated = await localAI.chat([
+    { role: "user", content: "I need encouragement today" }
+  ]);
+
+  check(
+    generated.ok === true &&
+    generated.source === "device-llm" &&
+    generated.text === "A private device response.",
+    "Prepared on-device LLM can generate a local response"
+  );
+
+  const unloaded = await localAI.unload();
+
+  check(
+    unloaded.state === "idle" && unloaded.ready === false,
+    "On-device LLM can unload and release its session"
+  );
+
+  const lowStorageLoaded = loadIntoSandbox([
+    "device-ai-capability.js",
+    "device-ai-engine.js"
+  ], {
+    isSecureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      gpu: {
+        requestAdapter: async function() {
+          return {};
+        }
+      },
+      storage: {
+        estimate: async function() {
+          return {
+            quota: 1024 * 1024 * 1024,
+            usage: 700 * 1024 * 1024
+          };
+        }
+      }
+    }
+  });
+
+  const lowStorage = await lowStorageLoaded.sandbox.OneIntoOneDeviceAIEngine.prepare({
+    userInitiated: true,
+    runtimeLoader: async function() {
+      throw new Error("runtime-must-not-load");
+    }
+  });
+
+  check(
+    lowStorage.blocked === true &&
+    lowStorage.reason === "insufficient-device-storage",
+    "On-device model refuses setup when known free storage is too low"
+  );
+
+  const index = fs.readFileSync("index.html", "utf8");
+  const serviceWorker = fs.readFileSync("service-worker.js", "utf8");
+  const workerSource = fs.readFileSync("device-ai-worker.js", "utf8");
+
+  check(
+    index.includes('/device-ai-engine.js'),
+    "Chat page loads on-device LLM engine foundation"
+  );
+
+  check(
+    serviceWorker.includes('"/device-ai-engine.js"') &&
+    serviceWorker.includes('"/device-ai-worker.js"'),
+    "On-device LLM scripts are cached in the app shell"
+  );
+
+  check(
+    workerSource.includes("WebWorkerMLCEngineHandler") &&
+    workerSource.includes("@mlc-ai/web-llm@0.2.85"),
+    "Dedicated device AI worker pins the WebLLM runtime"
+  );
+}
+
 async function main() {
   await testLocalPrayerEngine();
   await testBibleEngine();
   await testPrivateBackupCrypto();
   await testIndexFlowContracts();
   await testDeviceAIFoundation();
+  await testDeviceAIEngineFoundation();
 
   console.log("Release flow QA");
   console.log("PASS:", passes.length);
