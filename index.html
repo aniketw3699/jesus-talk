@@ -806,9 +806,15 @@
       .bubble-bot { max-width:94%; font-size:13.5px; padding:13px 14px; }
       .chips-deck { display:none; }
       .response-mode-label { display:none !important; }
-      .mode-select-strip { padding:3px 12px 5px; gap:6px; overflow-x:auto; scrollbar-width:none; }
+      .mode-select-strip {
+        display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px;
+        padding:4px 8px 5px; overflow:visible;
+      }
       .mode-select-strip::-webkit-scrollbar { display:none; }
-      .mode-pill { flex:0 0 auto; font-size:10.5px; padding:6px 10px; }
+      .mode-pill {
+        min-width:0; width:100%; flex:none; justify-content:center; text-align:center;
+        white-space:normal; line-height:1.08; font-size:9.2px; padding:5px 3px;
+      }
       .input-deck { padding:6px 10px 7px; background:rgba(255,255,255,.96); }
       .input-wrapper { min-height:46px; }
       .prayer-input { font-size:13px; }
@@ -3531,7 +3537,7 @@
         } else if (code.includes("popup-closed-by-user") || code.includes("cancelled-popup-request")) {
           message = "Sign-in was cancelled. You can try again whenever you are ready.";
         } else if (code.includes("unauthorized-domain")) {
-          message = "Google sign-in is not yet authorized for this preview address. The preview domain needs to be added to Firebase Authentication before sign-in can work here.";
+          message = "Google sign-in is not authorized for " + window.location.hostname + " yet. Add this domain in Firebase Authentication → Settings → Authorized domains, then try again.";
         } else if (code.includes("network-request-failed")) {
           message = "Google sign-in could not reach the network. Check your connection and try again.";
         }
