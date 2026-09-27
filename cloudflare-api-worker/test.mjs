@@ -85,6 +85,11 @@ assert.equal(
   "openai/gpt-oss-120b"
 );
 
+assert.equal(__test.standardQualityTier("did jesus was virgin?"), "standard-high");
+assert.equal(__test.standardQualityTier("my mother is in hospital please help"), "standard-high");
+assert.equal(__test.standardQualityTier("Explain black holes simply"), "standard");
+
+
 assert.equal(
   __test.needsStandardQualityUpgrade(
     "i want to have sex",
@@ -112,6 +117,14 @@ assert.equal(
 const upgradedMessages = __test.buildQualityUpgradeMessages(conversational.messages);
 assert.match(upgradedMessages[0].content, /STANDARD QUALITY ESCALATION/);
 assert.match(upgradedMessages[0].content, /under about 180 words/);
+
+const ungroundedQuoteProblems = __test.findGroundingViolations(
+  'Jesus says, “This invented wording is definitely not verified source text.” (Matthew 24:36)',
+  'When will the world end?',
+  null
+);
+assert.ok(ungroundedQuoteProblems.some((item) => /Unverified Scripture quotation/.test(item)));
+
 
 
 const psalm23Rows = [

@@ -111,8 +111,9 @@
     {
       id:"st-michael-prayer",
       match:function(clean) {
-        const michael = /\b(st|saint)\s+mich(?:ael|eal)(?:'s|s)?(?:\s+the\s+archangel)?\b/;
-        return (michael.test(clean) && /\b(prayer|pray)\b/.test(clean));
+        const hasSaint = /\b(st|saint)\b/.test(clean);
+        const michaelLike = /\bmich[a-z]{2,7}\b/.test(clean);
+        return hasSaint && michaelLike && /\b(prayer|pray)\b/.test(clean);
       },
       build:function() {
         return response(
@@ -131,6 +132,44 @@
           ].join("\n"),
           [],
           "traditional-prayer"
+        );
+      }
+    },
+    {
+      id:"world-end-date",
+      match:function(clean) {
+        return /\b(when|what time|what date|which year)\b.*\b(world|earth)\b.*\b(end|ends|ending)\b/.test(clean) ||
+          /\b(when|what time|what date|which year)\b.*\b(second coming|jesus return|christ return)\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "Christian Scripture does not give a date for the end of the world or Christ’s return.",
+            "",
+            "Jesus says that no one knows the day or hour (Matthew 24:36), and 1 Thessalonians 5:2 describes the day of the Lord as coming unexpectedly, like a thief in the night.",
+            "",
+            "So the biblical emphasis is readiness and faithful living, not date-setting."
+          ].join("\n"),
+          ["Matthew 24:36", "1 Thessalonians 5:2"],
+          "christian-knowledge"
+        );
+      }
+    },
+    {
+      id:"jesus-virgin-celibate",
+      match:function(clean) {
+        return /\b(jesus|christ)\b.*\b(virgin|celibate|sex|sexual|married|wife)\b/.test(clean) &&
+          !/\bvirgin birth\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "If you mean whether Jesus himself had sex or was married: the New Testament records no wife or sexual relationship for Jesus, and historic Christian tradition understands him as celibate. Scripture does not explicitly use the sentence “Jesus was a virgin.”",
+            "",
+            "If you mean whether Jesus was born of a virgin: Christianity teaches yes—Mary conceived Jesus by the Holy Spirit (Matthew 1:18–25; Luke 1:26–35)."
+          ].join("\n"),
+          ["Matthew 1:18-25", "Luke 1:26-35"],
+          "christian-knowledge"
         );
       }
     },
@@ -233,7 +272,7 @@
   }
 
   window.ONEINTOONE_LOCAL_KNOWLEDGE = Object.freeze({
-    version:"1.2.0",
+    version:"1.3.0",
     canAnswer:canAnswer,
     answer:answer,
     extractReference:extractReference

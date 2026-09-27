@@ -357,43 +357,50 @@
     return buildNormalExperience(text, selectedMode, analysis);
   }
 
-  function containsPremiumDeepQuestion(text) {
+  function isHighStakesLifeQuestion(text) {
+    return /\b(pregnan(?:t|cy)|abortion|miscarriage|ectopic|suicid(?:e|al)|self[- ]?harm|overdose|medical emergency|chest pain|severe bleeding|diagnosis|medication dose|domestic violence|sexual assault|rape|abuse|being abused|immediate danger|emergency room|arrested|criminal charge)\b/i.test(String(text || ""));
+  }
+
+  function premiumDepthScore(text) {
     const value = String(text || "");
     const clean = normalize(value);
+    if (!clean || isHighStakesLifeQuestion(value)) return 0;
 
-    const highStakesLifeQuestion =
-      /\b(pregnan(?:t|cy)|abortion|miscarriage|ectopic|suicid(?:e|al)|self[- ]?harm|overdose|medical emergency|chest pain|severe bleeding|diagnosis|medication dose|domestic violence|sexual assault|rape|abuse|being abused|immediate danger|emergency room|arrested|criminal charge)\b/i.test(value);
+    let score = 0;
 
-    /*
-     * Never auto-upsell a person merely because a medical, abuse, emergency,
-     * or similarly vulnerable question is complex. Standard conversation must
-     * still answer it. The user can deliberately choose Ask Deeper themselves.
-     */
-    if (highStakesLifeQuestion) return false;
+    if (/\b(deep dive|go deeper|in[- ]depth|detailed analysis|comprehensive analysis|research[- ]level|rigorous analysis|thorough analysis)\b/i.test(value)) score += 5;
+    if (/\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation|exegesis|hermeneutics?|original language|verse[- ]by[- ]verse)\b/i.test(value)) score += 4;
 
-    const scriptureDepthPatterns = [
-      /\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation)\b/i,
-      /\b(exegesis|hermeneutic|hermeneutics|original language|verse[- ]by[- ]verse)\b/i,
-      /\b(historical context|literary context)\b.*\b(scripture|bible|gospel|epistle|psalm|verse|chapter)\b/i,
-      /\b(compare|difference between)\b.*\b(catholic|orthodox|protestant|reformed|pentecostal)\b.*\b(view|views|teaching|teachings|interpretation|interpretations)\b/i,
-      /\b(contradiction|contradictions|contradict)\b.*\b(bible|scripture|gospel|testament|verse|verses)\b/i
-    ];
+    if (/\b(compare|contrast|evaluate|analy[sz]e|critique|synthesize|assess)\b/i.test(value)) score += 2;
+    if (/\b(pros and cons|trade[- ]offs?|multiple perspectives|arguments? for and against|case for and against|steelman|scenarios?|risk analysis|decision matrix|compare the evidence)\b/i.test(value)) score += 3;
+    if (/\b(roadmap|strategy|framework|business plan|implementation plan|research plan|90[- ]day plan|step[- ]by[- ]step plan)\b/i.test(value)) score += 2;
+    if (/\b(sources?|citations?|evidence|studies|data|historical sources?)\b/i.test(value)) score += 2;
 
-    const generalDepthPatterns = [
-      /\b(deep dive|go deeper|in[- ]depth|detailed analysis|comprehensive analysis|research[- ]level|rigorous analysis)\b/i,
-      /\b(compare|evaluate|analyze|critique)\b.*\b(pros and cons|trade[- ]offs|multiple perspectives|several perspectives|options|alternatives|scenarios)\b/i,
-      /\b(decision matrix|scenario analysis|risk analysis|root cause analysis|strategic analysis)\b/i,
-      /\b(build|create|design|develop)\b.*\b(roadmap|strategy|framework|90[- ]day plan|business plan|research plan|implementation plan)\b/i,
-      /\b(argue both sides|case for and against|steelman both sides|compare the evidence)\b/i
-    ];
+    const domains = [
+      /\bhistor(?:y|ical)\b/i,
+      /\btheolog(?:y|ical)\b/i,
+      /\bbiblical\b/i,
+      /\bscientific\b/i,
+      /\bpsycholog(?:y|ical)\b/i,
+      /\bfinancial|economic\b/i,
+      /\blegal\b/i,
+      /\bethic(?:s|al)\b/i,
+      /\bpractical\b/i
+    ].filter(function(pattern) { return pattern.test(value); }).length;
+    score += Math.min(3, domains);
 
-    if (scriptureDepthPatterns.some(function(pattern) { return pattern.test(value); })) return true;
-    if (generalDepthPatterns.some(function(pattern) { return pattern.test(value); })) return true;
+    const connectors = (clean.match(/\b(and|also|then|versus|vs|compare|consider|including|while|but|plus)\b/g) || []).length;
+    if (connectors >= 3) score += 1;
+    if (connectors >= 6) score += 1;
 
-    const connectors = (clean.match(/\b(and|also|then|versus|vs|compare|consider|including|while|but)\b/g) || []).length;
-    const complexityVerb = /\b(compare|evaluate|analyze|design|build|plan|research|critique|synthesize|recommend)\b/i.test(value);
+    if (value.length >= 220) score += 1;
+    if (value.length >= 420) score += 1;
 
-    return value.length > 650 && connectors >= 3 && complexityVerb;
+    return score;
+  }
+
+  function containsPremiumDeepQuestion(text) {
+    return premiumDepthScore(text) >= 5;
   }
 
   function looksLikeExplicitPrayerRequest(text) {
@@ -463,11 +470,12 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.4.1",
+    version:"2.5.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
     decideRoute:decideRoute,
+    premiumDepthScore:premiumDepthScore,
     shouldHandleLocally:shouldHandleLocally,
     clearLocalMemory:clearLocalMemory,
     getLocalMemorySummary:getLocalMemorySummary

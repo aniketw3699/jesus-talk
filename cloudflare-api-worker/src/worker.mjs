@@ -38,6 +38,7 @@ const SYSTEM_PROMPT_LINES = [
   "1. Ground biblical claims in identifiable Scripture references.",
   "2. Never invent a Bible reference, verse boundary, quotation, Hebrew/Greek word, transliteration, or lexical definition.",
   "3. 1into1 uses the World English Bible (WEB). When verified WEB source context is supplied below, treat it as authoritative for verse wording and verse boundaries. Any Scripture wording placed inside quotation marks must match the supplied WEB text exactly; otherwise paraphrase without quotation marks.",
+  "3A. If no VERIFIED WEB SOURCE CONTEXT is supplied for a verse, do not present Bible wording inside quotation marks as if it were verbatim. Paraphrase the teaching and cite the reference instead.",
   "4. For a question about a specific passage, stay primarily inside the supplied WEB passage. Do not add cross-references outside that passage unless the user explicitly asks for cross-references.",
   "5. Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks about the original language. If original-language data has not been supplied from a verified source, say that the lexical detail is not verified rather than guessing.",
   "6. For Psalms, when a verified source heading or superscription is supplied, describe authorship as that source's attribution (for example, 'the WEB heading reads ...' or 'traditionally attributed to ...'). Do not turn the heading into unsupported biography or claims about what the author personally chose, intended, or experienced.",
@@ -622,6 +623,21 @@ function modelCandidates(env, quality) {
   return lightweight.concat(fallback);
 }
 
+function standardQualityTier(message) {
+  const text = String(message || "");
+
+  const highStakes = /\b(pregnan(?:t|cy)|abortion|miscarriage|medical|doctor|hospital|diagnos|medication|chest pain|bleeding|suicid|self[- ]?harm|abuse|assault|legal|lawsuit|arrest|investment|debt|loan|bankruptcy)\b/i.test(text);
+  if (highStakes) return "standard-high";
+
+  const christianFact = /\b(jesus|christ|bible|scripture|gospel|apostle|mary|saint|archangel|christian|catholic|orthodox|protestant|trinity|resurrection|salvation|heaven|hell|virgin|commandments?|second coming|world end|church history|prayer)\b/i.test(text);
+  if (christianFact) return "standard-high";
+
+  const precisionRequest = /\b(exact|historically accurate|fact[- ]?check|verify|source|citation|what year|when did|who was|who is)\b/i.test(text);
+  if (precisionRequest) return "standard-high";
+
+  return "standard";
+}
+
 function needsStandardQualityUpgrade(message, reply) {
   const user = String(message || "").trim();
   const text = String(reply || "").trim();
@@ -917,7 +933,17 @@ function hasAuthorshipOverclaim(text, grounding) {
 function findGroundingViolations(reply, message, grounding) {
   const violations = [];
   const text = String(reply || "");
-  if (!grounding || !grounding.reference) return violations;
+
+  if (!grounding || !grounding.reference) {
+    const refs = extractBibleReferences(text);
+    const substantialQuotes = extractQuotedSpans(text).filter(function(quote) {
+      return normalizeQuotedText(quote).split(/\s+/).filter(Boolean).length >= 4;
+    });
+    if (refs.length && substantialQuotes.length) {
+      violations.push("Unverified Scripture quotation. No verified WEB source text was supplied for this answer, so paraphrase biblical teaching without quotation marks and keep the reference.");
+    }
+    return violations;
+  }
   const base = grounding.reference;
   const allowCrossReferences = userAskedForCrossReferences(message);
 
@@ -1008,7 +1034,17 @@ function stripInvalidCitations(text) {
 
 function repairRemainingGroundingIssues(text, grounding) {
   let repaired = String(text || "");
-  if (!grounding) return repaired;
+  if (!grounding) {
+    if (extractBibleReferences(repaired).length) {
+      extractQuotedSpans(repaired).forEach(function(quote) {
+        const words = normalizeQuotedText(quote).split(/\s+/).filter(Boolean).length;
+        if (words < 4) return;
+        repaired = repaired.split("“" + quote + "”").join(quote);
+        repaired = repaired.split('"' + quote + '"').join(quote);
+      });
+    }
+    return repaired.replace(/\n{3,}/g, "\n\n").trim();
+  }
 
   const exactTarget = String(grounding.targetVerseText || "").trim();
   findMismatchedWebQuotes(repaired, grounding).forEach(function (quote) {
@@ -1158,9 +1194,10 @@ async function handleChat(request, env) {
 
   const scriptureGrounding = await buildWebGrounding(message);
   const built = buildMessages(Object.assign({}, payload, { message:message, mode:mode }), scriptureGrounding);
+  const standardTier = isDeep ? "deep" : standardQualityTier(message);
   let rawReply;
   try {
-    rawReply = await groqComplete(built.messages, env, isDeep ? "deep" : "standard");
+    rawReply = await groqComplete(built.messages, env, standardTier);
   } catch (error) {
     console.error((isDeep ? "Ask Deeper" : "Standard conversation") + " provider failed:", error && error.message ? error.message : error);
     return jsonResponse(request, env, {
@@ -1196,7 +1233,7 @@ async function handleChat(request, env) {
       rawReply = await groqComplete(
         buildCorrectionMessages(built.messages, rawReply, validationProblems, scriptureGrounding),
         env,
-        isDeep ? "deep" : "standard"
+        isDeep ? "deep" : "standard-high"
       );
       const remainingGroundingProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
       if (remainingGroundingProblems.length) {
@@ -1229,7 +1266,7 @@ async function handleChat(request, env) {
     cardText:cleaned.cardText,
     updatedPsyche:cleaned.updatedPsyche,
     mode:mode,
-    intelligence:isDeep ? "ask-deeper" : "standard"
+    intelligence:isDeep ? "ask-deeper" : standardTier
   };
 
   if (isDeep) {
@@ -1372,7 +1409,7 @@ function health(env) {
   return {
     status:"active",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.3.0",
+    version:"5.4.0",
     cloud_provider:"groq-fetch",
     cloud_configured:Boolean(env.AI_API_KEY || env.GROQ_API_KEY),
     db_connected:Boolean(env.FIREBASE_SERVICE_ACCOUNT && env.FIREBASE_PROJECT_ID)
@@ -1394,7 +1431,7 @@ function readiness(env) {
     checks:checks,
     cloud_provider:"groq-fetch",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.3.0"
+    version:"5.4.0"
   };
 }
 
@@ -1404,6 +1441,7 @@ export const __test = {
   selectedMode:selectedMode,
   buildMessages:buildMessages,
   modelCandidates:modelCandidates,
+  standardQualityTier:standardQualityTier,
   needsStandardQualityUpgrade:needsStandardQualityUpgrade,
   buildQualityUpgradeMessages:buildQualityUpgradeMessages,
   normalizeBibleBook:normalizeBibleBook,

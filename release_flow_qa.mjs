@@ -150,6 +150,23 @@ async function testLocalPrayerEngine() {
     "Saint Michael prayer is available directly on device"
   );
 
+  const worldEndRoute = engine.decideRoute("when will the world endf", "comfort", true);
+  check(worldEndRoute.route === "local-knowledge", "World-end date question uses curated Christian knowledge");
+  const worldEndAnswer = await knowledge.answer("when will the world endf");
+  check(
+    Boolean(worldEndAnswer && /does not give a date/i.test(worldEndAnswer.reply) && /Matthew 24:36/.test(worldEndAnswer.reply)),
+    "World-end answer is concise and avoids invented Scripture quotation"
+  );
+
+  const jesusVirginRoute = engine.decideRoute("did jesus was virgin?", "comfort", true);
+  check(jesusVirginRoute.route === "local-knowledge", "Ambiguous Jesus virgin question uses curated answer");
+  const jesusVirginAnswer = await knowledge.answer("did jesus was virgin?");
+  check(
+    Boolean(jesusVirginAnswer && /If you mean whether Jesus himself had sex or was married/i.test(jesusVirginAnswer.reply) && /If you mean whether Jesus was born of a virgin/i.test(jesusVirginAnswer.reply)),
+    "Jesus virgin answer handles both meanings instead of guessing"
+  );
+
+
   const jesusDeathRoute = engine.decideRoute("When was Jesus died?", "comfort", true);
   check(jesusDeathRoute.route === "local-knowledge", "Jesus crucifixion date uses curated Christian history");
   const jesusDeathAnswer = await knowledge.answer("When was Jesus died?");
@@ -237,6 +254,22 @@ async function testLocalPrayerEngine() {
     deepStrategy.route === "cloud-deep" && deepStrategy.cloudMode === "study",
     "Complex non-theology strategy can automatically offer Ask Deeper"
   );
+
+  const premiumScore = engine.premiumDepthScore(
+    "Compare Catholic, Orthodox, and Protestant views of salvation using biblical evidence, church history, major objections, Greek terminology, and arguments for and against each view."
+  );
+  check(premiumScore >= 5, "Multi-layered theology prompt receives a premium depth score");
+
+  const premiumRoute = engine.decideRoute(
+    "Compare Catholic, Orthodox, and Protestant views of salvation using biblical evidence, church history, major objections, Greek terminology, and arguments for and against each view.",
+    "comfort",
+    true
+  );
+  check(
+    premiumRoute.route === "cloud-deep" && premiumRoute.reason === "deep-question",
+    "Clearly multi-layered prompt reliably triggers Ask Deeper popup path"
+  );
+
 
   const normalScience = engine.decideRoute("Explain black holes simply", "comfort", true);
   check(normalScience.route === "cloud-standard", "Simple science stays standard and does not trigger Ask Deeper");
