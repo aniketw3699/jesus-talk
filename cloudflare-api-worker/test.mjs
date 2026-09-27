@@ -29,8 +29,30 @@ const conversational = __test.buildMessages({
   userIntentions: "faith"
 });
 assert.equal(conversational.mode, "conversation");
-assert.match(conversational.messages[0].content, /stays within the Christian\/Scripture-focused space/i);
+assert.match(conversational.messages[0].content, /user may ask about ANY subject/i);
+assert.match(conversational.messages[0].content, /Do not refuse a question merely because its subject is not explicitly religious/i);
+assert.match(conversational.messages[0].content, /boundary is identity and worldview, not topic access/i);
 assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
+
+const universalWorldQuestion = __test.buildMessages({
+  message: "Explain how black holes work.",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "curious",
+  userIntentions: "learning"
+});
+assert.match(universalWorldQuestion.messages[0].content, /science, technology, work, money, history, politics, culture, shopping/i);
+assert.match(universalWorldQuestion.messages[0].content, /answer directly first/i);
+
+const universalMedicalDecision = __test.buildMessages({
+  message: "I am pregnant. Should I have an abortion?",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "uncertain",
+  userIntentions: "seeking guidance"
+});
+assert.match(universalMedicalDecision.messages[0].content, /pregnancy, medical treatment/i);
+assert.match(universalMedicalDecision.messages[0].content, /answer the question directly/i);
 
 assert.deepEqual(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard"),
