@@ -49,6 +49,15 @@ async function inspectViewport(device, viewport) {
   record(device + " homepage HTTP", response && response.status() === 200, response ? response.status() : "no response");
   await page.waitForTimeout(1200);
 
+  const resolvedProductTagline = await page.evaluate(() =>
+    document.getElementById("userGreeting")?.textContent?.trim() || ""
+  );
+  record(
+    device + " universal product tagline survives auth resolution",
+    resolvedProductTagline === "Ask Anything · Jesus-Centered Guidance & Scripture",
+    resolvedProductTagline
+  );
+
   // First-time onboarding is part of the real guest experience. Test it
   // separately, then enter the sanctuary before capturing other screens.
   const onboardingVisible = await page.evaluate(() => {
