@@ -118,6 +118,12 @@ async function testLocalPrayerEngine() {
   const commandments = engine.decideRoute("Tell me the Ten Commandments", "comfort", true);
   check(commandments.route === "local-knowledge", "Basic Bible knowledge uses device knowledge before cloud");
 
+  const knowledge = sandbox.ONEINTOONE_LOCAL_KNOWLEDGE;
+  const commandmentsAnswer = await knowledge.answer("Tell me the Ten Commandments");
+  check(Boolean(commandmentsAnswer && /Exodus 20:1/.test(commandmentsAnswer.reply)), "Ten Commandments answer is available on device");
+  const maryAnswer = await knowledge.answer("Who is Mother Mary?");
+  check(Boolean(maryAnswer && /Acts 1:14/.test(maryAnswer.reply) && !/John 20:14/.test(maryAnswer.reply)), "Mary answer uses verified local references and avoids Mary Magdalene confusion");
+
   const insult = engine.decideRoute("Fuck you", "comfort", true);
   check(insult.route === "local" && insult.reason === "casual-conversation", "Hostile chat has a calm on-device fallback");
 
