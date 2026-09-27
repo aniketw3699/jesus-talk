@@ -29,11 +29,12 @@ const SYSTEM_PROMPT_LINES = [
   "SCRIPTURE & THEOLOGY:",
   "1. Ground biblical claims in identifiable Scripture references.",
   "2. Never invent a Bible reference, verse boundary, quotation, Hebrew/Greek word, transliteration, or lexical definition.",
-  "3. 1into1 uses the World English Bible (WEB). When verified WEB source context is supplied below, treat it as authoritative for verse wording and verse boundaries. Quote that wording only as WEB; otherwise paraphrase.",
+  "3. 1into1 uses the World English Bible (WEB). When verified WEB source context is supplied below, treat it as authoritative for verse wording and verse boundaries. Any Scripture wording placed inside quotation marks must match the supplied WEB text exactly; otherwise paraphrase without quotation marks.",
   "4. For a question about a specific passage, stay primarily inside the supplied WEB passage. Do not add cross-references outside that passage unless the user explicitly asks for cross-references.",
   "5. Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks about the original language. If original-language data has not been supplied from a verified source, say that the lexical detail is not verified rather than guessing.",
-  "6. When a theological question has meaningful denominational differences, briefly identify the major interpretations rather than pretending there is only one uncontested Christian view.",
-  "7. Do not replace medical, legal, financial, mental-health, safeguarding, or emergency professionals with spiritual advice.",
+  "6. For Psalms, when a verified source heading or superscription is supplied, describe authorship as that source's attribution (for example, 'the WEB heading reads ...' or 'traditionally attributed to ...'). Do not turn the heading into unsupported biography or claims about what the author personally chose, intended, or experienced.",
+  "7. When a theological question has meaningful denominational differences, briefly identify the major interpretations rather than pretending there is only one uncontested Christian view.",
+  "8. Do not replace medical, legal, financial, mental-health, safeguarding, or emergency professionals with spiritual advice.",
   "",
   "RESPONSE QUALITY:",
   "1. Address the seeker's actual question directly rather than forcing every answer into the same devotional template.",
@@ -685,6 +686,20 @@ async function fetchWebBookRows(book, fetchImpl) {
   return Array.isArray(rows) ? rows : null;
 }
 
+function chapterHeaderFromRows(rows, chapter) {
+  if (!Array.isArray(rows)) return "";
+  const firstVerseIndex = rows.findIndex(function (row) {
+    return Number(row && row.chapterNumber) === Number(chapter) && Number(row && row.verseNumber) >= 1;
+  });
+  if (firstVerseIndex < 0) return "";
+  for (let index = firstVerseIndex - 1; index >= 0; index -= 1) {
+    const row = rows[index] || {};
+    if (Number.isFinite(Number(row.chapterNumber)) && Number(row.chapterNumber) !== Number(chapter)) break;
+    if (row.type === "header" && typeof row.value === "string" && row.value.trim()) return row.value.trim();
+  }
+  return "";
+}
+
 function groundingFromRows(ref, rows) {
   if (!ref || !Array.isArray(rows)) return null;
   const verses = chapterVerseMap(rows, ref.chapter);
@@ -698,15 +713,26 @@ function groundingFromRows(ref, rows) {
         return verse >= Math.max(1, ref.startVerse - 10) && verse <= Math.min(maxVerse, ref.endVerse + 10);
       });
   const labelBook = ref.book === "psalm" || ref.book === "psalms" ? "Psalm" : ref.book.replace(/\b\w/g, function (m) { return m.toUpperCase(); });
-  const contextText = [
+  const sourceHeader = chapterHeaderFromRows(rows, ref.chapter);
+  const sourceLines = [
     "Translation: World English Bible (WEB)",
-    "Passage: " + labelBook + " " + ref.chapter + " (verified chapter has verses 1-" + maxVerse + ")",
-    selected.map(function (verse) { return verse + ". " + String(verses.get(verse) || "").trim(); }).join("\n")
-  ].join("\n");
+    "Passage: " + labelBook + " " + ref.chapter + " (verified chapter has verses 1-" + maxVerse + ")"
+  ];
+  if (sourceHeader) sourceLines.push("Source heading: " + sourceHeader);
+  sourceLines.push(selected.map(function (verse) { return verse + ". " + String(verses.get(verse) || "").trim(); }).join("\n"));
+  const contextText = sourceLines.join("\n");
+
+  const targetVerseText = [];
+  for (let verse = ref.startVerse; verse <= ref.endVerse; verse += 1) {
+    if (verses.has(verse)) targetVerseText.push(String(verses.get(verse) || "").trim());
+  }
 
   return {
     reference:ref,
     maxVerse:maxVerse,
+    sourceHeader:sourceHeader,
+    verseText:Array.from(verses.values()).join(" ").trim(),
+    targetVerseText:targetVerseText.join(" ").trim(),
     contextText:contextText
   };
 }
@@ -729,6 +755,53 @@ function userAskedForCrossReferences(message) {
 
 function userAskedForOriginalLanguage(message) {
   return /\b(?:hebrew|greek|aramaic|original language|lexicon|lexical|transliterat|strong'?s)\b/i.test(String(message || ""));
+}
+
+function normalizeQuotedText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”"]/g, "")
+    .replace(/[^a-z0-9'\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractQuotedSpans(text) {
+  const spans = [];
+  const pattern = /[“"]([^”"\n]{3,500})[”"]/g;
+  let match;
+  while ((match = pattern.exec(String(text || "")))) {
+    const value = String(match[1] || "").trim();
+    if (value) spans.push(value);
+  }
+  return spans;
+}
+
+function quoteMatchesGrounding(quote, grounding) {
+  if (!grounding) return true;
+  const normalizedQuote = normalizeQuotedText(quote);
+  if (!normalizedQuote) return true;
+  const wordCount = normalizedQuote.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 4) return true;
+  const verified = normalizeQuotedText(
+    [grounding.verseText || "", grounding.sourceHeader || ""].filter(Boolean).join(" ")
+  );
+  return Boolean(verified && verified.includes(normalizedQuote));
+}
+
+function findMismatchedWebQuotes(text, grounding) {
+  if (!grounding) return [];
+  return extractQuotedSpans(text).filter(function (quote) {
+    return !quoteMatchesGrounding(quote, grounding);
+  });
+}
+
+function hasAuthorshipOverclaim(text, grounding) {
+  if (!grounding || !grounding.sourceHeader || !/\bDavid\b/i.test(grounding.sourceHeader)) return false;
+  const value = String(text || "");
+  return /\bDavidic\s+psalm\b/i.test(value) ||
+    /\bDavid\b[^.!?\n]{0,180}\b(?:chose|selected|decided|used\s+this\s+(?:image|picture)|wrote\s+this|composed\s+this)\b/i.test(value);
 }
 
 function findGroundingViolations(reply, message, grounding) {
@@ -760,6 +833,14 @@ function findGroundingViolations(reply, message, grounding) {
 
   if (!userAskedForOriginalLanguage(message) && /\b(?:Hebrew|Greek|Aramaic)\b/i.test(text)) {
     violations.push("Unrequested original-language claim. Do not introduce Hebrew, Greek, or Aramaic lexical claims unless the user asks for them.");
+  }
+
+  findMismatchedWebQuotes(text, grounding).forEach(function (quote) {
+    violations.push("Quoted wording does not match the verified WEB source exactly: “" + quote + "”. Use the exact supplied WEB wording or paraphrase without quotation marks.");
+  });
+
+  if (hasAuthorshipOverclaim(text, grounding)) {
+    violations.push("Authorship/authorial-intent overclaim. State the verified source heading as an attribution and do not claim what David personally chose, intended, or experienced beyond the supplied source.");
   }
 
   return Array.from(new Set(violations));
@@ -815,6 +896,34 @@ function stripInvalidCitations(text) {
     .trim();
 }
 
+function repairRemainingGroundingIssues(text, grounding) {
+  let repaired = String(text || "");
+  if (!grounding) return repaired;
+
+  const exactTarget = String(grounding.targetVerseText || "").trim();
+  findMismatchedWebQuotes(repaired, grounding).forEach(function (quote) {
+    if (!quote || !exactTarget) return;
+    repaired = repaired.split("“" + quote + "”").join("“" + exactTarget + "”");
+    repaired = repaired.split('"' + quote + '"').join("“" + exactTarget + "”");
+  });
+
+  if (grounding.sourceHeader && /\bDavid\b/i.test(grounding.sourceHeader)) {
+    repaired = repaired.replace(
+      /[^.!?\n]*\bDavidic\s+psalm\b[^.!?]*(?:[.!?]|$)/gi,
+      " The WEB heading for this psalm reads, “" + grounding.sourceHeader + "”"
+    );
+    repaired = repaired.replace(
+      /[^.!?\n]*\bDavid\b[^.!?\n]{0,180}\b(?:chose|selected|decided|used\s+this\s+(?:image|picture)|wrote\s+this|composed\s+this)\b[^.!?]*(?:[.!?]|$)/gi,
+      " The WEB heading for this psalm reads, “" + grounding.sourceHeader + "”"
+    );
+  }
+
+  return repaired
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function buildCorrectionMessages(originalMessages, originalReply, violations, grounding) {
   const source = grounding && grounding.contextText ? grounding.contextText : "No additional source context available.";
   return (Array.isArray(originalMessages) ? originalMessages.slice() : []).concat([
@@ -824,7 +933,8 @@ function buildCorrectionMessages(originalMessages, originalReply, violations, gr
       content:[
         "Revise your immediately previous answer so it is accurate and source-grounded.",
         "Keep the same user-facing purpose, but fix every listed problem.",
-        "Use WEB wording only when quoting the supplied WEB source. Prefer paraphrase over uncertain quotation.",
+        "Any Scripture words inside quotation marks must match the supplied WEB wording exactly. If you cannot quote it exactly, paraphrase without quotation marks.",
+        "For Psalm authorship, use the supplied source heading as an attribution. Do not say that David chose an image, wrote from a specific life event, or had a particular intention unless that evidence is supplied.",
         "Do not add cross-references unless my original question explicitly requested them.",
         "Do not add Hebrew/Greek/Aramaic lexical claims unless my original question explicitly requested them and verified lexical source material is supplied.",
         "",
@@ -961,6 +1071,10 @@ async function handleChat(request, env) {
         buildCorrectionMessages(built.messages, rawReply, validationProblems, scriptureGrounding),
         env
       );
+      const remainingGroundingProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
+      if (remainingGroundingProblems.length) {
+        rawReply = repairRemainingGroundingIssues(rawReply, scriptureGrounding);
+      }
       invalidReferences = await invalidWebReferences(rawReply);
     } catch (error) {
       console.warn("Ask Deeper correction pass failed:", error && error.message ? error.message : error);
@@ -1149,11 +1263,18 @@ export const __test = {
   verseRefExists:verseRefExists,
   chapterVerseMap:chapterVerseMap,
   referenceExistsInRows:referenceExistsInRows,
+  chapterHeaderFromRows:chapterHeaderFromRows,
   groundingFromRows:groundingFromRows,
   buildWebGrounding:buildWebGrounding,
   userAskedForCrossReferences:userAskedForCrossReferences,
   userAskedForOriginalLanguage:userAskedForOriginalLanguage,
+  normalizeQuotedText:normalizeQuotedText,
+  extractQuotedSpans:extractQuotedSpans,
+  quoteMatchesGrounding:quoteMatchesGrounding,
+  findMismatchedWebQuotes:findMismatchedWebQuotes,
+  hasAuthorshipOverclaim:hasAuthorshipOverclaim,
   findGroundingViolations:findGroundingViolations,
+  repairRemainingGroundingIssues:repairRemainingGroundingIssues,
   invalidWebReferences:invalidWebReferences,
   stripKnownInvalidReferences:stripKnownInvalidReferences,
   stripInvalidCitations:stripInvalidCitations,
