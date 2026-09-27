@@ -33,7 +33,7 @@ assert.equal(conversational.mode, "conversation");
 assert.match(conversational.messages[0].content, /MODEL-FIRST UNDERSTANDING/i);
 assert.match(conversational.messages[0].content, /user may bring ANY subject/i);
 assert.match(conversational.messages[0].content, /ANSWER-WORLD.*Jesus and the Bible/i);
-assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
+assert.match(conversational.messages[0].content, /rude or profane, stay calm and keep helping/i);
 assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
 assert.match(conversational.messages[0].content, /Do not force headings such as Reflection or Scripture Anchors/i);
 assert.match(conversational.messages[0].content, /named traditional prayer/i);
