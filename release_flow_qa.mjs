@@ -591,8 +591,8 @@ async function testDeviceAIEngineFoundation() {
       storage: {
         estimate: async function() {
           return {
-            quota: 1024 * 1024 * 1024,
-            usage: 700 * 1024 * 1024
+            quota: 2 * 1024 * 1024 * 1024,
+            usage: 1024 * 1024 * 1024
           };
         }
       }
