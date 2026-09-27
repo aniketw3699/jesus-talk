@@ -259,6 +259,7 @@ async function testIndexFlowContracts() {
   const intercessory = functionBody(index, "submitIntercessoryPrayer");
   const journey = functionBody(index, "startJourneyDay");
   const privateSync = functionBody(index, "openPrivateSyncModal");
+  const googleAuth = functionBody(index, "proceedToGoogleAuth");
 
   const routeIndex = submit.indexOf("decideRoute");
   const fetchIndex = submit.indexOf("fetch(");
@@ -279,6 +280,15 @@ async function testIndexFlowContracts() {
   check(journey.includes("getJourneyDay"), "Journey uses curated local experience data");
 
   check(privateSync.includes("FEATURE_FLAGS.encryptedBackupEnabled"), "Encrypted backup is protected by launch feature gate");
+
+  const popupIndex = googleAuth.indexOf("signInWithPopup");
+  const closeIndex = googleAuth.indexOf("closePrivacyModal()");
+  check(popupIndex >= 0 && closeIndex > popupIndex, "Privacy sign-in card closes only after Google auth attempt succeeds");
+  check(googleAuth.includes("setAuthStatus"), "Google sign-in reports visible status instead of failing silently");
+  check(googleAuth.includes("unauthorized-domain"), "Google sign-in explains preview-domain authorization failures");
+  check(index.includes('id="authDiscoveryCard"'), "Signed-out users get a front-of-experience account discovery card");
+  check(index.includes("Sign in for 5 Ask Deeper questions each day"), "Account discovery card communicates the free Ask Deeper allowance");
+  check(index.includes("local prayer, Bible, journal and journeys still work without an account"), "Account discovery keeps no-account core use explicit");
 
   check(index.includes("Comfort · Local"), "UI labels Comfort as Local");
   check(index.includes("Written Prayer · Local"), "UI labels Written Prayer as Local");
