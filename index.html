@@ -978,13 +978,13 @@
 
     <!-- PASTORAL RESPONSE MODE STRIP -->
     <div class="response-mode-label" style="padding: 4px 14px 2px 14px; font-size: 10.5px; font-weight: 800; color: var(--gold-deep); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between;">
-      <span>Select Response Mode:</span>
+      <span>Choose only if you want a specific response:</span>
     </div>
     <div class="mode-select-strip">
-      <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')" title="Runs locally on this device">🕊️ Comfort · Local</button>
-      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')" title="Uses the optional cloud Ask Deeper service">✨ Ask Deeper · Cloud</button>
-      <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')" title="Runs locally on this device">🙏 Written Prayer · Local</button>
-      <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')" title="Runs locally on this device">🧭 Guidance · Local</button>
+      <button class="mode-pill active" id="modeComfort" onclick="setPastoralMode('comfort')" title="Automatic routing: normal conversation, private local support, or Bible-focused AI as appropriate">💬 Talk · Auto</button>
+      <button class="mode-pill" id="modeStudy" onclick="setPastoralMode('study')" title="Uses premium/deeper cloud Bible reasoning">✨ Ask Deeper</button>
+      <button class="mode-pill" id="modePrayer" onclick="setPastoralMode('prayer')" title="Writes a private prayer locally on this device">🙏 Prayer</button>
+      <button class="mode-pill" id="modeGuidance" onclick="setPastoralMode('guidance')" title="Gives Scripture-grounded practical guidance, locally when possible">🧭 Guidance</button>
     </div>
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
@@ -1675,7 +1675,7 @@
       trackSanctuaryEvent('mode_switched', { mode: modeKey });
 
       const modePlaceholders = {
-        comfort: "Bring your burdens, grief, or prayer for comfort...",
+        comfort: "Ask anything — 1into1 will choose the right Christian/Bible response path...",
         study: "Ask about a Bible verse, scripture context, or theological question...",
         prayer: "Tell me what you need a heartfelt prayer written for...",
         guidance: "Describe the decision, situation, or life direction you need guidance on..."
