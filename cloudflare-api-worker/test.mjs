@@ -35,7 +35,7 @@ assert.match(conversational.messages[0].content, /must not become a general-purp
 assert.match(conversational.messages[0].content, /general-world questions/i);
 assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
 assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
-assert.match(conversational.messages[0].content, /Do not automatically append a Reflection, Prayer, Scripture anchors, or a sermon/i);
+assert.match(conversational.messages[0].content, /Do not mechanically append a Reflection, Prayer, or Scripture list/i);
 assert.match(conversational.messages[0].content, /named traditional prayer/i);
 assert.match(conversational.messages[0].content, /does not have a physical body or personal sex\/relationship life/i);
 assert.match(conversational.messages[0].content, /60-180 words/i);
