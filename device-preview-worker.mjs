@@ -31,7 +31,7 @@ async function buildPreviewCheck(request, env) {
       knowledge.text.includes('id:"jesus-virgin-celibate"'),
     router:
       router.ok &&
-      router.text.includes('version:"2.6.0"'),
+      router.text.includes('version:"2.7.0"'),
     candidateApi:
       launch.ok &&
       apiTarget.includes("universal-preview-oneintoone-jesus-api.aniketw3699.workers.dev") &&
