@@ -21,6 +21,7 @@ assert.match(built.messages[0].content, /World English Bible \(WEB\)/);
 assert.match(built.messages[0].content, /Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks/);
 
 const psalm23Rows = [
+  { type:"header", value:"A Psalm by David." },
   { chapterNumber:23, verseNumber:1, value:"Yahweh is my shepherd: I shall lack nothing. " },
   { chapterNumber:23, verseNumber:2, value:"He makes me lie down in green pastures. " },
   { chapterNumber:23, verseNumber:3, value:"He restores my soul. " },
@@ -40,11 +41,16 @@ assert.equal(__test.referenceExistsInRows(impossiblePsalmRef, psalm23Rows), fals
 
 const psalmGrounding = __test.groundingFromRows(psalmRef, psalm23Rows);
 assert.equal(psalmGrounding.maxVerse, 6);
+assert.equal(psalmGrounding.sourceHeader, "A Psalm by David.");
+assert.equal(psalmGrounding.targetVerseText, "Yahweh is my shepherd: I shall lack nothing.");
 assert.match(psalmGrounding.contextText, /World English Bible \(WEB\)/);
 assert.match(psalmGrounding.contextText, /verified chapter has verses 1-6/);
+assert.match(psalmGrounding.contextText, /Source heading: A Psalm by David\./);
 assert.match(psalmGrounding.contextText, /1\. Yahweh is my shepherd: I shall lack nothing\./);
 
 const badPsalmDraft = [
+  "Psalm 23 is a Davidic psalm, and David chose this picture because he had been a shepherd.",
+  "Verse 1 says, “The Lord is my shepherd; I shall not want.”",
   "Psalm 23 culminates in God’s presence in v. 9-10.",
   "The Hebrew word yeh means to lack.",
   "The shepherd image also appears in Isaiah 53:5."
@@ -57,6 +63,27 @@ const psalmViolations = __test.findGroundingViolations(
 assert.ok(psalmViolations.some((item) => /Impossible shorthand verse reference/.test(item)));
 assert.ok(psalmViolations.some((item) => /Unrequested original-language claim/.test(item)));
 assert.ok(psalmViolations.some((item) => /Unrequested cross-reference: Isaiah 53:5/.test(item)));
+assert.ok(psalmViolations.some((item) => /Quoted wording does not match the verified WEB source exactly/.test(item)));
+assert.ok(psalmViolations.some((item) => /Authorship\/authorial-intent overclaim/.test(item)));
+assert.equal(
+  __test.quoteMatchesGrounding("Yahweh is my shepherd: I shall lack nothing.", psalmGrounding),
+  true
+);
+assert.equal(
+  __test.quoteMatchesGrounding("The Lord is my shepherd; I shall not want.", psalmGrounding),
+  false
+);
+assert.equal(__test.hasAuthorshipOverclaim("Traditionally attributed to David, Psalm 23 presents God as shepherd.", psalmGrounding), false);
+assert.equal(__test.hasAuthorshipOverclaim("David chose this picture because he had been a shepherd.", psalmGrounding), true);
+
+const repairedPsalm = __test.repairRemainingGroundingIssues(
+  "Psalm 23 is a Davidic psalm. Verse 1 says, “The Lord is my shepherd; I shall not want.”",
+  psalmGrounding
+);
+assert.match(repairedPsalm, /The WEB heading for this psalm reads, “A Psalm by David\.”/);
+assert.match(repairedPsalm, /“Yahweh is my shepherd: I shall lack nothing\.”/);
+assert.doesNotMatch(repairedPsalm, /I shall not want/);
+assert.doesNotMatch(repairedPsalm, /Davidic psalm/);
 
 const crossRefAllowed = __test.findGroundingViolations(
   "Compare Psalm 23:1 with Isaiah 40:11.",
@@ -79,6 +106,8 @@ const correctedMessages = __test.buildCorrectionMessages(
 );
 assert.equal(correctedMessages.at(-2).role, "assistant");
 assert.match(correctedMessages.at(-1).content, /VALIDATION PROBLEMS/);
+assert.match(correctedMessages.at(-1).content, /quotation marks must match the supplied WEB wording exactly/);
+assert.match(correctedMessages.at(-1).content, /use the supplied source heading as an attribution/);
 assert.ok(correctedMessages.some((message) => message.role === "user" && message.content === "Explain John 3:16"));
 
 assert.equal(__test.verseRefExists("John 3:16"), true);
