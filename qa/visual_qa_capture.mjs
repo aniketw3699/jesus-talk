@@ -115,6 +115,11 @@ async function inspectViewport(device, viewport) {
     docHeight:document.documentElement.scrollHeight,
     mobileHomeVisible:!!document.querySelector(".mobile-home-panel"),
     bottomNavVisible:!!document.querySelector(".mobile-bottom-nav"),
+    authDiscoveryVisible:(() => {
+      const card = document.getElementById("authDiscoveryCard");
+      return !!card && getComputedStyle(card).display !== "none";
+    })(),
+    authDiscoveryText:document.getElementById("authDiscoveryCard")?.innerText || "",
     localLabels:[
       document.getElementById("modeComfort")?.textContent || "",
       document.getElementById("modePrayer")?.textContent || "",
@@ -128,6 +133,12 @@ async function inspectViewport(device, viewport) {
     record(device + " mobile home present", metrics.mobileHomeVisible);
     record(device + " bottom nav present", metrics.bottomNavVisible);
   }
+  record(device + " optional sign-in card is visible near the front",
+    metrics.authDiscoveryVisible && /5 Ask Deeper questions each day/i.test(metrics.authDiscoveryText),
+    metrics.authDiscoveryText.slice(0,160));
+  record(device + " sign-in card preserves no-account core use",
+    /without an account/i.test(metrics.authDiscoveryText),
+    metrics.authDiscoveryText.slice(0,160));
   record(device + " Local/Cloud labels visible",
     metrics.localLabels.some(x => x.includes("Local")) && metrics.localLabels.some(x => x.includes("Cloud")),
     metrics.localLabels.join(" | "));
