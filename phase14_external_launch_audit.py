@@ -2,9 +2,8 @@
 """Phase 14 external-launch readiness checks.
 
 This audit validates the live Cloudflare preview/API after the Ask Deeper and
-Lemon Squeezy integration. Production DNS is still intentionally untouched and
-encrypted backup remains gated until Firestore rules are explicitly deployed
-and restore/delete behavior is verified.
+Lemon Squeezy integration. Firestore rules and encrypted-backup E2E are now
+verified; production DNS is still intentionally untouched until Phase 15.
 """
 
 from __future__ import annotations
@@ -105,8 +104,8 @@ def main() -> int:
         failures.append("live preview is not in the expected prelaunch environment")
     if bool_from_js(launch, "plusCheckoutEnabled") is not True:
         failures.append("Plus checkout is not enabled on the Phase 14 preview")
-    if bool_from_js(launch, "encryptedBackupEnabled") is not False:
-        failures.append("encrypted backup must remain OFF until Firestore is deployed/tested")
+    if bool_from_js(launch, "encryptedBackupEnabled") is not True:
+        failures.append("encrypted backup must be ON after Firestore rules and E2E verification")
     if js_string(launch, "backendApiUrl") != API_BASE:
         failures.append("live preview backend URL does not match the Cloudflare API")
     if not any("live preview" in f for f in failures):
@@ -184,9 +183,9 @@ def main() -> int:
         else:
             passes.append(f"{label} is accepted by backend CORS")
 
-    blockers.append(
-        "Encrypted backup remains gated until Firestore rules are explicitly deployed and "
-        "create/restore/wrong-password/new-device/delete tests pass."
+    passes.append(
+        "encrypted backup is enabled after Firestore rules and create/restore/"
+        "wrong-password/new-device/delete E2E verification"
     )
     blockers.append(
         "Production 1into1.com DNS/custom-domain cutover remains intentionally pending Phase 15."
