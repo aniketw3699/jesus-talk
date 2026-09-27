@@ -61,7 +61,7 @@ const worldBridge = __test.buildMessages({
 });
 assert.equal(worldBridge.mode, "bridge");
 assert.match(worldBridge.messages[0].content, /Do NOT answer it as a general encyclopedia/i);
-assert.match(worldBridge.messages[0].content, /Jesus or Scripture/i);
+assert.match(worldBridge.messages[0].content, /Jesus, Scripture, or Christian angle/i);
 assert.match(worldBridge.messages[0].content, /1-2 concise paragraphs/i);
 assert.match(worldBridge.messages[0].content, /Do not append a prayer, reflection, share card/i);
 
