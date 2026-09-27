@@ -292,11 +292,12 @@ async function testIndexFlowContracts() {
   check(index.includes('id="authDiscoveryCard"'), "Signed-out users get a front-of-experience account discovery card");
   check(index.includes("Sign in for 5 Ask Deeper questions each day"), "Account discovery card communicates the free Ask Deeper allowance");
   check(index.includes("local prayer, Bible, journal and journeys still work without an account"), "Account discovery keeps no-account core use explicit");
-  check(index.includes('id="creditBadge" onclick="handleCreditPillAction()">✨ Ask Deeper</button>'), "Initial credit badge is auth-neutral to prevent refresh flicker");
+  check(index.includes('id="creditBadge" onclick="handleCreditPillAction()" style="visibility:hidden;">✨ Ask Deeper</button>'), "Initial Ask Deeper quota badge is hidden until auth state is final");
   check(index.includes('id="authBtn" onclick="handleAuthAction()">Account</button>'), "Initial desktop account label is auth-neutral");
-  check(creditUi.includes("!authHasResolved") && creditUi.includes('badge.textContent = "✨ Ask Deeper"'), "Credit badge waits for Firebase auth resolution");
+  check(creditUi.includes("!authHasResolved || (currentUser && !entitlementsHaveResolved)") && creditUi.includes('badge.style.visibility = "hidden"') && creditUi.includes('badge.style.visibility = "visible"'), "Credit badge waits for both auth and signed-in entitlement resolution");
   check(authDiscovery.includes("!authHasResolved") && authDiscovery.includes('card.style.display = "none"'), "Sign-in discovery card stays hidden until auth resolution");
-  check(entitlementSync.includes("new Date().toISOString().slice(0, 10)") && entitlementSync.includes("data.lastResetDate === todayUtc"), "Signed-in free allowance display resets to 5 on a new UTC day");
+  check(index.includes("let entitlementsHaveResolved = false;"), "Signed-in entitlement resolution has an explicit UI gate");
+  check(entitlementSync.includes("entitlementsHaveResolved = true") && entitlementSync.includes("new Date().toISOString().slice(0, 10)") && entitlementSync.includes("data.lastResetDate === todayUtc"), "Signed-in free allowance resolves before the quota badge is revealed and resets to 5 on a new UTC day");
   check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
   check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
