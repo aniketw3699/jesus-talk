@@ -189,26 +189,43 @@ npx --yes wrangler@4.141.0 deploy \
   --config wrangler.device-preview.jsonc
 
 echo
-echo "Waiting for the brand-new preview hostname and assets to propagate..."
+echo "Waiting for the final preview self-check to become ready..."
 preview_ready=0
 for i in {1..30}; do
-  served_launch="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/launch-config.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
-  served_index="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
-  served_knowledge="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/local-knowledge.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
-  served_router="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/offline-core.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
-  served_headers="$(curl -sSI -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
+  curl -sS "$PREVIEW_URL/__preview-check" \
+    -o /tmp/oneintoone-final-preview-check.json 2>/dev/null || true
 
-  served_headers_lower="$(printf '%s' "$served_headers" | tr '[:upper:]' '[:lower:]')"
+  if python3 - /tmp/oneintoone-final-preview-check.json "$API_VERSION_URL" <<'PY'
+import json
+import sys
+from pathlib import Path
 
-  if [[ "$served_launch" == *"$API_VERSION_URL"* ]] && \
-     [[ "$served_index" == *"Ask Anything · Jesus-Centered Guidance & Scripture"* ]] && \
-     [[ "$served_index" != *"Scripture Guidance & Daily Prayer Sanctuary"* ]] && \
-     [[ "$served_knowledge" == *'version:"1.3.0"'* ]] && \
-     [[ "$served_knowledge" == *'id:"st-michael-prayer"'* ]] && \
-     [[ "$served_knowledge" == *'id:"world-end-date"'* ]] && \
-     [[ "$served_knowledge" == *'id:"jesus-virgin-celibate"'* ]] && \
-     [[ "$served_router" == *'version:"2.5.1"'* ]] && \
-     [[ "$served_headers_lower" == *"cache-control: no-store"* ]]; then
+path = Path(sys.argv[1])
+expected_api = sys.argv[2]
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(1)
+
+required = [
+    "indexLoaded",
+    "universalTagline",
+    "christianKnowledge",
+    "router",
+    "candidateApi",
+]
+
+if (
+    data.get("ok") is True
+    and data.get("marker") == "1into1-final-preview-v2"
+    and data.get("apiTarget") == expected_api
+    and all((data.get("checks") or {}).get(name) is True for name in required)
+):
+    raise SystemExit(0)
+
+raise SystemExit(1)
+PY
+  then
     preview_ready=1
     break
   fi
@@ -217,13 +234,14 @@ for i in {1..30}; do
 done
 
 if [ "$preview_ready" -ne 1 ]; then
-  echo "FAIL: final preview hostname/assets did not become verifiably ready within the propagation window."
-  echo "The Worker deployment itself may still have succeeded; rerun this helper after Cloudflare DNS/assets finish propagating."
+  echo "FAIL: final preview self-check did not pass."
+  echo "Exact live diagnostic:"
+  cat /tmp/oneintoone-final-preview-check.json 2>/dev/null || true
   exit 1
 fi
 
+echo "PASS: final preview self-check verified the exact deployed index, Christian knowledge, router, and API target."
 echo "PASS: live preview frontend points to the non-deployed universal API candidate."
-echo "PASS: live browser-facing index, Christian knowledge, and router are the latest build."
 echo "PASS: final preview disables browser caching and service-worker reuse."
 echo "PASS: live preview is using universal API candidate version 5.4.0."
 echo

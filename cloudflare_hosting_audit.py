@@ -177,6 +177,8 @@ if not preview_worker_path.is_file():
 preview_worker_source = preview_worker_path.read_text(encoding="utf-8")
 if "env.ASSETS.fetch(request)" not in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker must serve the isolated static bundle")
+if '"/__preview-check"' not in preview_worker_source or "1into1-final-preview-v2" not in preview_worker_source:
+    raise SystemExit("FAIL: final preview Worker must expose deterministic self-check diagnostics")
 if "no-store, no-cache, must-revalidate, max-age=0" not in preview_worker_source:
     raise SystemExit("FAIL: final preview Worker must disable browser caching")
 if "env.API" in preview_worker_source or "Cloudflare-Workers-Version-Overrides" in preview_worker_source:
@@ -187,3 +189,4 @@ if "1into1.com" in preview_worker_source:
 print("PASS: dedicated final-preview Worker is isolated to workers.dev with no production routes.")
 print("PASS: isolated preview frontend has no binding to the deployed production API.")
 print("PASS: candidate backend testing is isolated through a non-deployed Version URL.")
+print("PASS: final preview Worker has an exact live asset/API self-check endpoint.")
