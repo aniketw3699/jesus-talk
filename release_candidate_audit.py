@@ -110,6 +110,7 @@ def main():
         "No account",
         "app-store install",
         "fair-use",
+        "owner-funded runtime spend",
     ]:
         if marker.lower() not in disruption.lower():
             failures.append(f"DISRUPTION_CHECKPOINT.md: required product guardrail missing -> {marker!r}")
