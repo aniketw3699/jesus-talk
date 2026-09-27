@@ -402,6 +402,12 @@
     if (buildCasualExperience(text)) {
       return { route:"local", reason:"casual-conversation", analysis:{ topic:"conversation", confidence:1, matchedTerms:[] } };
     }
+
+    const localKnowledge = window.ONEINTOONE_LOCAL_KNOWLEDGE;
+    if (localKnowledge && typeof localKnowledge.canAnswer === "function" && localKnowledge.canAnswer(text)) {
+      return { route:"local-knowledge", reason:"device-knowledge", analysis:analysis };
+    }
+
     if (!isOnline) return { route:"local", reason:"offline", analysis:analysis };
 
     if (selectedMode === "prayer" || looksLikeExplicitPrayerRequest(text)) {
@@ -447,7 +453,7 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.1.0",
+    version:"2.2.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
