@@ -3109,31 +3109,58 @@
       const turnRecipient = currentIntercessoryRecipient;
       currentIntercessoryRecipient = "";
 
+      const turnMode = nextTurnModeOverride || "comfort";
+      nextTurnModeOverride = "";
+      currentPastoralMode = "comfort";
+      messageInput.placeholder = "Ask anything, pray, or tell me what's on your heart...";
+
       appendUserBubble(text);
       messageInput.value = "";
-      showThinking(true);
+      showThinking(true, turnMode);
 
-      trackSanctuaryEvent('prayer_submitted', { mode: currentPastoralMode });
+      trackSanctuaryEvent('message_submitted', { requested_mode:turnMode });
 
       const localEngine = window.OneIntoOneOffline;
       let routeDecision = null;
       if (localEngine && typeof localEngine.decideRoute === 'function') {
-        routeDecision = localEngine.decideRoute(text, currentPastoralMode, navigator.onLine);
+        routeDecision = localEngine.decideRoute(text, turnMode, navigator.onLine);
+
+        if (routeDecision.route === 'local-knowledge') {
+          const handled = await answerWithDeviceKnowledge(text, turnRecipient);
+          if (handled) return;
+          routeDecision = navigator.onLine
+            ? { route:'cloud-standard', cloudMode:'conversation', reason:'device-knowledge-miss' }
+            : { route:'local', reason:'offline' };
+        }
+
         if (routeDecision.route === 'local') {
           const reason = navigator.onLine ? (routeDecision.reason || 'local-first') : 'offline';
-          setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason), 140);
+          setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason, turnMode), 140);
           return;
         }
       }
 
       if (!navigator.onLine) {
-        setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline'), 180);
+        const handled = await answerWithDeviceKnowledge(text, turnRecipient);
+        if (!handled) setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline', turnMode), 180);
         return;
+      }
+
+      if (routeDecision && routeDecision.route === 'cloud-deep' && turnMode !== 'study') {
+        const remainingLabel = currentUser
+          ? (isSubscribed ? "your Plus Ask Deeper allowance" : Math.max(0, userCredits) + " Ask Deeper question(s) remaining today")
+          : "your guest Ask Deeper allowance";
+        const useDeeper = window.confirm(
+          "This question needs deeper Bible/theology reasoning and may use " + remainingLabel + ".\n\nUse Ask Deeper?"
+        );
+        if (!useDeeper) {
+          routeDecision = { route:'cloud-standard', cloudMode:'conversation', reason:'ask-deeper-declined' };
+        }
       }
 
       const requestMode = routeDecision && routeDecision.cloudMode
         ? routeDecision.cloudMode
-        : (currentPastoralMode === 'study' ? 'study' : 'conversation');
+        : (turnMode === 'study' ? 'study' : 'conversation');
 
       trackSanctuaryEvent('conversation_routed', {
         route: routeDecision ? routeDecision.route : 'cloud-standard',
@@ -3171,8 +3198,14 @@
         showThinking(false);
 
         if (!res.ok) {
-          const errDetail = (data && (data.detail || data.reply || data.error)) || "A momentary pause occurred. Please take a breath and try again.";
+          const errDetail = (data && (data.detail || data.reply || data.error)) || "That response path is unavailable right now.";
           appendBotBubble(errDetail, turnRecipient);
+          return;
+        }
+
+        if (data.error === "SERVICE_DEGRADED") {
+          const handled = await answerWithDeviceKnowledge(text, turnRecipient);
+          if (!handled) answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback', turnMode);
           return;
         }
 
@@ -3210,11 +3243,12 @@
           saveConversationTurnLocally(text, data.reply);
         }
       } catch (err) {
-        console.warn("Cloud guidance unavailable; using local mode:", err);
-        answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback');
+        console.warn("Cloud conversation unavailable; continuing on device:", err);
+        const handled = await answerWithDeviceKnowledge(text, turnRecipient);
+        if (!handled) answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback', turnMode);
       }
     }
-    
+
     function appendUserBubble(msg) {
       const group = document.createElement("div");
       group.className = "msg-group user";
@@ -3461,13 +3495,13 @@
       }
     }
 
-    function showThinking(show) {
+    function showThinking(show, turnMode = 'comfort') {
       const el = document.getElementById("thinkingIndicator");
       const label = document.getElementById("thinkingText");
       if (label) {
-        label.textContent = currentPastoralMode === "study"
+        label.textContent = turnMode === "study"
           ? "Ask Deeper is studying the question..."
-          : "Preparing your response...";
+          : "Choosing the best response path...";
       }
       if (el) el.style.display = show ? "flex" : "none";
       if (show) chatFeed.scrollTop = chatFeed.scrollHeight;
