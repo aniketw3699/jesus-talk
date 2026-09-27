@@ -90,7 +90,10 @@ async function testLocalPrayerEngine() {
     "prayer",
     true
   );
-  check(prayerMode.route === "local", "Written Prayer routes locally");
+  check(
+    prayerMode.route === "cloud-standard" && prayerMode.reason === "model-first-conversation",
+    "Written Prayer reaches model-first pastoral reasoning"
+  );
 
   const guidance = engine.decideRoute(
     "I need guidance about a difficult decision",
@@ -134,13 +137,19 @@ async function testLocalPrayerEngine() {
   check(Boolean(maryAnswer && /Acts 1:14/.test(maryAnswer.reply) && !/John 20:14/.test(maryAnswer.reply)), "Mary answer uses verified local references and avoids Mary Magdalene confusion");
 
   const insult = engine.decideRoute("Fuck you", "comfort", true);
-  check(insult.route === "local" && insult.reason === "casual-conversation", "Hostile chat has a calm on-device fallback");
+  check(
+    insult.route === "cloud-standard" && insult.reason === "model-first-conversation",
+    "Hostile chat reaches the model, whose prompt requires a calm Christian response"
+  );
 
   const dying = engine.decideRoute("My mom is dying. Please help me.", "comfort", true);
   check(dying.route === "cloud-standard" && dying.cloudMode === "conversation", "Serious personal situation routes to nuanced standard conversation AI");
 
   const prayerStillLocal = engine.decideRoute("Please write a prayer for my mother", "comfort", true);
-  check(prayerStillLocal.route === "local", "Explicit prayer request remains private local");
+  check(
+    prayerStillLocal.route === "cloud-standard" && prayerStillLocal.reason === "model-first-conversation",
+    "Explicit prayer request reaches semantic personalized prayer generation"
+  );
 
   const namedPrayerLookup = engine.decideRoute("tell me the st micheals prayer", "comfort", true);
   check(
