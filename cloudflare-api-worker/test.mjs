@@ -5,7 +5,7 @@ assert.equal(__test.sanitizeInput("  hello\u0000 world  ", 20), "hello world");
 assert.equal(__test.sanitizeMetadata("<script>Ani</script>", 30, "x"), "scriptAniscript");
 assert.equal(__test.selectedMode("STUDY"), "study");
 assert.equal(__test.selectedMode("conversation"), "conversation");
-assert.equal(__test.selectedMode("bridge"), "bridge");
+assert.equal(__test.selectedMode("bridge"), "comfort");
 assert.equal(__test.selectedMode("unknown"), "comfort");
 
 const built = __test.buildMessages({
@@ -30,16 +30,16 @@ const conversational = __test.buildMessages({
   userIntentions: "faith"
 });
 assert.equal(conversational.mode, "conversation");
-assert.match(conversational.messages[0].content, /INPUT IS OPEN; KNOWLEDGE SCOPE IS NOT/i);
-assert.match(conversational.messages[0].content, /must not become a general-purpose assistant/i);
-assert.match(conversational.messages[0].content, /general-world questions/i);
+assert.match(conversational.messages[0].content, /MODEL-FIRST UNDERSTANDING/i);
+assert.match(conversational.messages[0].content, /user may bring ANY subject/i);
+assert.match(conversational.messages[0].content, /ANSWER-WORLD.*Jesus and the Bible/i);
 assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
 assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
-assert.match(conversational.messages[0].content, /Do not mechanically append a Reflection, Prayer, or Scripture list/i);
+assert.match(conversational.messages[0].content, /Do not force headings such as Reflection or Scripture Anchors/i);
 assert.match(conversational.messages[0].content, /named traditional prayer/i);
 assert.match(conversational.messages[0].content, /does not have a physical body or personal sex\/relationship life/i);
-assert.match(conversational.messages[0].content, /60-180 words/i);
-assert.match(conversational.messages[0].content, /Better to omit a Bible citation/i);
+assert.match(conversational.messages[0].content, /Keep simple questions concise and natural/i);
+assert.match(conversational.messages[0].content, /Every normal cloud answer must contain one directly relevant Scripture anchor/i);
 assert.match(conversational.messages[0].content, /Never improvise the wording of a named traditional prayer/i);
 
 
@@ -52,39 +52,35 @@ const deepChristian = __test.buildMessages({
 });
 assert.match(deepChristian.messages[0].content, /deep Bible study, theology/i);
 
-const worldBridge = __test.buildMessages({
-  message: "Who is Elon Musk and what does Trump have to do with him?",
-  mode: "bridge",
+const businessConversation = __test.buildMessages({
+  message: "i want to earn money tell me business ideas",
+  mode: "conversation",
   userName: "beloved",
-  userPsyche: "curious",
-  userIntentions: "learning"
+  userPsyche: "hopeful",
+  userIntentions: "work"
 });
-assert.equal(worldBridge.mode, "bridge");
-assert.match(worldBridge.messages[0].content, /Do NOT answer it as a general encyclopedia/i);
-assert.match(worldBridge.messages[0].content, /Jesus\/Scripture\/Christian angle/i);
-assert.match(worldBridge.messages[0].content, /1-2 concise paragraphs/i);
-assert.match(worldBridge.messages[0].content, /Do not append a prayer, reflection, share card/i);
+assert.equal(businessConversation.mode, "conversation");
+assert.match(businessConversation.messages[0].content, /if asked for business ideas, do not list businesses/i);
+assert.match(businessConversation.messages[0].content, /work, money, stewardship, honesty, service, greed, contentment, and provision/i);
 
+const icuConversation = __test.buildMessages({
+  message: "my mother is in ICU please save her",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "afraid",
+  userIntentions: "prayer"
+});
+assert.match(icuConversation.messages[0].content, /personal suffering, sickness, ICU/i);
+assert.match(icuConversation.messages[0].content, /respond to the HUMAN situation directly with compassion and biblical wisdom/i);
 
-assert.equal(__test.bridgeReplyIsChristian("Elon Musk leads Tesla and SpaceX."), false);
-assert.equal(__test.bridgeReplyIsChristian("Scripture can help us think about wealth, power, and leadership."), true);
-assert.match(__test.bridgeFallback("Who is Trump?"), /leadership, truth, justice/i);
-assert.match(__test.bridgeFallback("What is Bhagwan Ram?"), /Christian perspective/i);
-
-assert.equal(__test.mustUseBibleScopeRedirect("i want to earn money tell me business ideas"), true);
-assert.equal(__test.mustUseBibleScopeRedirect("who is elon musk"), true);
-assert.equal(__test.mustUseBibleScopeRedirect("calculate 20 divide by 4"), true);
-assert.equal(__test.mustUseBibleScopeRedirect("I am pregnant. Should I have an abortion?"), false);
-assert.equal(__test.mustUseBibleScopeRedirect("What does Jesus teach about money?"), false);
-assert.match(
-  __test.bibleScopeRedirect("i want to earn money tell me business ideas"),
-  /does not generate business ideas/i
-);
-assert.doesNotMatch(
-  __test.bibleScopeRedirect("i want to earn money tell me business ideas"),
-  /tutoring|coaching|online store|handyman|youtube channel/i
-);
-
+const greetingConversation = __test.buildMessages({
+  message: "whats up",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "calm",
+  userIntentions: "conversation"
+});
+assert.match(greetingConversation.messages[0].content, /ordinary greetings such as hello or what's up, respond naturally and warmly/i);
 
 const universalMedicalDecision = __test.buildMessages({
   message: "I am pregnant. Should I have an abortion?",
@@ -112,6 +108,7 @@ assert.equal(
 
 assert.equal(__test.standardQualityTier("did jesus was virgin?"), "standard-high");
 assert.equal(__test.standardQualityTier("my mother is in hospital please help"), "standard-high");
+assert.equal(__test.standardQualityTier("my mother is in ICU please save her"), "standard-high");
 assert.equal(__test.standardQualityTier("Explain black holes simply"), "standard");
 
 
@@ -133,10 +130,18 @@ assert.equal(
 
 assert.equal(
   __test.needsStandardQualityUpgrade(
-    "Explain black holes simply",
-    "A black hole is a region where gravity is so strong that, beyond the event horizon, not even light can escape. It forms when enough mass is compressed into a very small region."
+    "What does fear mean for a Christian?",
+    "Fear can make us feel alone, but Scripture turns us toward God's presence. [VERSE]\n\nThis passage matters because it points the fearful person toward trust in God rather than panic.\nPSYCHE: Seeking courage in God\nANCHOR: Psalm 56:3"
   ),
   false
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "whats up",
+    "I'm here with you."
+  ),
+  true
 );
 
 const upgradedMessages = __test.buildQualityUpgradeMessages(conversational.messages);
@@ -179,6 +184,20 @@ assert.match(psalmGrounding.contextText, /World English Bible \(WEB\)/);
 assert.match(psalmGrounding.contextText, /verified chapter has verses 1-6/);
 assert.match(psalmGrounding.contextText, /Source heading: A Psalm by David\./);
 assert.match(psalmGrounding.contextText, /1\. Yahweh is my shepherd: I shall lack nothing\./);
+
+const anchorRef = __test.extractAnchorReference("A response.\nPSYCHE: Calm\nANCHOR: Psalm 23:1");
+assert.equal(anchorRef.book, "psalm");
+assert.equal(anchorRef.chapter, 23);
+assert.equal(anchorRef.startVerse, 1);
+
+const injectedVerse = __test.injectVerifiedVerse(
+  "God's care is personal.\n\n[VERSE]\n\nThis verse shows why trust belongs at the center.\nPSYCHE: Growing in trust\nANCHOR: Psalm 23:1",
+  psalmGrounding
+);
+assert.match(injectedVerse, /“Yahweh is my shepherd: I shall lack nothing\.” \(Psalm 23:1\)/);
+assert.doesNotMatch(injectedVerse, /\[VERSE\]/i);
+assert.doesNotMatch(injectedVerse, /ANCHOR:/i);
+
 
 const badPsalmDraft = [
   "Psalm 23 is a Davidic psalm, and David chose this picture because he had been a shepherd.",
@@ -254,7 +273,7 @@ assert.equal(
 );
 
 const cleaned = __test.cleanCloudReply(
-  "A response.\n\n[CARD]A blessing.[/CARD]\nPSYCHE: Growing in peace",
+  "A response.\n\n[CARD]A blessing.[/CARD]\nPSYCHE: Growing in peace\nANCHOR: Psalm 23:1",
   "Seeking peace"
 );
 assert.equal(cleaned.reply, "A response.");
