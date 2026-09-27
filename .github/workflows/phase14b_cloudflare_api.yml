@@ -1,0 +1,35 @@
+name: Phase 14B Cloudflare API
+
+on:
+  push:
+    branches:
+      - feature/phase14b-cloudflare-api
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Unit and contract tests
+        run: node cloudflare-api-worker/test.mjs
+
+      - name: Wrangler dry-run
+        run: npx --yes wrangler@4.141.0 deploy --dry-run --config cloudflare-api-worker/wrangler.jsonc
+
+      - name: Existing launch safety
+        run: |
+          python launch_audit.py
+          python production_readiness.py
+          node release_flow_qa.mjs

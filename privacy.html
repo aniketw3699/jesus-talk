@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy | You With Jesus</title>
-  <meta name="description" content="Our zero-knowledge privacy commitment. Your prayers and reflections remain sacred and private." />
-  <link rel="canonical" href="https://jesus-chat-bd89f.web.app/privacy.html" />
+  <title>Privacy Policy | 1into1 with Jesus</title>
+  <meta name="description" content="How 1into1 with Jesus handles local prayer data, optional Ask Deeper cloud processing, encrypted backup, analytics, and account information." />
+  <link rel="canonical" href="https://www.1into1.com/privacy.html" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -57,42 +57,70 @@
     </div>
 
     <h1>PRIVACY POLICY</h1>
-    <p class="last-updated">Last Updated: September 2, 2026</p>
+    <p class="last-updated">Last Updated: September 26, 2026</p>
 
     <div class="legal-card">
       <div class="highlight-box">
-        🕊️ <strong>Sacred Privacy Commitment:</strong> We believe prayer communion and spiritual confession are strictly confidential. We do not sell your data, build advertising profiles, or store your personal prayer dialogues on permanent database records.
+        🕊️ <strong>Local-first privacy:</strong> Core prayer, journal, journeys, Bible use, and Lay It Down are designed to remain on your device by default. Cloud processing and encrypted backup are separate features that you choose to use.
       </div>
 
       <section>
-        <h2>1. Information We Process & Store</h2>
-        <p>When you use <em>You With Jesus</em>, we handle only the minimal information strictly required to provide pastoral continuity, fair quota management, and account access:</p>
+        <h2>1. Local Data</h2>
+        <p>Most personal sanctuary data is stored in your browser on the device you are using. This can include local prayer conversations, journal sessions, journey progress, prayer intentions, preferences, and local theme memory.</p>
         <ul>
-          <li><strong>Local Device Storage:</strong> Your full conversational feed, journal archives, and intake selections remain stored directly within your device's browser (<code>localStorage</code>). You retain complete authority to wipe this history anytime with one click.</li>
-          <li><strong>Ephemeral Sanctuary & Confessions:</strong> Prayers submitted in the chat and burdens released in the Gethsemane Surrender tool are processed ephemerally over encrypted TLS connections. They dissolve immediately upon output and are never logged, inspected, or used to train artificial intelligence models.</li>
-          <li><strong>Anonymous Quotas & Abuse Prevention:</strong> To enforce daily prayer limits for guests and shield our sanctuary against automated abuse, transient client IP addresses are temporarily recorded in a rate-limiting registry (<code>guest_usage</code>) keyed to each calendar day, after which past daily entries remain inert.</li>
-          <li><strong>Account & Spiritual Walk Metrics:</strong> If you sign in via Google Authentication, we securely sync high-level non-confessional journey attributes—such as your prayer habit streak, persistent prayer intentions, an AI-derived spiritual state summary (e.g., "seeking peace"), and active subscription status—strictly to maintain continuity across your devices.</li>
+          <li><strong>Lay It Down:</strong> Text entered into Lay It Down is intentionally not saved to local storage or uploaded as part of encrypted backup.</li>
+          <li><strong>Journal:</strong> The journal works locally without requiring sign-in. Clearing local browser data may remove this information unless you have created an encrypted backup.</li>
+          <li><strong>Bible:</strong> Public-domain Scripture files may be cached in your browser for offline reading and search.</li>
         </ul>
       </section>
 
       <section>
-        <h2>2. Payment & Billing Information</h2>
-        <p>All subscription transactions and one-time devotional passes are processed directly by our Merchant of Record, <strong>Lemon Squeezy</strong>. We never view, collect, or store your credit card numbers, billing addresses, or banking credentials on our infrastructure.</p>
+        <h2>2. Ask Deeper Cloud Processing</h2>
+        <p>Ask Deeper is optional. When you choose it, the question you submit and limited recent conversation context needed to answer it are sent over an encrypted connection to our backend and the configured cloud AI provider. Local prayer features do not need this cloud request.</p>
+        <p>Cloud AI providers can change as the service evolves. Their processing is subject to the provider configuration and applicable provider terms. We do not intentionally send Lay It Down confession text through Ask Deeper.</p>
       </section>
 
       <section>
-        <h2>3. Third-Party Infrastructure Providers</h2>
-        <p>We work with trusted cloud and platform providers adhering to rigorous data security and encryption standards:</p>
+        <h2>3. Accounts, Entitlements & Abuse Prevention</h2>
+        <p>Signing in is used for account identity, free Ask Deeper quotas, subscription entitlement, and optional Plus features. By default, signing in does not upload your journal, prayer intentions, spiritual-state summary, journey progress, or local conversation archive.</p>
+        <p>Limited technical information may be processed for security, rate limiting, fraud prevention, and service operation, including account identifiers and network information such as IP address.</p>
+      </section>
+
+      <section>
+        <h2>4. Optional Plus Encrypted Backup</h2>
+        <p>Plus users can explicitly create an encrypted cross-device backup. Selected local data is encrypted in the browser using AES-256-GCM with a key derived from the user’s backup passphrase before the encrypted ciphertext is uploaded to Firebase.</p>
         <ul>
-          <li><strong>Firebase (Google Cloud):</strong> Authentication, hosting, and secure security-rule-guarded entitlement storage.</li>
-          <li><strong>Groq Inc.:</strong> Secure, low-latency inference processing without long-term prompt retention.</li>
-          <li><strong>Lemon Squeezy:</strong> PCI-DSS compliant payment processing and subscription lifecycle webhooks.</li>
+          <li>The backup passphrase is not stored in the backup database.</li>
+          <li>We cannot decrypt or recover a backup without that passphrase.</li>
+          <li>Encrypted backup is off by default and is created only when the user presses the backup action.</li>
+          <li>Users can delete their encrypted cloud backup without deleting local data on their device.</li>
         </ul>
       </section>
 
       <section>
-        <h2>4. Data Rights & Contact</h2>
-        <p>In accordance with GDPR, CCPA, and global privacy frameworks, you hold the right to review, export, or request complete erasure of your account record and associated profile metrics. For any data inquiries or deletion requests, contact our pastoral technical team at <strong style="color:var(--gold);">info@1into1.com</strong>.</p>
+        <h2>5. Analytics</h2>
+        <p>We use product analytics to understand feature usage and improve the application. Analytics events may include actions such as opening a feature, changing a mode, or beginning checkout. We do not deliberately include the text of private prayers or journal entries in analytics event parameters.</p>
+      </section>
+
+      <section>
+        <h2>6. Payments</h2>
+        <p>Subscription checkout is handled by <strong>Lemon Squeezy</strong>, our payment provider / Merchant of Record. Payment-card details are entered into the payment provider’s checkout rather than stored by the 1into1 application.</p>
+      </section>
+
+      <section>
+        <h2>7. Service Providers</h2>
+        <ul>
+          <li><strong>Firebase / Google Cloud:</strong> Authentication, entitlement records, and optional encrypted backup storage.</li>
+          <li><strong>Configured cloud AI provider:</strong> Processes Ask Deeper requests when that feature is used.</li>
+          <li><strong>Google Analytics:</strong> Product usage analytics.</li>
+          <li><strong>Lemon Squeezy:</strong> Checkout, payments, and subscription lifecycle events.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. Your Controls</h2>
+        <p>You can clear local journal/history from inside the application, avoid Ask Deeper and use local features only, choose not to create an encrypted backup, restore a backup with your passphrase, or delete the encrypted backup stored for your account.</p>
+        <p>For account or privacy inquiries, contact <strong style="color:var(--gold);">info@1into1.com</strong>.</p>
       </section>
     </div>
   </div>

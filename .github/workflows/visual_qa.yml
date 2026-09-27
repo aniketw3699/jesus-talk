@@ -1,0 +1,62 @@
+name: Release Visual QA
+
+on:
+  push:
+    branches:
+      - "release/**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  visual-qa:
+    if: startsWith(github.head_ref || github.ref_name, 'release/') || startsWith(github.ref_name, 'release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local RC server
+        shell: bash
+        run: |
+          python -m http.server 4173 --bind 127.0.0.1 > /tmp/rc-server.log 2>&1 &
+          echo $! > /tmp/rc-server.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/rc-server.log
+          exit 1
+
+      - name: Run rendered browser QA
+        run: node qa/visual_qa_capture.mjs
+
+      - name: Upload rendered QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc-visual-qa
+          path: visual-qa/
+          if-no-files-found: warn
+          retention-days: 7

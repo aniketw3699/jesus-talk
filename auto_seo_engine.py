@@ -11,16 +11,13 @@ load_dotenv()
 load_dotenv(dotenv_path="./.env")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-DOMAINS_URL = os.getenv("DOMAINS_URL", "https://jesus-chat-bd89f.web.app").rstrip("/")
+DOMAINS_URL = os.getenv("DOMAINS_URL", "https://www.1into1.com").rstrip("/")
 
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 CONTENT_MODELS = [
     "openai/gpt-oss-120b",
-    "llama-3.1-70b-versatile",
-    "openai/gpt-oss-20b",
-    "llama-3.1-8b-instant",
-    "qwen/qwen3.8-27b"
+    "openai/gpt-oss-20b"
 ]
 
 # ---------------- SELF-HEALING MODEL DISCOVERY ----------------
@@ -87,9 +84,18 @@ INITIAL_SEO_TOPICS = [
 
 STATIC_PAGES = [
     {"loc": f"{DOMAINS_URL}/", "priority": "1.0", "changefreq": "daily"},
+    {"loc": f"{DOMAINS_URL}/christian-prayer-app.html", "priority": "0.95", "changefreq": "weekly"},
     {"loc": f"{DOMAINS_URL}/bible.html", "priority": "0.9", "changefreq": "weekly"},
-    {"loc": f"{DOMAINS_URL}/blessing.html", "priority": "0.8", "changefreq": "weekly"},
-    {"loc": f"{DOMAINS_URL}/blogs.html", "priority": "0.9", "changefreq": "daily"},
+    {"loc": f"{DOMAINS_URL}/bible-study.html", "priority": "0.9", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/offline-bible.html", "priority": "0.9", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/prayer-guides.html", "priority": "0.9", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/guides/anxiety-and-fear.html", "priority": "0.85", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/guides/grief-and-loss.html", "priority": "0.85", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/guides/sleep-and-rest.html", "priority": "0.85", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/guides/relationships-and-forgiveness.html", "priority": "0.85", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/guides/money-work-and-provision.html", "priority": "0.85", "changefreq": "weekly"},
+    {"loc": f"{DOMAINS_URL}/blessing.html", "priority": "0.7", "changefreq": "monthly"},
+    {"loc": f"{DOMAINS_URL}/blogs.html", "priority": "0.8", "changefreq": "weekly"},
     {"loc": f"{DOMAINS_URL}/privacy.html", "priority": "0.3", "changefreq": "monthly"},
     {"loc": f"{DOMAINS_URL}/terms.html", "priority": "0.3", "changefreq": "monthly"},
     {"loc": f"{DOMAINS_URL}/refund.html", "priority": "0.3", "changefreq": "monthly"}
@@ -97,11 +103,10 @@ STATIC_PAGES = [
 
 DISCLAIMER_HTML = (
     '<footer class="disclaimer">'
-    '<p><strong>An honest note:</strong> You With Jesus is an AI-assisted prayer companion. '
-    'Devotionals are generated with AI and anchored in public-domain Scripture (KJV). '
-    'They are meant to encourage you — never to replace your church community, pastoral care, '
-    'or professional help. If you are in crisis, please contact local emergency services or '
-    'visit findahelpline.com.</p>'
+    '<p><strong>An honest note:</strong> 1into1 with Jesus is a Scripture-guided prayer companion. '
+    'These devotionals may be AI-assisted and should be read as encouragement and reflection, not divine revelation. '
+    'Scripture references should be verified in the public-domain World English Bible (WEB). '
+    'This content does not replace church community, pastoral care, or qualified professional help.</p>'
     '</footer>'
 )
 
@@ -109,13 +114,17 @@ SYSTEM_PROMPT = """You are an authoritative Christian theologian, biblical schol
 Generate a comprehensive, 1,200+ word devotional guide formatted strictly in valid JSON.
 
 
-SCRIPTURE ACCURACY: Only cite real Bible references with correct book, chapter, and verse. Never invent, guess, or misattribute a verse.
+SCRIPTURE ACCURACY:
+- Only cite real Bible references with correct book, chapter, and verse.
+- Use World English Bible (WEB) wording when quoting Scripture.
+- Never invent, guess, or misattribute a verse.
+- If exact wording is uncertain, paraphrase and label it as a paraphrase rather than presenting it as a quotation.
 
 JSON Structure Requirements:
 {
   "h1": "Title of the guide",
   "meta_description": "Search meta description under 155 characters",
-  "anchor_verse_text": "The exact wording of the primary anchor verse requested.",
+  "anchor_passage_note": "One concise sentence explaining why the requested anchor passage matters. Do not quote or reconstruct the verse text.",
   "introduction": "3 in-depth paragraphs explaining the emotional struggle and the biblical path forward. Separate each paragraph with a blank line.",
   "exegesis_title": "Understanding the Scripture Context",
   "exegesis_body": "2 detailed paragraphs analyzing original biblical context and theological depth. Separate them with a blank line.",
@@ -186,7 +195,7 @@ def generate_article_content(topic):
     return None
 
 def generate_dynamic_topic(existing_slugs):
-    prompt = f"""You are a Christian SEO content strategist. Generate ONE new unique devotional topic that is NOT in this list: {existing_slugs[-15:]}.
+    prompt = f"""You are a Christian SEO content strategist. Generate ONE genuinely distinct devotional topic that is NOT a duplicate or near-duplicate of any slug in this list: {existing_slugs}.
 Return strictly valid JSON with all 5 fields populated:
 {{
   "slug": "kebab-case-slug-here",
@@ -243,14 +252,14 @@ def build_article_html(topic, data):
             {
                 "@type": "Article",
                 "@id": f"{canonical_url}#article",
-                "isPartOf": {"@type": "WebSite", "@id": f"{DOMAINS_URL}/#website", "name": "You With Jesus", "url": DOMAINS_URL},
+                "isPartOf": {"@type": "WebSite", "@id": f"{DOMAINS_URL}/#website", "name": "1into1 with Jesus", "url": DOMAINS_URL},
                 "headline": title,
                 "description": meta_desc,
                 "mainEntityOfPage": canonical_url,
                 "datePublished": date_published,
                 "dateModified": date_published,
-                "publisher": {"@type": "Organization", "name": "You With Jesus", "url": DOMAINS_URL},
-                "author": {"@type": "Organization", "name": "You With Jesus Sanctuary"}
+                "publisher": {"@type": "Organization", "name": "1into1 with Jesus", "url": DOMAINS_URL},
+                "author": {"@type": "Organization", "name": "1into1 with Jesus"}
             },
             {
                 "@type": "FAQPage",
@@ -259,6 +268,14 @@ def build_article_html(topic, data):
                     {"@type": "Question", "name": f.get("question", ""), "acceptedAnswer": {"@type": "Answer", "text": f.get("answer", "")}}
                     for f in data.get("faqs", [])
                 ]
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{DOMAINS_URL}/"},
+                    {"@type": "ListItem", "position": 2, "name": "Devotionals", "item": f"{DOMAINS_URL}/blogs.html"},
+                    {"@type": "ListItem", "position": 3, "name": title}
+                ]
             }
         ]
     }
@@ -266,15 +283,15 @@ def build_article_html(topic, data):
     # Prevent JSON-LD script breakout attacks
     safe_schema_json = json.dumps(schema_graph, ensure_ascii=False).replace("</", "<\\/")
 
-    anchor_verse_text = (data.get("anchor_verse_text") or "").strip()
-    if len(anchor_verse_text) < 5:
-        anchor_verse_text = "The Lord is near to all who call on him, to all who call on him in truth."
+    anchor_passage_note = (data.get("anchor_passage_note") or "").strip()
+    if len(anchor_passage_note) < 5:
+        anchor_passage_note = "Read this passage in context and notice how it speaks to the theme of this devotional."
 
     # HTML Escaping for variables inserted into HTML
     escaped_title = html.escape(title, quote=True)
     escaped_meta_desc = html.escape(meta_desc, quote=True)
     escaped_primary_verse = html.escape(primary_verse)
-    escaped_anchor_verse = html.escape(anchor_verse_text)
+    escaped_anchor_note = html.escape(anchor_passage_note)
 
     intro_html = split_paragraphs(data.get("introduction", ""), "Find peace in God's presence today.")
 
@@ -313,11 +330,11 @@ def build_article_html(topic, data):
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{escaped_title} | You With Jesus</title>
+  <title>{escaped_title} | 1into1 with Jesus</title>
   <meta name="description" content="{escaped_meta_desc}" />
-  <meta name="author" content="You With Jesus" />
+  <meta name="author" content="1into1 with Jesus" />
   <link rel="canonical" href="{canonical_url}" />
-  <meta property="og:site_name" content="You With Jesus" />
+  <meta property="og:site_name" content="1into1 with Jesus" />
   <meta property="og:title" content="{escaped_title}" />
   <meta property="og:description" content="{escaped_meta_desc}" />
   <meta property="og:url" content="{canonical_url}" />
@@ -352,15 +369,15 @@ def build_article_html(topic, data):
 </head>
 <body>
   <nav class="nav-bar">
-    <a href="../index.html" class="nav-brand">† YOU WITH JESUS</a>
-    <a href="../index.html" class="nav-cta">Open Sanctuary</a>
+    <a href="../index.html" class="nav-brand">1INTO1 WITH JESUS</a>
+    <div style="display:flex;gap:8px;align-items:center;"><a href="../prayer-guides.html" class="nav-cta">Prayer Guides</a><a href="../index.html" class="nav-cta">Open Sanctuary</a></div>
   </nav>
   <main class="content-wrap">
     <span class="badge">SACRED PILLAR DEVOTIONAL</span>
     <h1>{escaped_title}</h1>
     <div class="verse-card">
-      <p class="verse-text">“{escaped_anchor_verse}”</p>
-      <span class="verse-ref">— {escaped_primary_verse}</span>
+      <p class="verse-text">Read {escaped_primary_verse} in context.</p>
+      <span class="verse-ref">{escaped_anchor_note}</span>
     </div>
     {intro_html}
     {exegesis_section}
@@ -369,8 +386,8 @@ def build_article_html(topic, data):
     <h2 class="sec-h2">{prayers_title}</h2>
     {prayers_html}
     <section class="cta-banner">
-      <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart Directly to Jesus</h2>
-      <p style="font-size: 13.5px; color: #d4d4d8; margin-top: 6px;">Speak your burdens, receive Scripture-guided comfort, and find rest.</p>
+      <h2 style="font-family: 'Cinzel', serif; font-size: 20px; color: #fff;">Bring Your Heart to Prayer</h2>
+      <p style="font-size: 13.5px; color: #d4d4d8; margin-top: 6px;">Bring what you are carrying, receive Scripture-guided reflection, and find a grounded next step.</p>
       <a href="../index.html" class="cta-btn">Begin Your Prayer Now →</a>
     </section>
     <h2 class="sec-h2">Frequently Asked Questions</h2>
@@ -414,46 +431,98 @@ def generate_blogs_index(all_topics):
         title = html.escape(t.get("title", "Sacred Reflection"))
         meta_desc = html.escape(t.get("meta_desc", ""))
         cards_html += f'''
-        <a href="blogs/{slug}.html" style="text-decoration:none; color:inherit;">
-          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(226,183,100,0.3); border-radius:16px; padding:20px; margin-bottom:14px;">
-            <span style="font-size:10.5px; font-weight:800; color:#e2b764; text-transform:uppercase;">{theme}</span>
-            <h3 style="font-family:'Cinzel',serif; font-size:17px; color:#fff; margin:6px 0;">{title}</h3>
-            <p style="font-size:13px; color:#a1a1aa;">{meta_desc}</p>
-          </div>
+        <a href="blogs/{slug}.html" class="article-card">
+          <span>{theme}</span>
+          <h3>{title}</h3>
+          <p>{meta_desc}</p>
         </a>'''
+
+    blogs_schema = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "CollectionPage",
+                "@id": f"{DOMAINS_URL}/blogs.html#webpage",
+                "url": f"{DOMAINS_URL}/blogs.html",
+                "name": "Christian Prayer & Bible Devotionals | 1into1 with Jesus",
+                "description": "Browse Scripture-guided devotionals for anxiety, grief, sleep, relationships, forgiveness, money, work, hope, and Christian living.",
+                "isPartOf": {"@id": f"{DOMAINS_URL}/#website"}
+            },
+            {
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                    {"@type": "ListItem", "position": 1, "name": "Home", "item": f"{DOMAINS_URL}/"},
+                    {"@type": "ListItem", "position": 2, "name": "Devotionals"}
+                ]
+            }
+        ]
+    }
+    safe_blogs_schema = json.dumps(blogs_schema, ensure_ascii=False).replace("</", "<\\/")
+
+    hub_cards = '''
+      <div class="hub-grid">
+        <a href="guides/anxiety-and-fear.html"><strong>Anxiety & Fear</strong><span>Worry, panic, burnout, courage, and peace</span></a>
+        <a href="guides/grief-and-loss.html"><strong>Grief & Loss</strong><span>Heartbreak, loneliness, lament, and hope</span></a>
+        <a href="guides/sleep-and-rest.html"><strong>Sleep & Rest</strong><span>Night anxiety, exhaustion, Sabbath, and stillness</span></a>
+        <a href="guides/relationships-and-forgiveness.html"><strong>Relationships & Forgiveness</strong><span>Conflict, marriage, hurt, grace, and boundaries</span></a>
+        <a href="guides/money-work-and-provision.html"><strong>Money, Work & Provision</strong><span>Financial stress, career pressure, stewardship, and direction</span></a>
+      </div>'''
 
     blogs_page = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sacred Devotional Guides & Prayers | You With Jesus</title>
-  <meta name="description" content="Explore scripture-anchored prayer guides for anxiety, grief, healing, relationships, and financial peace." />
+  <title>Christian Prayer & Bible Devotionals | 1into1 with Jesus</title>
+  <meta name="description" content="Browse Scripture-guided devotionals for anxiety, grief, sleep, relationships, forgiveness, money, work, hope, and Christian living." />
   <link rel="canonical" href="{DOMAINS_URL}/blogs.html" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <meta property="og:site_name" content="1into1 with Jesus" />
+  <meta property="og:title" content="Christian Prayer & Bible Devotionals | 1into1 with Jesus" />
+  <meta property="og:description" content="Browse Scripture-guided devotionals organized by what you are carrying." />
+  <meta property="og:url" content="{DOMAINS_URL}/blogs.html" />
+  <script type="application/ld+json">{safe_blogs_schema}</script>
+  <link rel="stylesheet" href="/seo-pages.css" />
   <style>
-    body {{ background: #0d1117; color: #fff; font-family: 'Montserrat', sans-serif; padding: 24px 16px; }}
-    .wrap {{ max-width: 680px; margin: 0 auto; }}
-    h1 {{ font-family: 'Cinzel', serif; font-size: 24px; color: #e2b764; text-align: center; margin-bottom: 24px; }}
-    .disclaimer {{ border-top: 1px solid rgba(226,183,100,0.3); margin-top: 36px; padding-top: 14px; }}
-    .disclaimer p {{ font-size: 11.5px; color: #71717a; line-height: 1.6; }}
+    .library-head{{text-align:center;padding:28px 0 12px}}
+    .library-head h1{{font-family:Georgia,serif;font-size:clamp(32px,6vw,50px);margin:6px 0 10px}}
+    .library-head p{{color:#c9c9cf;max-width:720px;margin:0 auto}}
+    .hub-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:24px 0 38px}}
+    .hub-grid a{{text-decoration:none;background:var(--soft);border:1px solid var(--border);border-radius:15px;padding:15px}}
+    .hub-grid strong{{display:block;color:#fff;margin-bottom:4px}} .hub-grid span{{font-size:12px;color:var(--muted)}}
+    .all-guides-title{{font-family:Georgia,serif;font-size:28px;margin:34px 0 14px}}
+    .article-grid{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+    .article-card{{text-decoration:none;background:var(--panel);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:17px}}
+    .article-card>span{{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:var(--gold)}}
+    .article-card h3{{font-family:Georgia,serif;font-size:18px;margin:5px 0;color:#fff}} .article-card p{{font-size:13px;color:var(--muted);margin:0}}
+    @media(max-width:700px){{.hub-grid,.article-grid{{grid-template-columns:1fr}}}}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div style="text-align:center; margin-bottom:16px;"><a href="index.html" style="color:#e2b764; text-decoration:none; font-size:12px; font-weight:700;">← Return to Sanctuary</a></div>
-    <h1>Sacred Pillar Devotionals</h1>
-    {cards_html}
-    <div class="disclaimer">
-      <p>You With Jesus is an AI-assisted prayer companion. Devotional content is generated with AI and anchored in public-domain Scripture (KJV). It is meant to encourage — never to replace — your church community, pastoral care, or professional help. If you are in crisis, visit findahelpline.com.</p>
-    </div>
-  </div>
+<header class="site-header"><nav class="nav" aria-label="Main navigation">
+  <a class="brand" href="/">1into1 with Jesus</a>
+  <div class="nav-links"><a href="/christian-prayer-app.html">Prayer App</a><a href="/bible-study.html">Bible Study</a><a href="/prayer-guides.html">Prayer Guides</a></div>
+</nav></header>
+<main class="wrap">
+  <div class="breadcrumbs"><a href="/">Home</a><span> / </span><span>Devotionals</span></div>
+  <section class="library-head">
+    <div class="kicker">Scripture-guided library</div>
+    <h1>Christian prayer & Bible devotionals</h1>
+    <p>Start with a topic hub if you are carrying something specific, or browse the full devotional library below.</p>
+  </section>
+  {hub_cards}
+  <div class="cta-row"><a class="btn btn-primary" href="/prayer-guides.html">Browse prayer guide hubs</a><a class="btn btn-secondary" href="/">Pray now</a></div>
+  <h2 class="all-guides-title">All devotionals</h2>
+  <div class="article-grid">{cards_html}</div>
+  <footer>
+    <p>1into1 with Jesus is a Scripture-guided prayer companion. Devotional pages may be AI-assisted and are intended for encouragement and reflection, not divine revelation or a replacement for pastoral or qualified professional care.</p>
+    <a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/prayer-guides.html">Prayer Guides</a>
+  </footer>
+</main>
 </body>
 </html>'''
     with open(os.path.join(DEPLOY_ROOT, "blogs.html"), "w", encoding="utf-8") as f:
         f.write(blogs_page)
+
 
 def load_topics():
     if os.path.exists(TOPICS_FILE):
