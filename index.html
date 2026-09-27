@@ -885,7 +885,7 @@
     
     <header class="sacred-header">
       <div class="nav-scroll-strip">
-        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()">✨ Ask Deeper</button>
+        <button class="credit-pill action-btn" id="creditBadge" onclick="handleCreditPillAction()" style="visibility:hidden;">✨ Ask Deeper</button>
         <button class="action-btn music-toggle-btn" id="musicToggleBtn" onclick="toggleMusicSetting()">🎵 Music: ON</button>
         <button class="action-btn" onclick="openStillnessModal()">🕊️ Can't Pray?</button>
         <button class="action-btn" onclick="openJourneysModal()">📜 Journeys</button>
@@ -1590,10 +1590,12 @@
       const badge = document.getElementById("creditBadge");
       if (!badge) return;
 
-      if (!authHasResolved) {
-        badge.textContent = "✨ Ask Deeper";
+      if (!authHasResolved || (currentUser && !entitlementsHaveResolved)) {
+        badge.style.visibility = "hidden";
         return;
       }
+
+      badge.style.visibility = "visible";
 
       if (!currentUser) {
         const guestUsed = localStorage.getItem("jesus_guest_interaction_used");
@@ -3606,6 +3608,7 @@
           }
 
           localStorage.setItem(localKey, userCredits);
+          entitlementsHaveResolved = true;
           updateCreditUI();
           updateSpiritualActivityDashboard();
           return;
@@ -3616,12 +3619,14 @@
 
       const stored = localStorage.getItem(localKey);
       userCredits = stored !== null ? parseInt(stored, 10) : 5;
+      entitlementsHaveResolved = true;
       updateCreditUI();
     }
 
     let pendingBiblePrompt = null;
     let pendingBibleMode = null;
     let authHasResolved = false;
+    let entitlementsHaveResolved = false;
 
     window.onload = function() {
       applyLaunchFeatureGates();
@@ -3649,13 +3654,13 @@
         firebase.auth().onAuthStateChanged(async (user) => {
           currentUser = user;
           authHasResolved = true;
+          entitlementsHaveResolved = false;
 
           if (user) {
             currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
             userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
             authBtn.textContent = "Sign Out";
             updateAuthDiscoveryUI();
-            updateCreditUI();
             await syncAccountEntitlements(user);
 
             if (!pendingBiblePrompt) {
@@ -3668,6 +3673,7 @@
             currentUserName = "beloved";
             userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
+            entitlementsHaveResolved = true;
             updateCreditUI();
             updateAuthDiscoveryUI();
 
@@ -3691,6 +3697,8 @@
         });
       } else {
         authHasResolved = true;
+        entitlementsHaveResolved = true;
+        updateCreditUI();
         updateAuthDiscoveryUI();
         if (pendingBiblePrompt) {
           const promptToSent = pendingBiblePrompt;
