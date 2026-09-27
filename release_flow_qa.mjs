@@ -349,11 +349,87 @@ async function testIndexFlowContracts() {
   check(index.includes("No app install required"), "UI promises no-install browser core use");
 }
 
+
+async function testDeviceAIFoundation() {
+  const loaded = loadIntoSandbox([
+    "device-ai-capability.js"
+  ], {
+    isSecureContext: true
+  });
+
+  const detector = loaded.sandbox.OneIntoOneDeviceAI;
+
+  check(
+    Boolean(detector && typeof detector.inspect === "function"),
+    "Device AI capability detector loads"
+  );
+
+  const unsupported = await detector.inspect({
+    secureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8
+    }
+  });
+
+  check(
+    unsupported.eligible === false &&
+    unsupported.reason === "webgpu-unavailable",
+    "Device AI rejects browsers without WebGPU"
+  );
+
+  const capable = await detector.inspect({
+    secureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      gpu: {
+        requestAdapter: async function() {
+          return {};
+        }
+      },
+      storage: {
+        estimate: async function() {
+          return {
+            quota: 2 * 1024 * 1024 * 1024,
+            usage: 100 * 1024 * 1024
+          };
+        }
+      }
+    }
+  });
+
+  check(
+    capable.eligible === true &&
+    capable.tier === "strong",
+    "Strong WebGPU device qualifies for future on-device AI"
+  );
+
+  check(
+    capable.automaticModelDownload === false,
+    "Device AI foundation forbids automatic model downloads"
+  );
+
+  const index = fs.readFileSync("index.html", "utf8");
+  const serviceWorker = fs.readFileSync("service-worker.js", "utf8");
+
+  check(
+    index.includes('/device-ai-capability.js'),
+    "Chat page loads device AI capability detector"
+  );
+
+  check(
+    serviceWorker.includes('"/device-ai-capability.js"'),
+    "Device AI capability detector is cached for offline use"
+  );
+}
+
 async function main() {
   await testLocalPrayerEngine();
   await testBibleEngine();
   await testPrivateBackupCrypto();
   await testIndexFlowContracts();
+  await testDeviceAIFoundation();
 
   console.log("Release flow QA");
   console.log("PASS:", passes.length);
