@@ -80,7 +80,10 @@ async function testLocalPrayerEngine() {
     "comfort",
     true
   );
-  check(anxiety.route === "local", "Ordinary anxiety/work prayer routes locally");
+  check(
+    anxiety.route === "cloud-standard" && anxiety.reason === "universal-question",
+    "Open-ended anxiety/work conversation uses universal reasoning"
+  );
 
   const prayerMode = engine.decideRoute(
     "Please help me pray about my family",
@@ -94,7 +97,10 @@ async function testLocalPrayerEngine() {
     "guidance",
     true
   );
-  check(guidance.route === "local", "Life Guidance routes locally");
+  check(
+    guidance.route === "cloud-standard" && guidance.reason === "universal-question",
+    "Life guidance uses universal reasoning instead of a canned topic template"
+  );
 
   const study = engine.decideRoute(
     "Explain Romans 8 in Greek and its historical context",
@@ -132,6 +138,42 @@ async function testLocalPrayerEngine() {
 
   const prayerStillLocal = engine.decideRoute("Please write a prayer for my mother", "comfort", true);
   check(prayerStillLocal.route === "local", "Explicit prayer request remains private local");
+  const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
+  check(
+    worldScience.route === "cloud-standard" && worldScience.reason === "universal-question",
+    "General science question is accepted by universal conversation routing"
+  );
+
+  const pregnancyDecision = engine.decideRoute(
+    "I am pregnant. Should I have an abortion?",
+    "comfort",
+    true
+  );
+  check(
+    pregnancyDecision.route === "cloud-standard" && pregnancyDecision.reason === "universal-question",
+    "Pregnancy decision is routed to real reasoning instead of canned local guidance"
+  );
+
+  const shoppingQuestion = engine.decideRoute(
+    "Which laptop should I buy for video editing?",
+    "comfort",
+    true
+  );
+  check(
+    shoppingQuestion.route === "cloud-standard" && shoppingQuestion.reason === "universal-question",
+    "Shopping and technology questions remain inside product scope"
+  );
+
+  const offlineWorldQuestion = engine.decideRoute(
+    "Explain quantum computing",
+    "comfort",
+    false
+  );
+  check(
+    offlineWorldQuestion.route === "device-general",
+    "Offline world questions route to prepared device AI rather than generic prayer"
+  );
+
 
   const deepTheology = engine.decideRoute("Compare Catholic and Protestant interpretations of Mary", "comfort", true);
   check(deepTheology.route === "cloud-deep" && deepTheology.cloudMode === "study", "Comparative theology routes to Ask Deeper");
@@ -143,7 +185,7 @@ async function testLocalPrayerEngine() {
     "study",
     false
   );
-  check(offlineStudy.route === "local", "Offline mode forces local fallback even for study");
+  check(offlineStudy.route === "device-general", "Offline deep questions route to device reasoning instead of a generic local template");
 
   const safety = engine.buildExperience(
     "I want to kill myself tonight",
@@ -348,8 +390,9 @@ async function testIndexFlowContracts() {
   check(index.includes('id="deviceAiSetup"') && index.includes('enablePrivateDeviceAI()'), "Eligible devices have explicit private AI setup control");
   check(deviceAISetup.includes("userInitiated:true"), "Private AI model preparation requires explicit setup action");
   check(deviceAIAnswer.includes("getStatus()") && deviceAIAnswer.includes("status.ready"), "Conversation uses device LLM only after it is ready");
-  check(submit.includes("routeDecision.reason === 'general-conversation'") && submit.includes("answerWithPreparedDeviceAI"), "General conversation can use prepared device LLM before cloud");
-  check(submit.indexOf("answerWithPreparedDeviceAI") >= 0 && submit.indexOf("answerWithPreparedDeviceAI") < fetchIndex, "Prepared device LLM is attempted before cloud fetch");
+  check(submit.includes("routeDecision.route === 'device-general'") && submit.includes("answerWithPreparedDeviceAI"), "Offline universal questions can use prepared device LLM");
+  check(submit.includes('data.error === "SERVICE_DEGRADED"') && submit.includes("answerWithPreparedDeviceAI"), "Cloud failure tries universal device AI before narrower fallbacks");
+  check(submit.includes("do not want to replace it with a generic prayer response"), "Universal cloud failure is never disguised as canned prayer guidance");
   check(!deviceAIAnswer.includes("prepare("), "Conversation routing never triggers a model download");
   check(index.includes("nextTurnModeOverride"), "Explicit Ask Deeper shortcuts apply to one turn only");
   check(index.includes("SERVICE_DEGRADED") && index.includes("answerWithDeviceKnowledge"), "Cloud failure falls back to device knowledge/local response");
