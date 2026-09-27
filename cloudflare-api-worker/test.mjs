@@ -37,10 +37,10 @@ assert.match(conversational.messages[0].content, /rude or profane, stay calm and
 assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
 assert.match(conversational.messages[0].content, /Do not force headings such as Reflection or Scripture Anchors/i);
 assert.match(conversational.messages[0].content, /named traditional prayer/i);
-assert.match(conversational.messages[0].content, /does not have a physical body or personal sex\/relationship life/i);
+assert.match(conversational.messages[0].content, /1into1 has no physical body or personal lived experience/i);
 assert.match(conversational.messages[0].content, /Keep simple questions concise and natural/i);
 assert.match(conversational.messages[0].content, /Every normal cloud answer must contain one directly relevant Scripture anchor/i);
-assert.match(conversational.messages[0].content, /Never improvise the wording of a named traditional prayer/i);
+assert.match(conversational.messages[0].content, /Named traditional prayers must not be improvised/i);
 
 
 const deepChristian = __test.buildMessages({
@@ -50,7 +50,7 @@ const deepChristian = __test.buildMessages({
   userPsyche: "focused",
   userIntentions: "faith"
 });
-assert.match(deepChristian.messages[0].content, /deep Bible study, theology/i);
+assert.match(deepChristian.messages[0].content, /deeper biblical reasoning, context, theology/i);
 
 const businessConversation = __test.buildMessages({
   message: "i want to earn money tell me business ideas",
@@ -89,8 +89,8 @@ const universalMedicalDecision = __test.buildMessages({
   userPsyche: "uncertain",
   userIntentions: "seeking guidance"
 });
-assert.match(universalMedicalDecision.messages[0].content, /pregnancy, medical treatment/i);
-assert.match(universalMedicalDecision.messages[0].content, /Christian moral\/spiritual guidance/i);
+assert.match(universalMedicalDecision.messages[0].content, /medical treatment, pregnancy/i);
+assert.match(universalMedicalDecision.messages[0].content, /spiritual and moral support/i);
 
 assert.deepEqual(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard"),
