@@ -3264,25 +3264,35 @@
         }
 
         if (routeDecision.route === 'local') {
-          if (!navigator.onLine && routeDecision.reason === 'offline') {
-            const onlineEquivalent = localEngine.decideRoute(text, turnMode, true);
-            if (onlineEquivalent &&
-                onlineEquivalent.route === 'cloud-standard' &&
-                onlineEquivalent.reason === 'general-conversation') {
-              const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
-              if (deviceHandled) return;
-            }
-          }
-
           const reason = navigator.onLine ? (routeDecision.reason || 'local-first') : 'offline';
           setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason, turnMode), 140);
+          return;
+        }
+
+        if (routeDecision.route === 'device-general') {
+          const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+          if (deviceHandled) return;
+
+          showThinking(false);
+          appendBotBubble(
+            "I can discuss this question, but the full conversational engine is unavailable offline on this device. Enable Private AI on a supported device or reconnect to continue with this question.",
+            turnRecipient
+          );
+          trackSanctuaryEvent('universal_question_offline_unavailable', {
+            reason:routeDecision.reason || 'offline'
+          });
           return;
         }
       }
 
       if (!navigator.onLine) {
-        const handled = await answerWithDeviceKnowledge(text, turnRecipient);
-        if (!handled) setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline', turnMode), 180);
+        const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+        if (deviceHandled) return;
+        showThinking(false);
+        appendBotBubble(
+          "I can discuss this question, but the full conversational engine is unavailable offline on this device. Enable Private AI on a supported device or reconnect to continue with this question.",
+          turnRecipient
+        );
         return;
       }
 
@@ -3296,13 +3306,6 @@
         if (!useDeeper) {
           routeDecision = { route:'cloud-standard', cloudMode:'conversation', reason:'ask-deeper-declined' };
         }
-      }
-
-      if (routeDecision &&
-          routeDecision.route === 'cloud-standard' &&
-          routeDecision.reason === 'general-conversation') {
-        const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
-        if (deviceHandled) return;
       }
 
       const requestMode = routeDecision && routeDecision.cloudMode
@@ -3351,8 +3354,17 @@
         }
 
         if (data.error === "SERVICE_DEGRADED") {
-          const handled = await answerWithDeviceKnowledge(text, turnRecipient);
-          if (!handled) answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback', turnMode);
+          const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+          if (deviceHandled) return;
+
+          const knowledgeHandled = await answerWithDeviceKnowledge(text, turnRecipient);
+          if (knowledgeHandled) return;
+
+          showThinking(false);
+          appendBotBubble(
+            "The full conversational engine is temporarily unavailable. This question is still within 1into1's scope, but I do not want to replace it with a generic prayer response. Please try again when the connection is available, or enable Private AI on a supported device.",
+            turnRecipient
+          );
           return;
         }
 
@@ -3391,8 +3403,18 @@
         }
       } catch (err) {
         console.warn("Cloud conversation unavailable; continuing on device:", err);
-        const handled = await answerWithDeviceKnowledge(text, turnRecipient);
-        if (!handled) answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback', turnMode);
+
+        const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+        if (deviceHandled) return;
+
+        const knowledgeHandled = await answerWithDeviceKnowledge(text, turnRecipient);
+        if (knowledgeHandled) return;
+
+        showThinking(false);
+        appendBotBubble(
+          "The full conversational engine is temporarily unavailable. This question is still within 1into1's scope, but I do not want to replace it with a canned devotional answer. Please try again when the connection is available, or enable Private AI on a supported device.",
+          turnRecipient
+        );
       }
     }
 
