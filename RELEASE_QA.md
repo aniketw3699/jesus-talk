@@ -267,3 +267,17 @@ The local release-candidate UI, offline behavior, and rendered browser flows hav
 PR #12 should still remain Draft until the external production-dependent items are deliberately configured and checked according to the cutover runbook.
 
 Do not enable billing or encrypted backup merely to make the release appear complete.
+
+## September 27 — automatic routing regression fix
+
+Post-launch browser testing found that the local-first router was over-classifying arbitrary chat as prayer. The corrected architecture now treats the chat box as a single natural entry point:
+
+- explicit prayer and supported burden/guidance flows stay local;
+- greetings and a small set of simple conversational turns can resolve locally;
+- open-ended conversation and basic Christian/Bible knowledge route to the standard Jesus/Scripture-scoped cloud model;
+- deeper theology, historical context, original-language study, and comparative interpretation route to Ask Deeper;
+- unrelated general-world questions remain inside the Christian/Scripture product scope rather than turning 1into1 into a general-purpose assistant;
+- safety interception still has priority;
+- offline mode still forces a local fallback.
+
+Regression tests now cover Mother Mary, Ten Commandments, hostile language, serious personal situations, explicit prayer, comparative theology, casual greetings, and the automatic-mode UI.
