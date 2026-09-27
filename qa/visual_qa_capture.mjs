@@ -54,7 +54,7 @@ async function inspectViewport(device, viewport) {
   );
   record(
     device + " universal product tagline survives auth resolution",
-    resolvedProductTagline === "Ask Anything · Jesus-Centered Guidance & Scripture",
+    resolvedProductTagline === "Bring Any Question · Through Jesus & Scripture",
     resolvedProductTagline
   );
 
