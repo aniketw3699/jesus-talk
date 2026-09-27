@@ -367,7 +367,7 @@
     if (!clean) return false;
 
     return /\b(calculate|calculator|divide|divided by|multiply|multiplied by|addition|subtract|equation|algebra|geometry)\b/.test(clean) ||
-      /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|graphics card|shopping|price|discount|business plan|business strategy|start a business|market analysis|market research|revenue model|startup roadmap)\b/.test(clean) ||
+      /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|graphics card|shopping|price|discount|business|business ideas?|business plan|business strategy|start a business|startup|side hustle|earn money|make money|money[- ]making|market analysis|market research|revenue model|startup roadmap)\b/.test(clean) ||
       /\b(stock|stocks|crypto|bitcoin|share price|market price|investment pick|mutual fund|trading)\b/.test(clean) ||
       /\b(elon musk|donald trump|trump|biden|modi|putin|celebrity|actor|actress|singer|politician|election|poll|latest news|breaking news|current affairs)\b/.test(clean) ||
       /\b(black hole|quantum|physics|chemistry|biology|evolution|dinosaur|planet|galaxy|computer science|programming|python|javascript|coding|algorithm|artificial intelligence|machine learning)\b/.test(clean) ||
@@ -391,6 +391,34 @@
     if (looksLikeGeneralWorldKnowledge(text)) return true;
     if (looksLikePersonalChristianGuidance(text)) return false;
     return true;
+  }
+
+  function buildScopeRedirect(text) {
+    const clean = normalize(text);
+    let reply = "";
+
+    if (/\b(business|startup|side hustle|earn money|make money|money[- ]making|revenue|market|investment|stock|crypto|bitcoin)\b/.test(clean)) {
+      reply = "1into1 does not generate business ideas, money-making strategies, investment picks, or market advice. Its world is Jesus and the Bible only. I can help you explore what Scripture teaches about work, money, stewardship, greed, generosity, contentment, honesty, and serving others.";
+    } else if (/\b(elon musk|donald trump|trump|biden|modi|putin|politic|election|president|government|celebrity|actor|actress|singer)\b/.test(clean)) {
+      reply = "1into1 does not explain public figures, celebrities, politics, elections, or current affairs. Its world is Jesus and the Bible only. I can help you study what Scripture teaches about leadership, truth, justice, humility, power, service, and loving people you disagree with.";
+    } else if (/\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|hinduism|buddha|buddhism|sikh|sikhism|jain|jainism)\b/.test(clean)) {
+      reply = "1into1 does not teach or explain other religions as an outside subject. Its world is Jesus and the Bible only. I can help you study what Scripture teaches about worship, idolatry, loving your neighbor, witness, and faith in Jesus.";
+    } else if (/\b(calculate|calculator|divide|divided by|multiply|equation|algebra|geometry|black hole|quantum|physics|chemistry|biology|evolution|dinosaur|planet|galaxy|programming|python|javascript|coding|algorithm|artificial intelligence|machine learning)\b/.test(clean)) {
+      reply = "1into1 does not act as a calculator, science tutor, or technology teacher. Its world is Jesus and the Bible only. I can help you explore biblical themes such as creation, wisdom, truth, human limits, responsibility, and stewardship.";
+    } else if (/\b(laptop|phone|camera|car|headphones|shopping|price|discount|buy|product|movie|film|netflix|song|album|football|cricket|basketball|sports|game|gaming)\b/.test(clean)) {
+      reply = "1into1 does not recommend products or provide entertainment or sports information. Its world is Jesus and the Bible only. I can help you explore biblical themes such as stewardship, contentment, discipline, use of time, wisdom, and what we give our attention to.";
+    } else {
+      reply = "That question is outside 1into1's world. 1into1 speaks only about Jesus, the Bible, Christian faith, prayer, and biblical wisdom. If there is a biblical question underneath what you are asking, I can help you explore that part.";
+    }
+
+    return {
+      route:"local-scope",
+      reply:reply,
+      analysis:{ topic:"scope", topicLabel:"Jesus & Bible only", confidence:1, needs:[] },
+      scriptureRefs:[],
+      journey:"",
+      privacy:"local"
+    };
   }
 
   function isHighStakesLifeQuestion(text) {
@@ -454,6 +482,14 @@
       return { route:"local", reason:"prayer-request", analysis:analysis };
     }
 
+    if (shouldBridgeToChristianScope(text)) {
+      return {
+        route:"local-scope",
+        reason:"bible-scope-boundary",
+        analysis:analysis
+      };
+    }
+
     if (selectedMode === "study" || containsPremiumDeepQuestion(text)) {
       return {
         route:isOnline ? "cloud-deep" : "device-general",
@@ -463,11 +499,10 @@
       };
     }
 
-    const bridge = shouldBridgeToChristianScope(text);
     return {
       route:isOnline ? "cloud-standard" : "device-general",
-      cloudMode:bridge ? "bridge" : "conversation",
-      reason:bridge ? "christian-bridge" : "christian-question",
+      cloudMode:"conversation",
+      reason:"christian-question",
       analysis:analysis
     };
   }
@@ -493,13 +528,14 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.6.0",
+    version:"2.7.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
     decideRoute:decideRoute,
     premiumDepthScore:premiumDepthScore,
     shouldBridgeToChristianScope:shouldBridgeToChristianScope,
+    buildScopeRedirect:buildScopeRedirect,
     shouldHandleLocally:shouldHandleLocally,
     clearLocalMemory:clearLocalMemory,
     getLocalMemorySummary:getLocalMemorySummary
