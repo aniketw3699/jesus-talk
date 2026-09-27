@@ -85,11 +85,15 @@ Paid / limited higher-depth cloud:
 - optional encrypted cross-device backup
 - future premium cloud features
 
-### 5. Protect cloud economics
+### 5. Zero owner-funded runtime spend before revenue
 
-“Unlimited Ask Deeper” must not mean unlimited automated API consumption.
+The product must be able to operate with a hard owner-funded runtime budget of **$0**.
 
-Plus is for normal personal use and is protected by a configurable server-side fair-use ceiling. Local prayer remains unlimited even if the cloud ceiling is reached.
+Free/core usage should prefer the user's device for prayer, Bible, verified Christian knowledge, routing, journaling, journeys, and—where the device supports it—on-device language-model inference. Free-tier cloud services may be used only as best-effort capacity; exhausting a free quota must degrade to device/local behavior instead of creating a bill.
+
+Do not enable automatic paid overages or upgrade infrastructure simply to keep free traffic running. Cloud AI that creates marginal cost must be funded by Plus revenue, promotional credits, or another explicit revenue source.
+
+“Unlimited Ask Deeper” must not mean unlimited automated API consumption. Plus is for normal personal use and is protected by a configurable server-side fair-use ceiling. Local prayer remains unlimited even if cloud capacity is exhausted.
 
 ### 6. Keep the signature experiences
 
@@ -145,6 +149,7 @@ Phase 12 should proceed only while these conditions remain true:
 5. Lay It Down text remains ephemeral.
 6. Plus cloud use has a fair-use/anti-abuse ceiling.
 7. No UI claims that the AI is Jesus.
-8. The free/paid boundary is “prayer is free; standard scoped conversation is available; higher-depth Ask Deeper is the metered/premium intelligence layer.”
+8. The free/paid boundary is “prayer is free; standard scoped conversation is device-first/best-effort; higher-depth Ask Deeper is the metered/premium intelligence layer.”
+9. Owner-funded runtime spend remains $0 until revenue exists to fund paid cloud capacity; free-tier exhaustion must fail back to local/device behavior rather than paid overages.
 
 If future work violates these conditions, stop and reassess the product positioning before release.
