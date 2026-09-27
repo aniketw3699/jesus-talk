@@ -90,7 +90,7 @@ def main():
     home = as_text(fetched.get("/", (0, {}, b""))[2])
     canonical_match = re.search(r'<link[^>]+rel=["\']canonical["\'][^>]+href=["\']([^"\']+)', home, re.I)
     canonical = canonical_match.group(1) if canonical_match else ""
-    if canonical != "https://www.1into1.com/":
+    if canonical.rstrip("/") != "https://www.1into1.com":
         failures.append(f"homepage canonical unexpected: {canonical!r}")
 
     robots = as_text(fetched.get("/robots.txt", (0, {}, b""))[2])
