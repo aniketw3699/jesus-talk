@@ -81,7 +81,7 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    anxiety.route === "cloud-standard" && anxiety.reason === "christian-question",
+    anxiety.route === "cloud-standard" && anxiety.reason === "model-first-conversation",
     "Open-ended anxiety/work conversation uses Christian reasoning"
   );
 
@@ -98,7 +98,7 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    guidance.route === "cloud-standard" && guidance.reason === "christian-question",
+    guidance.route === "cloud-standard" && guidance.reason === "model-first-conversation",
     "Life guidance uses Christian reasoning instead of a canned topic template"
   );
 
@@ -111,7 +111,10 @@ async function testLocalPrayerEngine() {
 
   const casualMemoryBefore = localStorage.getItem("oneintoone_local_memory_v1");
   const helloRoute = engine.decideRoute("Hello", "comfort", true);
-  check(helloRoute.route === "local" && helloRoute.reason === "casual-conversation", "Greeting routes to natural local conversation");
+  check(
+    helloRoute.route === "cloud-standard" && helloRoute.reason === "model-first-conversation",
+    "Greeting reaches model-first conversation instead of a scope or canned local reply"
+  );
   const helloExperience = engine.buildExperience("Hello", "comfort");
   check(helloExperience.analysis.topic === "conversation", "Greeting does not fall into generic prayer topic");
   check(!(helloExperience.reply || "").includes("Scripture anchors:"), "Greeting does not force Scripture anchors");
@@ -177,20 +180,21 @@ async function testLocalPrayerEngine() {
 
   const explicitSex = engine.decideRoute("I'm a girl I want to get fucked", "comfort", true);
   check(
-    explicitSex.route === "cloud-standard" && explicitSex.reason === "christian-question",
+    explicitSex.route === "cloud-standard" && explicitSex.reason === "model-first-conversation",
     "Explicit adult sexual wording remains a valid standard conversation topic"
   );
 
   const bodyQuestion = engine.decideRoute("Do u have sex?", "comfort", true);
   check(
-    bodyQuestion.route === "cloud-standard" && bodyQuestion.reason === "christian-question",
+    bodyQuestion.route === "cloud-standard" && bodyQuestion.reason === "model-first-conversation",
     "Personal-body question routes to ordinary conversation rather than refusal"
   );
   const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
   check(
-    worldScience.route === "local-scope" &&
-    worldScience.reason === "bible-scope-boundary",
-    "Standalone science is bridged to Jesus/Scripture instead of answered as a science encyclopedia"
+    worldScience.route === "cloud-standard" &&
+    worldScience.cloudMode === "conversation" &&
+    worldScience.reason === "model-first-conversation",
+    "Standalone science reaches the model, which is responsible for answering only through Jesus/Scripture"
   );
 
   const detailedPregnancyDecision = engine.decideRoute(
@@ -219,7 +223,7 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    pregnancyDecision.route === "cloud-standard" && pregnancyDecision.reason === "christian-question",
+    pregnancyDecision.route === "cloud-standard" && pregnancyDecision.reason === "model-first-conversation",
     "Pregnancy decision is routed to real reasoning instead of canned local guidance"
   );
 
@@ -229,9 +233,10 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    shoppingQuestion.route === "local-scope" &&
-    shoppingQuestion.reason === "bible-scope-boundary",
-    "Shopping and technology are bridged to Christian stewardship instead of general recommendations"
+    shoppingQuestion.route === "cloud-standard" &&
+    shoppingQuestion.cloudMode === "conversation" &&
+    shoppingQuestion.reason === "model-first-conversation",
+    "Shopping/technology reaches semantic reasoning while the system prompt controls the Bible-only answer"
   );
 
   const offlineWorldQuestion = engine.decideRoute(
@@ -240,9 +245,10 @@ async function testLocalPrayerEngine() {
     false
   );
   check(
-    offlineWorldQuestion.route === "local-scope" &&
-    offlineWorldQuestion.reason === "bible-scope-boundary",
-    "Offline world questions preserve the Christian bridge scope"
+    offlineWorldQuestion.route === "device-general" &&
+    offlineWorldQuestion.cloudMode === "conversation" &&
+    offlineWorldQuestion.reason === "model-first-conversation",
+    "Offline questions reach the prepared device model with the same Bible-only semantic prompt"
   );
 
 
@@ -254,9 +260,9 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    deepStrategy.route === "local-scope" &&
-    deepStrategy.reason === "bible-scope-boundary",
-    "Complex non-Christian strategy cannot turn Ask Deeper into a general research product"
+    deepStrategy.route === "cloud-deep" &&
+    deepStrategy.cloudMode === "study",
+    "Complex requests can use Ask Deeper, while its system prompt still constrains the answer to Bible/Jesus"
   );
 
   const premiumScore = engine.premiumDepthScore(
@@ -277,47 +283,50 @@ async function testLocalPrayerEngine() {
 
   const normalScience = engine.decideRoute("Explain black holes simply", "comfort", true);
   check(
-    normalScience.route === "local-scope" &&
-    normalScience.reason === "bible-scope-boundary",
-    "Simple science is accepted as input but bridged into the Christian scope"
+    normalScience.route === "cloud-standard" &&
+    normalScience.reason === "model-first-conversation",
+    "Simple science reaches model-first reasoning rather than a keyword firewall"
   );
 
   const politicsBridge = engine.decideRoute("who is elon musk and what trump has to do about it", "comfort", true);
   check(
-    politicsBridge.route === "local-scope" &&
-    politicsBridge.reason === "bible-scope-boundary",
-    "Public-figure/political prompt cannot become general news or biography"
+    politicsBridge.route === "cloud-standard" &&
+    politicsBridge.reason === "model-first-conversation",
+    "Public-figure/political prompt reaches semantic reasoning rather than a keyword firewall"
   );
 
   const mathBridge = engine.decideRoute("calculate 20 divide by 4", "comfort", true);
   check(
-    mathBridge.route === "local-scope" &&
-    mathBridge.reason === "bible-scope-boundary",
-    "Standalone calculation remains outside product knowledge scope"
+    mathBridge.route === "cloud-standard" &&
+    mathBridge.reason === "model-first-conversation",
+    "Standalone calculation reaches semantic reasoning rather than a keyword firewall"
   );
 
   const religionBridge = engine.decideRoute("what your view on bhagwan ram?", "comfort", true);
   check(
-    religionBridge.route === "local-scope" &&
-    religionBridge.reason === "bible-scope-boundary",
-    "Other-religion prompt is handled only through a Christian perspective"
+    religionBridge.route === "cloud-standard" &&
+    religionBridge.reason === "model-first-conversation",
+    "Other-religion prompt reaches semantic reasoning under the Christian system prompt"
   );
 
   const businessIdeas = engine.decideRoute("i want to earn money tell me business ideas", "comfort", true);
   check(
-    businessIdeas.route === "local-scope" &&
-    businessIdeas.reason === "bible-scope-boundary",
-    "Business-idea request is hard-stopped before cloud AI"
+    businessIdeas.route === "cloud-standard" &&
+    businessIdeas.reason === "model-first-conversation",
+    "Business-idea request reaches semantic model reasoning"
   );
-  const businessScopeAnswer = engine.buildScopeRedirect("i want to earn money tell me business ideas");
+  const icuHelp = engine.decideRoute("my mother is in ICU please save her", "comfort", true);
   check(
-    Boolean(
-      businessScopeAnswer &&
-      /does not generate business ideas/i.test(businessScopeAnswer.reply || "") &&
-      /Jesus and the Bible only/i.test(businessScopeAnswer.reply || "") &&
-      !/tutoring|coaching|online store|handyman|youtube channel/i.test(businessScopeAnswer.reply || "")
-    ),
-    "Business-idea redirect contains only the Bible/Jesus boundary and no business suggestions"
+    icuHelp.route === "cloud-standard" &&
+    icuHelp.reason === "model-first-conversation",
+    "ICU/family desperation reaches semantic pastoral reasoning instead of a scope rejection"
+  );
+
+  const whatsUp = engine.decideRoute("whats up", "comfort", true);
+  check(
+    whatsUp.route === "cloud-standard" &&
+    whatsUp.reason === "model-first-conversation",
+    "Casual greeting reaches natural model conversation instead of a scope rejection"
   );
 
   const businessIdeasDeep = engine.decideRoute(
@@ -326,16 +335,16 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    businessIdeasDeep.route === "local-scope" &&
-    businessIdeasDeep.reason === "bible-scope-boundary",
-    "Ask Deeper cannot bypass the Bible-only knowledge boundary"
+    businessIdeasDeep.route === "cloud-deep" &&
+    businessIdeasDeep.cloudMode === "study",
+    "Ask Deeper receives complex input while the model prompt keeps the output Bible/Jesus-only"
   );
 
   const christianComparison = engine.decideRoute("What does Christianity say about worshipping other gods?", "comfort", true);
   check(
     christianComparison.route === "cloud-standard" &&
     christianComparison.cloudMode === "conversation" &&
-    christianComparison.reason === "christian-question",
+    christianComparison.reason === "model-first-conversation",
     "Explicit Christian comparative question remains directly in Christian conversation"
   );
 
