@@ -23,11 +23,28 @@ echo "Running exact Cloudflare bundle and browser-facing safety audit..."
 python3 cloudflare_hosting_audit.py
 
 echo
+echo "Rewriting ONLY the generated preview bundle to use its same-origin API proxy..."
+python3 - <<'PY'
+from pathlib import Path
+
+path = Path("dist/launch-config.js")
+source = path.read_text(encoding="utf-8")
+expected = 'backendApiUrl: "https://oneintoone-jesus-api.aniketw3699.workers.dev"'
+replacement = 'backendApiUrl: "/api-preview"'
+
+if expected not in source:
+    raise SystemExit("REFUSING: expected production API marker not found in generated preview bundle")
+
+path.write_text(source.replace(expected, replacement, 1), encoding="utf-8")
+print("PASS: preview bundle uses /api-preview; source launch-config.js remains unchanged.")
+PY
+
+echo
 echo "Deploying a SEPARATE temporary workers.dev Worker..."
-echo "This does NOT publish to 1into1.com and does NOT modify the production Worker."
+echo "This does NOT publish to 1into1.com and does NOT modify the production Worker/API."
 npx --yes wrangler@4.141.0 deploy \
   --config wrangler.device-preview.jsonc
 
 echo
-echo "Open the workers.dev URL printed above."
+echo "Open: https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
 echo "Production 1into1.com was not targeted by this command."

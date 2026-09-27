@@ -152,6 +152,8 @@ except Exception as exc:
 
 if device_preview.get("name") != "oneintoone-jesus-device-preview":
     raise SystemExit("FAIL: device preview Worker must use its isolated Worker name")
+if device_preview.get("main") != "device-preview-worker.mjs":
+    raise SystemExit("FAIL: device preview Worker must use the isolated proxy script")
 if device_preview.get("workers_dev") is not True:
     raise SystemExit("FAIL: device preview Worker must use workers.dev")
 if device_preview.get("routes") or device_preview.get("route"):
@@ -159,9 +161,21 @@ if device_preview.get("routes") or device_preview.get("route"):
 preview_assets = device_preview.get("assets") or {}
 if preview_assets.get("directory") != "./dist":
     raise SystemExit("FAIL: device preview Worker must serve only ./dist")
+if preview_assets.get("binding") != "ASSETS":
+    raise SystemExit("FAIL: device preview Worker must expose the static bundle through ASSETS")
 if preview_assets.get("not_found_handling") != "404-page":
     raise SystemExit("FAIL: device preview Worker must preserve real 404 handling")
 if preview_assets.get("html_handling") != "auto-trailing-slash":
     raise SystemExit("FAIL: device preview Worker must preserve clean HTML routing")
 
+preview_worker_path = ROOT / "device-preview-worker.mjs"
+if not preview_worker_path.is_file():
+    raise SystemExit("FAIL: device-preview-worker.mjs is missing")
+preview_worker_source = preview_worker_path.read_text(encoding="utf-8")
+if '"/api-preview"' not in preview_worker_source or "env.ASSETS.fetch(request)" not in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker must proxy preview API traffic and serve static assets")
+if "1into1.com" in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker script must not target the production frontend domain")
+
 print("PASS: dedicated device-AI Worker is isolated to workers.dev with no production routes.")
+print("PASS: isolated preview has a same-origin API proxy without changing the production API.")

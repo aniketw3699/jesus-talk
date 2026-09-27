@@ -3085,15 +3085,21 @@
       }
     }
 
-    function setDeviceAISetupState(message, busy = false, ready = false) {
+    function setDeviceAISetupState(message, busy = false, ready = false, unavailable = false) {
       const panel = document.getElementById('deviceAiSetup');
       const button = document.getElementById('deviceAiSetupBtn');
       const status = document.getElementById('deviceAiSetupStatus');
       if (!panel || !button || !status) return;
 
       panel.classList.add('visible');
-      button.disabled = Boolean(busy || ready);
-      button.textContent = ready ? '✓ Private AI ready' : (busy ? 'Preparing Private AI…' : '⚡ Enable Private AI');
+      button.disabled = Boolean(busy || ready || unavailable);
+      button.textContent = ready
+        ? '✓ Private AI ready'
+        : unavailable
+        ? 'Private AI unavailable'
+        : busy
+        ? 'Preparing Private AI…'
+        : '⚡ Enable Private AI';
       status.textContent = message || (ready
         ? 'Private conversation AI is ready on this device.'
         : 'Optional · about 1 GB one-time model download · generation runs on this device');
@@ -3114,11 +3120,28 @@
         const inspected = await engine.inspect();
         if (inspected && inspected.state === 'available') {
           setDeviceAISetupState('Optional · about 1 GB one-time model download · generation runs on this device.');
-        } else {
-          panel.classList.remove('visible');
+          return;
         }
-      } catch (_) {
-        panel.classList.remove('visible');
+
+        const reason = inspected && inspected.error
+          ? String(inspected.error)
+          : inspected && inspected.reason
+          ? String(inspected.reason)
+          : 'device-ai-unavailable';
+
+        setDeviceAISetupState(
+          'Private AI is not available in this browser/device: ' + reason + '. Cloud conversation still works when online.',
+          false,
+          false,
+          true
+        );
+      } catch (error) {
+        setDeviceAISetupState(
+          'Private AI capability check failed: ' + (error && error.message ? String(error.message) : 'unknown-error'),
+          false,
+          false,
+          true
+        );
       }
     }
 
