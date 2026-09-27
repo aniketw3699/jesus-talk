@@ -60,6 +60,9 @@ function loadIntoSandbox(paths, extras) {
 
 async function testLocalPrayerEngine() {
   const loaded = loadIntoSandbox([
+    "bible-manifest.js",
+    "local-bible-engine.js",
+    "local-knowledge.js",
     "local-scripture-data.js",
     "offline-core.js",
     "local-experiences.js"
@@ -110,13 +113,13 @@ async function testLocalPrayerEngine() {
   check(/Scripture-guided Christian companion/i.test(identityExperience.reply || ""), "Identity question gets direct conversational answer");
 
   const mary = engine.decideRoute("Who is Mother Mary?", "comfort", true);
-  check(mary.route === "cloud-standard" && mary.cloudMode === "conversation", "Basic Christian knowledge question routes to standard conversation AI");
+  check(mary.route === "local-knowledge", "Basic Christian knowledge uses device knowledge before cloud");
 
   const commandments = engine.decideRoute("Tell me the Ten Commandments", "comfort", true);
-  check(commandments.route === "cloud-standard" && commandments.cloudMode === "conversation", "Basic Bible knowledge routes to standard conversation AI");
+  check(commandments.route === "local-knowledge", "Basic Bible knowledge uses device knowledge before cloud");
 
   const insult = engine.decideRoute("Fuck you", "comfort", true);
-  check(insult.route === "cloud-standard" && insult.cloudMode === "conversation", "Unstructured hostility routes to natural standard conversation AI");
+  check(insult.route === "local" && insult.reason === "casual-conversation", "Hostile chat has a calm on-device fallback");
 
   const dying = engine.decideRoute("My mom is dying. Please help me.", "comfort", true);
   check(dying.route === "cloud-standard" && dying.cloudMode === "conversation", "Serious personal situation routes to nuanced standard conversation AI");
@@ -331,11 +334,11 @@ async function testIndexFlowContracts() {
   check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
   check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
-  check(index.includes("Talk · Auto"), "UI makes automatic routing the default");
-  check(index.includes(">🙏 Prayer</button>"), "UI exposes an explicit Prayer override");
-  check(index.includes(">🧭 Guidance</button>"), "UI exposes an explicit Guidance override");
-  check(index.includes(">✨ Ask Deeper</button>"), "UI exposes premium Ask Deeper as an explicit override");
-  check(index.includes("grid-template-columns:repeat(4,minmax(0,1fr))"), "Mobile response modes render as four visible columns");
+  check(index.includes("Ask naturally — 1into1 chooses the response path automatically."), "UI explains automatic routing without exposing backend modes");
+  check(!index.includes('id="modeComfort"') && !index.includes('id="modePrayer"') && !index.includes('id="modeGuidance"'), "Manual response-mode selector is removed");
+  check(index.includes('/local-knowledge.js'), "Chat page loads the device knowledge engine");
+  check(index.includes("nextTurnModeOverride"), "Explicit Ask Deeper shortcuts apply to one turn only");
+  check(index.includes("SERVICE_DEGRADED") && index.includes("answerWithDeviceKnowledge"), "Cloud failure falls back to device knowledge/local response");
   check(index.includes("No account needed"), "UI promises no-account core use");
   check(index.includes("No app install required"), "UI promises no-install browser core use");
 }
