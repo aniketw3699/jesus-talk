@@ -211,7 +211,7 @@ const env = {
   FIREBASE_PROJECT_ID: "jesus-chat-bd89f",
   PLUS_DAILY_FAIR_USE_LIMIT: "100",
   ALLOWED_ORIGINS:
-    "https://www.1into1.com,https://1into1.com,https://oneintoone-jesus.aniketw3699.workers.dev"
+    "https://www.1into1.com,https://1into1.com,https://oneintoone-jesus.aniketw3699.workers.dev,https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
 };
 
 const healthResponse = await worker.fetch(new Request("https://worker.test/api/health"), env);
@@ -242,6 +242,22 @@ assert.equal(preflight.status, 204);
 assert.equal(
   preflight.headers.get("access-control-allow-origin"),
   "https://oneintoone-jesus.aniketw3699.workers.dev"
+);
+
+const devicePreviewPreflight = await worker.fetch(
+  new Request("https://worker.test/chat", {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://oneintoone-jesus-device-preview.aniketw3699.workers.dev",
+      "Access-Control-Request-Method": "POST"
+    }
+  }),
+  env
+);
+assert.equal(devicePreviewPreflight.status, 204);
+assert.equal(
+  devicePreviewPreflight.headers.get("access-control-allow-origin"),
+  "https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
 );
 
 const deniedPreflight = await worker.fetch(
