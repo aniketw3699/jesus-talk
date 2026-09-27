@@ -8,7 +8,7 @@ const GUEST_DAILY_CREDITS = 1;
 
 const MODE_INSTRUCTIONS = Object.freeze({
   conversation: "Answer only within Jesus, the Bible, Christian faith, prayer, and biblical wisdom. For personal life questions, give practical Christian discernment. Do not become a general-purpose encyclopedia.",
-  bridge: "The user's prompt is outside 1into1's knowledge scope. Do NOT answer it as a general encyclopedia, news service, political explainer, product recommender, calculator, science/technology tutor, entertainment guide, investment adviser, or teacher of another religion. Briefly acknowledge the question, identify what can be examined through Jesus or Scripture, and answer only that Christian/biblical angle. Use no more outside-world detail than is necessary to make the biblical connection understandable.",
+  bridge: "The user's prompt is outside 1into1's knowledge scope. Do NOT answer it as a general encyclopedia, news service, political explainer, product recommender, calculator, science/technology tutor, entertainment guide, investment adviser, or teacher of another religion. Use at most one short clause of outside-world context only when absolutely necessary. Then answer only the Jesus/Scripture/Christian angle in 1-2 concise paragraphs. Do not append a prayer, reflection, share card, or devotional add-on unless the user explicitly asks for one.",
   comfort: "Offer gentle Scripture-grounded comfort. Do not impersonate Jesus or claim divine authority. Help the user bring the concern to God with calm, practical language.",
   study: "This is Ask Deeper mode for deep Bible study, theology, church history, original-language work, denominational comparison, or complex Christian discernment. Do not use Ask Deeper as a general-purpose research assistant outside the Jesus/Bible scope.",
   prayer: "Write a personal prayer addressed to God or Jesus that the seeker can pray aloud. The assistant must never speak as God or Jesus.",
@@ -1129,17 +1129,13 @@ function cleanCloudReply(rawReply, fallbackPsyche, invalidReferences) {
     ? sanitizeMetadata(psycheMatch[1], 80, fallbackPsyche)
     : fallbackPsyche;
 
-  const cardMatch = text.match(/\[CARD\]([\s\S]*?)\[\/CARD\]/i);
+  const cardBlockPattern = /\[\s*CARD\s*\]([\s\S]*?)\[\s*\/\s*CARD\s*\]/i;
+  const cardMatch = text.match(cardBlockPattern);
   let cardText = cardMatch ? cardMatch[1].trim() : "";
-  if (!cardText) {
-    const verse = text.match(/“([^”]+)”\s*\(([^)]+)\)/);
-    cardText = verse
-      ? "“" + verse[1].trim() + "” (" + verse[2].trim() + ")\n\nMay His peace, purpose, and strength guide your steps today."
-      : "May the peace of Christ rule in your heart and renew your strength today. (Colossians 3:15)";
-  }
 
   const reply = text
-    .replace(/\[CARD\][\s\S]*?(?:\[\/CARD\]|$)/gi, "")
+    .replace(/\[\s*CARD\s*\][\s\S]*?(?:\[\s*\/\s*CARD\s*\]|$)/gi, "")
+    .replace(/\[\s*\/?\s*CARD\s*\]/gi, "")
     .replace(/^\s*PSYCHE\s*:.*$/gim, "")
     .replace(/\\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -1287,7 +1283,7 @@ async function handleChat(request, env) {
   const cleaned = cleanCloudReply(rawReply, built.psyche, invalidReferences);
   const responsePayload = {
     reply:cleaned.reply,
-    cardText:cleaned.cardText,
+    cardText:mode === "bridge" ? "" : cleaned.cardText,
     updatedPsyche:cleaned.updatedPsyche,
     mode:mode,
     intelligence:isDeep ? "ask-deeper" : standardTier
@@ -1433,7 +1429,7 @@ function health(env) {
   return {
     status:"active",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.5.0",
+    version:"5.6.0",
     cloud_provider:"groq-fetch",
     cloud_configured:Boolean(env.AI_API_KEY || env.GROQ_API_KEY),
     db_connected:Boolean(env.FIREBASE_SERVICE_ACCOUNT && env.FIREBASE_PROJECT_ID)
@@ -1455,7 +1451,7 @@ function readiness(env) {
     checks:checks,
     cloud_provider:"groq-fetch",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.5.0"
+    version:"5.6.0"
   };
 }
 
