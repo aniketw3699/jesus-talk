@@ -40,10 +40,10 @@ def main():
     seo_workflow = read(".github/workflows/seo_cron.yml")
     disruption = read("DISRUPTION_CHECKPOINT.md")
 
-    # Phase 14C preview state: billing, Cloudflare Ask Deeper, Firestore rules,
-    # and encrypted-backup E2E are verified. Production DNS remains gated.
+    # Production state: billing, Cloudflare API, Firestore rules, encrypted
+    # backup, production DNS, and smoke testing are already verified.
     required_launch_values = [
-        'environment: "prelaunch"',
+        'environment: "production"',
         "plusCheckoutEnabled: true",
         "encryptedBackupEnabled: true",
         'canonicalHost: "https://www.1into1.com"',
@@ -51,7 +51,7 @@ def main():
     ]
     for marker in required_launch_values:
         if marker not in launch:
-            failures.append(f"launch-config.js: Phase 14C preview must retain {marker!r}")
+            failures.append(f"launch-config.js: production release must retain {marker!r}")
 
     checkout_values = re.findall(r'checkoutUrl\s*:\s*"([^"]*)"', billing)
     if len(checkout_values) != 2:
@@ -149,7 +149,7 @@ def main():
             print(" - " + failure)
         return 1
 
-    print("PASS: RC is Phase 14C preview-ready, billing-bound, disruption-aligned, manual-deploy only, and free of obvious token patterns.")
+    print("PASS: RC is production-ready, billing-bound, disruption-aligned, manual-deploy only, and free of obvious token patterns.")
     return 0
 
 if __name__ == "__main__":
