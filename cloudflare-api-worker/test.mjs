@@ -4,6 +4,7 @@ import worker, { __test } from "./src/worker.mjs";
 assert.equal(__test.sanitizeInput("  hello\u0000 world  ", 20), "hello world");
 assert.equal(__test.sanitizeMetadata("<script>Ani</script>", 30, "x"), "scriptAniscript");
 assert.equal(__test.selectedMode("STUDY"), "study");
+assert.equal(__test.selectedMode("conversation"), "conversation");
 assert.equal(__test.selectedMode("unknown"), "comfort");
 
 const built = __test.buildMessages({
@@ -19,6 +20,26 @@ assert.equal(built.messages.at(-1).content, "Explain John 3:16");
 assert.match(built.messages[0].content, /NOT Jesus Christ/);
 assert.match(built.messages[0].content, /World English Bible \(WEB\)/);
 assert.match(built.messages[0].content, /Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks/);
+
+const conversational = __test.buildMessages({
+  message: "Who is Mother Mary?",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "curious",
+  userIntentions: "faith"
+});
+assert.equal(conversational.mode, "conversation");
+assert.match(conversational.messages[0].content, /stays within the Christian\/Scripture-focused space/i);
+assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
+
+assert.deepEqual(
+  __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard"),
+  ["openai/gpt-oss-20b"]
+);
+assert.equal(
+  __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "deep")[0],
+  "openai/gpt-oss-120b"
+);
 
 const psalm23Rows = [
   { type:"header", value:"A Psalm by David." },
@@ -221,6 +242,19 @@ const localRoute = await worker.fetch(
 assert.equal(localRoute.status, 400);
 const localBody = await localRoute.json();
 assert.equal(localBody.error, "LOCAL_ROUTE_REQUIRED");
+
+const standardConversation = await worker.fetch(
+  new Request("https://worker.test/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "Who is Mother Mary?", mode: "conversation" })
+  }),
+  env
+);
+assert.equal(standardConversation.status, 200);
+const standardBody = await standardConversation.json();
+assert.notEqual(standardBody.error, "LOCAL_ROUTE_REQUIRED");
+assert.equal(standardBody.error, "SERVICE_DEGRADED");
 
 const notFound = await worker.fetch(new Request("https://worker.test/nope"), env);
 assert.equal(notFound.status, 404);
