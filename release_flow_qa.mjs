@@ -262,6 +262,7 @@ async function testIndexFlowContracts() {
   const googleAuth = functionBody(index, "proceedToGoogleAuth");
   const creditUi = functionBody(index, "updateCreditUI");
   const authDiscovery = functionBody(index, "updateAuthDiscoveryUI");
+  const entitlementSync = functionBody(index, "syncAccountEntitlements");
 
   const routeIndex = submit.indexOf("decideRoute");
   const fetchIndex = submit.indexOf("fetch(");
@@ -295,6 +296,9 @@ async function testIndexFlowContracts() {
   check(index.includes('id="authBtn" onclick="handleAuthAction()">Account</button>'), "Initial desktop account label is auth-neutral");
   check(creditUi.includes("!authHasResolved") && creditUi.includes('badge.textContent = "✨ Ask Deeper"'), "Credit badge waits for Firebase auth resolution");
   check(authDiscovery.includes("!authHasResolved") && authDiscovery.includes('card.style.display = "none"'), "Sign-in discovery card stays hidden until auth resolution");
+  check(entitlementSync.includes("new Date().toISOString().slice(0, 10)") && entitlementSync.includes("data.lastResetDate === todayUtc"), "Signed-in free allowance display resets to 5 on a new UTC day");
+  check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
+  check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
   check(index.includes("Comfort · Local"), "UI labels Comfort as Local");
   check(index.includes("Written Prayer · Local"), "UI labels Written Prayer as Local");
