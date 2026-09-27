@@ -14,6 +14,7 @@ for (const file of [
   "service-worker.js",
   "offline-core.js",
   "local-scripture-data.js",
+  "local-knowledge.js",
   "local-experiences.js",
   "local-bible-engine.js",
   "bible-manifest.js",
