@@ -18,9 +18,9 @@ const built = __test.buildMessages({
 });
 assert.equal(built.mode, "study");
 assert.equal(built.messages.at(-1).content, "Explain John 3:16");
-assert.match(built.messages[0].content, /NOT Jesus Christ/);
+assert.match(built.messages[0].content, /NOT literally Jesus Christ/);
 assert.match(built.messages[0].content, /World English Bible \(WEB\)/);
-assert.match(built.messages[0].content, /Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks/);
+assert.match(built.messages[0].content, /Never invent a Bible reference, verse boundary, Hebrew\/Greek word/);
 
 const conversational = __test.buildMessages({
   message: "Who is Mother Mary?",
