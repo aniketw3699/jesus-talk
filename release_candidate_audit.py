@@ -40,12 +40,12 @@ def main():
     seo_workflow = read(".github/workflows/seo_cron.yml")
     disruption = read("DISRUPTION_CHECKPOINT.md")
 
-    # Phase 14C preview state: billing and Cloudflare Ask Deeper are now
-    # externally verified, while production DNS and encrypted backup remain gated.
+    # Phase 14C preview state: billing, Cloudflare Ask Deeper, Firestore rules,
+    # and encrypted-backup E2E are verified. Production DNS remains gated.
     required_launch_values = [
         'environment: "prelaunch"',
         "plusCheckoutEnabled: true",
-        "encryptedBackupEnabled: false",
+        "encryptedBackupEnabled: true",
         'canonicalHost: "https://www.1into1.com"',
         'backendApiUrl: "https://oneintoone-jesus-api.aniketw3699.workers.dev"',
     ]
