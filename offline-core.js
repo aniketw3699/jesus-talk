@@ -182,7 +182,46 @@
     };
   }
 
+  function buildCasualExperience(text) {
+    const clean = normalize(text);
+    let reply = "";
+
+    if (/^(hi|hello|hey|hiya|good morning|good afternoon|good evening|shalom|peace)( there)?$/.test(clean)) {
+      reply = "Hello. I’m here with you. We can talk, pray, or open Scripture together—whatever feels most helpful right now.";
+    } else if (/^(how are you|how are you doing|how is it going|hows it going|how have you been)$/.test(clean)) {
+      reply = "I’m here and ready to listen. What’s on your mind today?";
+    } else if (/^(who are you|what are you|what is this|what can you do|tell me about yourself)$/.test(clean)) {
+      reply = "I’m 1into1 with Jesus, a Scripture-guided Christian companion—not Jesus himself. I can listen, help you pray, explore the Bible, or talk through what you’re carrying.";
+    } else if (/^(thanks|thank you|thank you so much|thanks a lot|appreciate it)$/.test(clean)) {
+      reply = "You’re welcome. I’m here whenever you want to talk, pray, or look at Scripture together.";
+    } else if (/^(bye|goodbye|good night|see you|see you later|talk later)$/.test(clean)) {
+      reply = "Take care. When you come back, we can continue from here.";
+    } else if (/^(can we talk|i want to talk|i just want to talk|talk to me|can i talk to you)$/.test(clean)) {
+      reply = "Of course. You don’t have to turn everything into a prayer immediately. Tell me what’s on your mind, and we can take it from there.";
+    } else {
+      return null;
+    }
+
+    return {
+      route:"local-conversation",
+      reply:reply,
+      analysis:{
+        topic:"conversation",
+        topicLabel:"Conversation",
+        secondaryTopic:"",
+        emotion:"unspecified",
+        intensity:"normal",
+        confidence:1,
+        needs:[]
+      },
+      scriptureRefs:[],
+      journey:"",
+      privacy:"local"
+    };
+  }
+
   function getContinuityNote(analysis) {
+    if (!analysis || analysis.confidence < 0.25 || !Array.isArray(analysis.matchedTerms) || analysis.matchedTerms.length === 0) return "";
     const now = Date.now();
     const recent = loadMemory().filter(function(item) { return now - item.at < 7 * DAY_MS; });
     const repeats = recent.filter(function(item) { return item.topic === analysis.primary.id; });
@@ -197,6 +236,7 @@
 
   function remember(analysis) {
     if (analysis.safety) return;
+    if (analysis.confidence < 0.25 || !Array.isArray(analysis.matchedTerms) || analysis.matchedTerms.length === 0) return;
     const memory = loadMemory();
     memory.push({
       at:Date.now(),
@@ -310,6 +350,8 @@
         privacy:"local"
       };
     }
+    const casual = buildCasualExperience(text);
+    if (casual) return casual;
     return buildNormalExperience(text, selectedMode, analysis);
   }
 
@@ -323,6 +365,7 @@
     const isOnline = online !== false;
     const analysis = analyze(text);
     if (analysis.safety) return { route:"local", reason:"safety", analysis:analysis };
+    if (buildCasualExperience(text)) return { route:"local", reason:"casual-conversation", analysis:{ topic:"conversation", confidence:1, matchedTerms:[] } };
     if (!isOnline) return { route:"local", reason:"offline", analysis:analysis };
     if (selectedMode === "study") return { route:"cloud", reason:"study-mode", analysis:analysis };
     if (containsDeepQuestion(text)) return { route:"cloud", reason:"deep-question", analysis:analysis };
