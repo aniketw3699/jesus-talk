@@ -98,7 +98,7 @@ async function testLocalPrayerEngine() {
     "study",
     true
   );
-  check(study.route === "cloud", "Deep Scripture study routes to Ask Deeper cloud");
+  check(study.route === "cloud-deep" && study.cloudMode === "study", "Deep Scripture study routes to Ask Deeper cloud");
 
   const casualMemoryBefore = localStorage.getItem("oneintoone_local_memory_v1");
   const helloRoute = engine.decideRoute("Hello", "comfort", true);
@@ -108,6 +108,24 @@ async function testLocalPrayerEngine() {
   check(!(helloExperience.reply || "").includes("Scripture anchors:"), "Greeting does not force Scripture anchors");
   const identityExperience = engine.buildExperience("Who are you?", "comfort");
   check(/Scripture-guided Christian companion/i.test(identityExperience.reply || ""), "Identity question gets direct conversational answer");
+
+  const mary = engine.decideRoute("Who is Mother Mary?", "comfort", true);
+  check(mary.route === "cloud-standard" && mary.cloudMode === "conversation", "Basic Christian knowledge question routes to standard conversation AI");
+
+  const commandments = engine.decideRoute("Tell me the Ten Commandments", "comfort", true);
+  check(commandments.route === "cloud-standard" && commandments.cloudMode === "conversation", "Basic Bible knowledge routes to standard conversation AI");
+
+  const insult = engine.decideRoute("Fuck you", "comfort", true);
+  check(insult.route === "cloud-standard" && insult.cloudMode === "conversation", "Unstructured hostility routes to natural standard conversation AI");
+
+  const dying = engine.decideRoute("My mom is dying. Please help me.", "comfort", true);
+  check(dying.route === "cloud-standard" && dying.cloudMode === "conversation", "Serious personal situation routes to nuanced standard conversation AI");
+
+  const prayerStillLocal = engine.decideRoute("Please write a prayer for my mother", "comfort", true);
+  check(prayerStillLocal.route === "local", "Explicit prayer request remains private local");
+
+  const deepTheology = engine.decideRoute("Compare Catholic and Protestant interpretations of Mary", "comfort", true);
+  check(deepTheology.route === "cloud-deep" && deepTheology.cloudMode === "study", "Comparative theology routes to Ask Deeper");
   const casualMemoryAfter = localStorage.getItem("oneintoone_local_memory_v1");
   check(casualMemoryAfter === casualMemoryBefore, "Casual conversation is not stored as spiritual memory");
 
@@ -278,6 +296,7 @@ async function testIndexFlowContracts() {
   const routeIndex = submit.indexOf("decideRoute");
   const fetchIndex = submit.indexOf("fetch(");
   check(routeIndex >= 0 && fetchIndex >= 0 && routeIndex < fetchIndex, "Local routing occurs before cloud fetch");
+  check(submit.includes("routeDecision.cloudMode"), "Frontend sends router-selected cloud mode to backend");
   check(submit.includes("!navigator.onLine"), "Submission flow has explicit offline local fallback");
   check(submit.includes('data.error === "FAIR_USE_EXHAUSTED"'), "Frontend handles Plus fair-use response");
   check(!journal.includes("!currentUser"), "Journal does not require sign-in");
