@@ -597,44 +597,68 @@ function modelCandidates(env, quality) {
   const standard = parseModelList(env.STANDARD_AI_MODELS || "");
   if (standard.length) return standard;
   const lightweight = configured.filter(function(model) { return /(?:^|[-_/])20b(?:$|[-_/])/i.test(model); });
-  return lightweight.length ? lightweight : configured.slice(0, 1);
+  const fallback = configured.filter(function(model) { return !lightweight.includes(model); });
+  return lightweight.concat(fallback);
 }
 
 async function groqComplete(messages, env, quality) {
   const apiKey = env.AI_API_KEY || env.GROQ_API_KEY;
   if (!apiKey) throw new Error("AI API key is missing");
 
+  const requestedQuality = quality || "standard";
   let lastError = null;
-  for (const model of modelCandidates(env, quality || "standard")) {
-    try {
-      const response = await fetch(GROQ_CHAT_URL, {
-        method:"POST",
-        headers:{
-          "Authorization":"Bearer " + apiKey,
-          "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-          model:model,
-          messages:messages,
-          temperature:0.7,
-          max_tokens:quality === "deep" ? 4096 : 1800,
-          stream:false
-        })
-      });
-      if (!response.ok) {
-        lastError = new Error("Groq " + model + " returned " + response.status);
-        continue;
+
+  for (const model of modelCandidates(env, requestedQuality)) {
+    const maxAttempts = 2;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch(GROQ_CHAT_URL, {
+          method:"POST",
+          headers:{
+            "Authorization":"Bearer " + apiKey,
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            model:model,
+            messages:messages,
+            temperature:0.7,
+            max_tokens:requestedQuality === "deep" ? 4096 : 1800,
+            stream:false
+          })
+        });
+
+        if (!response.ok) {
+          lastError = new Error("Groq " + model + " returned " + response.status);
+          const retryable = response.status === 408 || response.status === 409 || response.status === 429 || response.status >= 500;
+          if (retryable && attempt < maxAttempts) {
+            await new Promise(function(resolve) { setTimeout(resolve, 250 * attempt); });
+            continue;
+          }
+          break;
+        }
+
+        const body = await response.json();
+        const content = body && body.choices && body.choices[0] && body.choices[0].message
+          ? body.choices[0].message.content
+          : "";
+        if (typeof content === "string" && content.trim()) return content.trim();
+
+        lastError = new Error("Groq " + model + " returned no content");
+        if (attempt < maxAttempts) {
+          await new Promise(function(resolve) { setTimeout(resolve, 200 * attempt); });
+          continue;
+        }
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxAttempts) {
+          await new Promise(function(resolve) { setTimeout(resolve, 250 * attempt); });
+          continue;
+        }
       }
-      const body = await response.json();
-      const content = body && body.choices && body.choices[0] && body.choices[0].message
-        ? body.choices[0].message.content
-        : "";
-      if (typeof content === "string" && content.trim()) return content.trim();
-      lastError = new Error("Groq " + model + " returned no content");
-    } catch (error) {
-      lastError = error;
     }
   }
+
   throw lastError || new Error("No configured AI model returned a response");
 }
 
