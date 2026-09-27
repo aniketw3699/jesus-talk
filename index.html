@@ -1453,6 +1453,7 @@
     let currentIntercessoryRecipient = "";
     let activeCardRecipient = "";
     let currentPastoralMode = "comfort";
+    let nextTurnModeOverride = "";
     let appWakeLock = null;
     let isBlessingAudioPlaying = false;
 
@@ -1639,22 +1640,22 @@
       } catch(e) {}
     }
 
-    /* DYNAMIC PASTORAL MODE SWITCHER */
+    /* ONE-TURN RESPONSE OVERRIDE — normal chat routing stays automatic */
     function setPastoralMode(modeKey) {
-      currentPastoralMode = modeKey;
-      document.querySelectorAll(".mode-pill").forEach(el => el.classList.remove("active"));
-      const activeBtn = document.getElementById("mode" + modeKey.charAt(0).toUpperCase() + modeKey.slice(1));
-      if (activeBtn) activeBtn.classList.add("active");
-      trackSanctuaryEvent('mode_switched', { mode: modeKey });
+      const allowed = ["comfort","study","prayer","guidance"];
+      nextTurnModeOverride = allowed.includes(modeKey) ? modeKey : "";
+      currentPastoralMode = nextTurnModeOverride || "comfort";
+      trackSanctuaryEvent('next_turn_override', { mode: currentPastoralMode });
 
-      const modePlaceholders = {
-        comfort: "Ask anything — 1into1 will choose the right Christian/Bible response path...",
-        study: "Ask about a Bible verse, scripture context, or theological question...",
-        prayer: "Tell me what you need a heartfelt prayer written for...",
-        guidance: "Describe the decision, situation, or life direction you need guidance on..."
-      };
-      messageInput.placeholder = modePlaceholders[modeKey] || modePlaceholders.comfort;
-      messageInput.focus();
+      if (messageInput) {
+        const prompts = {
+          study:"Ask the deeper Bible or theology question you want to explore...",
+          prayer:"Tell me what you want to bring to God in prayer...",
+          guidance:"Describe the decision or situation you want help discerning...",
+          comfort:"Ask anything, pray, or tell me what's on your heart..."
+        };
+        messageInput.placeholder = prompts[currentPastoralMode] || prompts.comfort;
+      }
     }
 
     function saveUserIntentions() {
@@ -2972,9 +2973,8 @@
     }
 
     function beginBurdenPath(promptText, modeKey = 'comfort') {
-      setPastoralMode(modeKey);
       hideMobileHome();
-      sendQuickPrompt(promptText);
+      sendQuickPrompt(promptText, modeKey);
     }
 
     /* OFFLINE/PWA FOUNDATION */
@@ -3076,7 +3076,8 @@
     window.addEventListener('load', initOfflineFoundation);
 
     /* CHAT CORE */
-    function sendQuickPrompt(promptText) {
+    function sendQuickPrompt(promptText, modeOverride = '') {
+      if (modeOverride) setPastoralMode(modeOverride);
       messageInput.value = promptText;
       handleUserSubmit(new Event('submit'));
     }
