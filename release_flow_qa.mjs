@@ -100,6 +100,17 @@ async function testLocalPrayerEngine() {
   );
   check(study.route === "cloud", "Deep Scripture study routes to Ask Deeper cloud");
 
+  const casualMemoryBefore = localStorage.getItem("oneintoone_local_memory_v1");
+  const helloRoute = engine.decideRoute("Hello", "comfort", true);
+  check(helloRoute.route === "local" && helloRoute.reason === "casual-conversation", "Greeting routes to natural local conversation");
+  const helloExperience = engine.buildExperience("Hello", "comfort");
+  check(helloExperience.analysis.topic === "conversation", "Greeting does not fall into generic prayer topic");
+  check(!(helloExperience.reply || "").includes("Scripture anchors:"), "Greeting does not force Scripture anchors");
+  const identityExperience = engine.buildExperience("Who are you?", "comfort");
+  check(/Scripture-guided Christian companion/i.test(identityExperience.reply || ""), "Identity question gets direct conversational answer");
+  const casualMemoryAfter = localStorage.getItem("oneintoone_local_memory_v1");
+  check(casualMemoryAfter === casualMemoryBefore, "Casual conversation is not stored as spiritual memory");
+
   const offlineStudy = engine.decideRoute(
     "Explain Romans 8 in Greek and its historical context",
     "study",
@@ -305,6 +316,7 @@ async function testIndexFlowContracts() {
   check(index.includes("Written Prayer · Local"), "UI labels Written Prayer as Local");
   check(index.includes("Guidance · Local"), "UI labels Guidance as Local");
   check(index.includes("Ask Deeper · Cloud"), "UI labels Ask Deeper as Cloud");
+  check(index.includes("grid-template-columns:repeat(4,minmax(0,1fr))"), "Mobile response modes render as four visible columns");
   check(index.includes("No account needed"), "UI promises no-account core use");
   check(index.includes("No app install required"), "UI promises no-install browser core use");
 }
