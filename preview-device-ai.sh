@@ -39,7 +39,7 @@ echo "Production API traffic stays on its current deployed version."
     --message "1into1 universal conversation preview $(git rev-parse --short HEAD)"
 )
 
-readarray -t API_INFO < <(python3 - "$API_OUTPUT" "$API_ALIAS" <<'PY'
+API_INFO="$(python3 - "$API_OUTPUT" "$API_ALIAS" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -94,10 +94,10 @@ for raw in path.read_text(encoding="utf-8").splitlines():
 print(version_id)
 print(version_url)
 PY
-)
+)"
 
-API_VERSION_ID="\${API_INFO[0]:-}"
-API_VERSION_URL="\${API_INFO[1]:-}"
+API_VERSION_ID="$(printf '%s\n' "$API_INFO" | sed -n '1p')"
+API_VERSION_URL="$(printf '%s\n' "$API_INFO" | sed -n '2p')"
 
 if [ -z "$API_VERSION_ID" ]; then
   echo "FAIL: could not determine the uploaded API version ID."
