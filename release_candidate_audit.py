@@ -67,10 +67,9 @@ def main():
     for marker in [
         "Unlimited local prayer",
         "No app install required",
-        "Talk · Auto",
-        ">✨ Ask Deeper</button>",
-        ">🙏 Prayer</button>",
-        ">🧭 Guidance</button>",
+        "Ask naturally — 1into1 chooses the response path automatically.",
+        "/local-knowledge.js",
+        "nextTurnModeOverride",
     ]:
         if marker not in index:
             failures.append(f"index.html: disruption marker missing -> {marker!r}")
