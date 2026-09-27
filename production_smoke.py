@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 
 DEFAULT_BASE = "https://www.1into1.com"
-DEFAULT_API = "https://jesus-talk-dusky.vercel.app"
+DEFAULT_API = "https://oneintoone-jesus-api.aniketw3699.workers.dev"
 
 ESSENTIAL_PATHS = [
     "/",
