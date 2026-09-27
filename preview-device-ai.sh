@@ -3,12 +3,13 @@ set -euo pipefail
 
 EXPECTED_BRANCH="feature/on-device-ai-foundation"
 CURRENT_BRANCH="$(git branch --show-current)"
-RUNTIME_CONFIG=".wrangler.device-preview.runtime.jsonc"
 API_OUTPUT="/tmp/oneintoone-api-version.ndjson"
+PREVIEW_URL="https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
+API_ALIAS="universal-preview"
 
 rm -rf dist
-rm -f "$RUNTIME_CONFIG" "$API_OUTPUT"
-trap 'rm -f "$RUNTIME_CONFIG" "$API_OUTPUT"' EXIT
+rm -f "$API_OUTPUT" /tmp/oneintoone-preview-health.json /tmp/oneintoone-preview-headers.txt
+trap 'rm -f "$API_OUTPUT" /tmp/oneintoone-preview-health.json /tmp/oneintoone-preview-headers.txt' EXIT
 
 if [ "$CURRENT_BRANCH" != "$EXPECTED_BRANCH" ]; then
   echo "REFUSING: preview helper must run from $EXPECTED_BRANCH"
@@ -33,20 +34,34 @@ echo "Production API traffic stays on its current deployed version."
   WRANGLER_OUTPUT_FILE_PATH="$API_OUTPUT" \
   npx --yes wrangler@4.141.0 versions upload \
     --config wrangler.jsonc \
+    --preview-alias "$API_ALIAS" \
     --keep-vars \
     --message "1into1 universal conversation preview $(git rev-parse --short HEAD)"
 )
 
-API_VERSION_ID="$(python3 - "$API_OUTPUT" <<'PY'
+readarray -t API_INFO < <(python3 - "$API_OUTPUT" "$API_ALIAS" <<'PY'
 import json
 import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
+alias = sys.argv[2]
 if not path.is_file():
-    raise SystemExit("")
+    raise SystemExit(1)
 
 version_id = ""
+version_url = ""
+
+def walk(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from walk(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from walk(item)
+    elif isinstance(value, str):
+        yield value
+
 for raw in path.read_text(encoding="utf-8").splitlines():
     raw = raw.strip()
     if not raw:
@@ -55,89 +70,133 @@ for raw in path.read_text(encoding="utf-8").splitlines():
         item = json.loads(raw)
     except Exception:
         continue
-    if item.get("type") != "version-upload":
-        continue
 
-    candidate = (
-        item.get("version_id")
-        or item.get("versionId")
-        or (item.get("version") or {}).get("id")
-        or (item.get("result") or {}).get("version_id")
-        or (item.get("result") or {}).get("id")
-    )
-    if candidate:
-        version_id = str(candidate)
+    if item.get("type") == "version-upload":
+        candidate = (
+            item.get("version_id")
+            or item.get("versionId")
+            or (item.get("version") or {}).get("id")
+            or (item.get("result") or {}).get("version_id")
+            or (item.get("result") or {}).get("id")
+        )
+        if candidate:
+            version_id = str(candidate)
+
+    for candidate in walk(item):
+        if (
+            candidate.startswith("https://")
+            and ".workers.dev" in candidate
+            and alias in candidate
+            and "oneintoone-jesus-api" in candidate
+        ):
+            version_url = candidate.rstrip("/")
 
 print(version_id)
+print(version_url)
 PY
-)"
+)
+
+API_VERSION_ID="\${API_INFO[0]:-}"
+API_VERSION_URL="\${API_INFO[1]:-}"
 
 if [ -z "$API_VERSION_ID" ]; then
   echo "FAIL: could not determine the uploaded API version ID."
   exit 1
 fi
 
+if [ -z "$API_VERSION_URL" ]; then
+  API_VERSION_URL="https://\${API_ALIAS}-oneintoone-jesus-api.aniketw3699.workers.dev"
+fi
+
 echo "PASS: uploaded candidate API version $API_VERSION_ID without deploying it."
+echo "Candidate API Version URL: $API_VERSION_URL"
 
 echo
-echo "Rewriting ONLY the generated preview bundle to use its same-origin API proxy..."
-python3 - <<'PY'
-from pathlib import Path
+echo "Checking candidate API directly before publishing the frontend preview..."
+candidate_ok=0
+for i in {1..15}; do
+  curl -sS -D /tmp/oneintoone-preview-headers.txt \
+    -H "Origin: $PREVIEW_URL" \
+    "$API_VERSION_URL/api/health" \
+    -o /tmp/oneintoone-preview-health.json 2>/dev/null || true
 
+  if grep -q '"status":"active"' /tmp/oneintoone-preview-health.json 2>/dev/null && \
+     grep -q '"version":"5.2.0"' /tmp/oneintoone-preview-health.json 2>/dev/null && \
+     grep -qi "^access-control-allow-origin: $PREVIEW_URL" /tmp/oneintoone-preview-headers.txt 2>/dev/null; then
+    candidate_ok=1
+    break
+  fi
+  sleep 1
+done
+
+if [ "$candidate_ok" -ne 1 ]; then
+  echo "FAIL: candidate API Version URL is not ready with universal version 5.2.0 + preview CORS."
+  echo "Health body:"
+  cat /tmp/oneintoone-preview-health.json 2>/dev/null || true
+  echo
+  echo "Response headers:"
+  cat /tmp/oneintoone-preview-headers.txt 2>/dev/null || true
+  exit 1
+fi
+
+echo "PASS: non-deployed candidate API Version URL is live as version 5.2.0 with preview CORS."
+
+echo
+echo "Checking chat preflight against the candidate API..."
+preflight_headers="$(mktemp)"
+preflight_code="$(
+  curl -sS -o /dev/null -D "$preflight_headers" -w '%{http_code}' \
+    -X OPTIONS \
+    -H "Origin: $PREVIEW_URL" \
+    -H "Access-Control-Request-Method: POST" \
+    -H "Access-Control-Request-Headers: content-type,authorization" \
+    "$API_VERSION_URL/chat" || true
+)"
+
+if [ "$preflight_code" != "204" ] || \
+   ! grep -qi "^access-control-allow-origin: $PREVIEW_URL" "$preflight_headers"; then
+  echo "FAIL: candidate API chat CORS preflight failed."
+  cat "$preflight_headers" 2>/dev/null || true
+  rm -f "$preflight_headers"
+  exit 1
+fi
+rm -f "$preflight_headers"
+echo "PASS: candidate API accepts the isolated preview origin for chat."
+
+echo
+echo "Rewriting ONLY the generated preview bundle to call the candidate Version URL..."
+python3 - "$API_VERSION_URL" <<'PY'
+from pathlib import Path
+import sys
+
+api_url = sys.argv[1]
 path = Path("dist/launch-config.js")
 source = path.read_text(encoding="utf-8")
 expected = 'backendApiUrl: "https://oneintoone-jesus-api.aniketw3699.workers.dev"'
-replacement = 'backendApiUrl: "/api-preview"'
+replacement = f'backendApiUrl: "{api_url}"'
 
 if expected not in source:
     raise SystemExit("REFUSING: expected production API marker not found in generated preview bundle")
 
 path.write_text(source.replace(expected, replacement, 1), encoding="utf-8")
-print("PASS: preview bundle uses /api-preview; source launch-config.js remains unchanged.")
-PY
-
-python3 - "$API_VERSION_ID" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-version_id = sys.argv[1]
-source = Path("wrangler.device-preview.jsonc")
-target = Path(".wrangler.device-preview.runtime.jsonc")
-config = json.loads(source.read_text(encoding="utf-8"))
-config["vars"] = {"API_VERSION_ID": version_id}
-target.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+print("PASS: generated preview bundle points directly to the non-deployed candidate API.")
 PY
 
 echo
 echo "Deploying the SEPARATE temporary workers.dev frontend..."
-echo "It will call ONLY API candidate version $API_VERSION_ID through a Service Binding."
 echo "This does NOT deploy the API candidate and does NOT modify 1into1.com."
 npx --yes wrangler@4.141.0 deploy \
-  --config "$RUNTIME_CONFIG"
-
-PREVIEW_URL="https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
+  --config wrangler.device-preview.jsonc
 
 echo
-echo "Checking the LIVE preview -> candidate API path..."
-proxy_ok=0
-for i in {1..15}; do
-  if curl -fsS "$PREVIEW_URL/api-preview/api/health" > /tmp/oneintoone-preview-health.json 2>/dev/null; then
-    if grep -q '"status":"active"' /tmp/oneintoone-preview-health.json && \
-       grep -q '"version":"5.2.0"' /tmp/oneintoone-preview-health.json; then
-      proxy_ok=1
-      break
-    fi
-  fi
-  sleep 1
-done
-
-if [ "$proxy_ok" -ne 1 ]; then
-  echo "FAIL: live preview is not reaching the new universal API version."
-  cat /tmp/oneintoone-preview-health.json 2>/dev/null || true
+echo "Checking the live frontend bundle points to the candidate API..."
+served_launch="$(curl -fsS "$PREVIEW_URL/launch-config.js" || true)"
+if ! printf '%s' "$served_launch" | grep -Fq "$API_VERSION_URL"; then
+  echo "FAIL: live preview frontend is not pointing to the candidate API Version URL."
   exit 1
 fi
 
+echo "PASS: live preview frontend points to the non-deployed universal API candidate."
 echo "PASS: live preview is using universal API candidate version 5.2.0."
 echo
 echo "Open: $PREVIEW_URL"
