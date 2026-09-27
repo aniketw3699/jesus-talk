@@ -33,7 +33,6 @@ echo "Production API traffic stays on its current deployed version."
   WRANGLER_OUTPUT_FILE_PATH="$API_OUTPUT" \
   npx --yes wrangler@4.141.0 versions upload \
     --config wrangler.jsonc \
-    --preview-alias universal-preview \
     --keep-vars \
     --message "1into1 universal conversation preview $(git rev-parse --short HEAD)"
 )
@@ -56,8 +55,18 @@ for raw in path.read_text(encoding="utf-8").splitlines():
         item = json.loads(raw)
     except Exception:
         continue
-    if item.get("type") == "version-upload" and item.get("version_id"):
-        version_id = str(item["version_id"])
+    if item.get("type") != "version-upload":
+        continue
+
+    candidate = (
+        item.get("version_id")
+        or item.get("versionId")
+        or (item.get("version") or {}).get("id")
+        or (item.get("result") or {}).get("version_id")
+        or (item.get("result") or {}).get("id")
+    )
+    if candidate:
+        version_id = str(candidate)
 
 print(version_id)
 PY
