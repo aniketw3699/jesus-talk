@@ -2,6 +2,7 @@
 const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
+const WEB_BIBLE_SOURCE_BASE = "https://raw.githubusercontent.com/TehShrike/world-english-bible/master/json/";
 const FREE_DAILY_CREDITS = 5;
 const GUEST_DAILY_CREDITS = 1;
 
@@ -27,10 +28,12 @@ const SYSTEM_PROMPT_LINES = [
   "",
   "SCRIPTURE & THEOLOGY:",
   "1. Ground biblical claims in identifiable Scripture references.",
-  "2. Never invent a Bible reference or fabricate a quotation.",
-  "3. Prefer accurate references and concise paraphrase when exact wording is uncertain.",
-  "4. When a theological question has meaningful denominational differences, briefly identify the major interpretations rather than pretending there is only one uncontested Christian view.",
-  "5. Do not replace medical, legal, financial, mental-health, safeguarding, or emergency professionals with spiritual advice.",
+  "2. Never invent a Bible reference, verse boundary, quotation, Hebrew/Greek word, transliteration, or lexical definition.",
+  "3. 1into1 uses the World English Bible (WEB). When verified WEB source context is supplied below, treat it as authoritative for verse wording and verse boundaries. Quote that wording only as WEB; otherwise paraphrase.",
+  "4. For a question about a specific passage, stay primarily inside the supplied WEB passage. Do not add cross-references outside that passage unless the user explicitly asks for cross-references.",
+  "5. Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks about the original language. If original-language data has not been supplied from a verified source, say that the lexical detail is not verified rather than guessing.",
+  "6. When a theological question has meaningful denominational differences, briefly identify the major interpretations rather than pretending there is only one uncontested Christian view.",
+  "7. Do not replace medical, legal, financial, mental-health, safeguarding, or emergency professionals with spiritual advice.",
   "",
   "RESPONSE QUALITY:",
   "1. Address the seeker's actual question directly rather than forcing every answer into the same devotional template.",
@@ -104,6 +107,25 @@ const BIBLE_CHAPTER_LIMITS = Object.freeze({
   james:5, "1 peter":5, "2 peter":3, "1 john":5, "2 john":1, "3 john":1,
   jude:1, revelation:22, revelations:22
 });
+
+const BIBLE_BOOK_SLUGS = Object.freeze({
+  genesis:"genesis", exodus:"exodus", leviticus:"leviticus", numbers:"numbers", deuteronomy:"deuteronomy",
+  joshua:"joshua", judges:"judges", ruth:"ruth", "1 samuel":"1samuel", "2 samuel":"2samuel",
+  "1 kings":"1kings", "2 kings":"2kings", "1 chronicles":"1chronicles", "2 chronicles":"2chronicles",
+  ezra:"ezra", nehemiah:"nehemiah", esther:"esther", job:"job", psalm:"psalms", psalms:"psalms",
+  proverbs:"proverbs", ecclesiastes:"ecclesiastes", "song of solomon":"songofsolomon", "song of songs":"songofsolomon",
+  isaiah:"isaiah", jeremiah:"jeremiah", lamentations:"lamentations", ezekiel:"ezekiel", daniel:"daniel",
+  hosea:"hosea", joel:"joel", amos:"amos", obadiah:"obadiah", jonah:"jonah", micah:"micah",
+  nahum:"nahum", habakkuk:"habakkuk", zephaniah:"zephaniah", haggai:"haggai", zechariah:"zechariah", malachi:"malachi",
+  matthew:"matthew", mark:"mark", luke:"luke", john:"john", acts:"acts", romans:"romans",
+  "1 corinthians":"1corinthians", "2 corinthians":"2corinthians", galatians:"galatians", ephesians:"ephesians",
+  philippians:"philippians", colossians:"colossians", "1 thessalonians":"1thessalonians", "2 thessalonians":"2thessalonians",
+  "1 timothy":"1timothy", "2 timothy":"2timothy", titus:"titus", philemon:"philemon", hebrews:"hebrews",
+  james:"james", "1 peter":"1peter", "2 peter":"2peter", "1 john":"1john", "2 john":"2john", "3 john":"3john",
+  jude:"jude", revelation:"revelation", revelations:"revelation"
+});
+
+const BIBLE_BOOK_PATTERN = "(?:Song\\s+of\\s+(?:Solomon|Songs)|(?:[1-3]\\s+)?(?:Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|Samuel|Kings|Chronicles|Ezra|Nehemiah|Esther|Job|Psalms?|Proverbs|Ecclesiastes|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|Corinthians|Galatians|Ephesians|Philippians|Colossians|Thessalonians|Timothy|Titus|Philemon|Hebrews|James|Peter|Jude|Revelations?))";
 
 let firebaseJwksCache = { expiresAt: 0, keys: [] };
 let googleAccessTokenCache = { expiresAt: 0, token: "" };
@@ -523,16 +545,21 @@ function selectedMode(mode) {
   return Object.prototype.hasOwnProperty.call(MODE_INSTRUCTIONS, candidate) ? candidate : "comfort";
 }
 
-function buildMessages(payload) {
+function buildMessages(payload, scriptureGrounding) {
   const mode = selectedMode(payload.mode);
   const name = sanitizeMetadata(payload.userName, 30, "beloved");
   const psyche = sanitizeMetadata(payload.userPsyche, 80, "A soul seeking peace");
   const intentions = sanitizeMetadata(payload.userIntentions, 100, "Seeking peace");
-  const system = SYSTEM_PROMPT_LINES.join("\n")
+  let system = SYSTEM_PROMPT_LINES.join("\n")
     .replace("{{MODE}}", MODE_INSTRUCTIONS[mode])
     .replace("{{NAME}}", name)
     .replace("{{PSYCHE}}", psyche)
     .replace("{{INTENTIONS}}", intentions);
+
+  if (scriptureGrounding && scriptureGrounding.contextText) {
+    system += "\n\nVERIFIED WEB SOURCE CONTEXT:\n" + scriptureGrounding.contextText +
+      "\n\nUse the verse numbers and wording above as the authority for this passage. Do not invent verses outside this verified range.";
+  }
 
   const messages = [{ role:"system", content:system }];
   const history = Array.isArray(payload.history) ? payload.history.slice(-6) : [];
@@ -590,19 +617,195 @@ async function groqComplete(messages, env) {
   throw lastError || new Error("No configured AI model returned a response");
 }
 
+function normalizeBibleBook(book) {
+  return String(book || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function extractBibleReferences(text) {
+  const pattern = new RegExp("\\b(" + BIBLE_BOOK_PATTERN + ")\\s+(\\d+):(\\d+)(?:\\s*[-–—‑]\\s*(\\d+))?", "gi");
+  const refs = [];
+  let match;
+  while ((match = pattern.exec(String(text || "")))) {
+    refs.push({
+      raw:match[0],
+      book:normalizeBibleBook(match[1]),
+      chapter:Number(match[2]),
+      startVerse:Number(match[3]),
+      endVerse:Number(match[4] || match[3])
+    });
+  }
+  return refs;
+}
+
 function verseRefExists(reference) {
-  const match = String(reference || "").trim().match(/^(.*?)\s+(\d+):(\d+(?:-\d+)?)$/);
-  if (!match) return false;
-  const book = match[1].replace(/\s+/g, " ").trim().toLowerCase();
-  const chapter = Number(match[2]);
-  const maxChapter = BIBLE_CHAPTER_LIMITS[book];
-  return Boolean(maxChapter && chapter >= 1 && chapter <= maxChapter);
+  const refs = extractBibleReferences(reference);
+  if (refs.length !== 1) return false;
+  const ref = refs[0];
+  const maxChapter = BIBLE_CHAPTER_LIMITS[ref.book];
+  return Boolean(
+    maxChapter &&
+    ref.chapter >= 1 &&
+    ref.chapter <= maxChapter &&
+    ref.startVerse >= 1 &&
+    ref.endVerse >= ref.startVerse
+  );
+}
+
+function chapterVerseMap(rows, chapter) {
+  const verses = new Map();
+  (Array.isArray(rows) ? rows : []).forEach(function (row) {
+    if (Number(row && row.chapterNumber) !== Number(chapter)) return;
+    const verse = Number(row && row.verseNumber);
+    const value = typeof (row && row.value) === "string" ? row.value : "";
+    if (!Number.isFinite(verse) || verse < 1 || !value) return;
+    verses.set(verse, (verses.get(verse) || "") + value);
+  });
+  return verses;
+}
+
+function referenceExistsInRows(ref, rows) {
+  if (!ref || !Array.isArray(rows)) return false;
+  const verses = chapterVerseMap(rows, ref.chapter);
+  if (!verses.size || ref.startVerse < 1 || ref.endVerse < ref.startVerse) return false;
+  for (let verse = ref.startVerse; verse <= ref.endVerse; verse += 1) {
+    if (!verses.has(verse)) return false;
+  }
+  return true;
+}
+
+async function fetchWebBookRows(book, fetchImpl) {
+  const slug = BIBLE_BOOK_SLUGS[normalizeBibleBook(book)];
+  if (!slug) return null;
+  const requester = fetchImpl || fetch;
+  const response = await requester(WEB_BIBLE_SOURCE_BASE + slug + ".json", {
+    headers:{ "Accept":"application/json" }
+  });
+  if (!response || !response.ok) return null;
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows : null;
+}
+
+function groundingFromRows(ref, rows) {
+  if (!ref || !Array.isArray(rows)) return null;
+  const verses = chapterVerseMap(rows, ref.chapter);
+  if (!verses.size || !referenceExistsInRows(ref, rows)) return null;
+
+  const verseNumbers = Array.from(verses.keys()).sort(function (a, b) { return a - b; });
+  const maxVerse = verseNumbers[verseNumbers.length - 1];
+  const selected = verseNumbers.length <= 40
+    ? verseNumbers
+    : verseNumbers.filter(function (verse) {
+        return verse >= Math.max(1, ref.startVerse - 10) && verse <= Math.min(maxVerse, ref.endVerse + 10);
+      });
+  const labelBook = ref.book === "psalm" || ref.book === "psalms" ? "Psalm" : ref.book.replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+  const contextText = [
+    "Translation: World English Bible (WEB)",
+    "Passage: " + labelBook + " " + ref.chapter + " (verified chapter has verses 1-" + maxVerse + ")",
+    selected.map(function (verse) { return verse + ". " + String(verses.get(verse) || "").trim(); }).join("\n")
+  ].join("\n");
+
+  return {
+    reference:ref,
+    maxVerse:maxVerse,
+    contextText:contextText
+  };
+}
+
+async function buildWebGrounding(message, fetchImpl) {
+  const refs = extractBibleReferences(message);
+  if (!refs.length) return null;
+  const ref = refs[0];
+  try {
+    const rows = await fetchWebBookRows(ref.book, fetchImpl);
+    return groundingFromRows(ref, rows);
+  } catch (_) {
+    return null;
+  }
+}
+
+function userAskedForCrossReferences(message) {
+  return /\b(?:cross[- ]?references?|related passages?|other passages?|similar verses?|elsewhere in scripture)\b/i.test(String(message || ""));
+}
+
+function userAskedForOriginalLanguage(message) {
+  return /\b(?:hebrew|greek|aramaic|original language|lexicon|lexical|transliterat|strong'?s)\b/i.test(String(message || ""));
+}
+
+function findGroundingViolations(reply, message, grounding) {
+  const violations = [];
+  const text = String(reply || "");
+  if (!grounding || !grounding.reference) return violations;
+  const base = grounding.reference;
+  const allowCrossReferences = userAskedForCrossReferences(message);
+
+  extractBibleReferences(text).forEach(function (ref) {
+    if (ref.book === base.book && ref.chapter === base.chapter) {
+      if (ref.startVerse < 1 || ref.endVerse > grounding.maxVerse || ref.endVerse < ref.startVerse) {
+        violations.push("Impossible verse reference: " + ref.raw + "; verified " + base.book + " " + base.chapter + " ends at verse " + grounding.maxVerse + ".");
+      }
+    } else if (!allowCrossReferences) {
+      violations.push("Unrequested cross-reference: " + ref.raw + ". Keep this passage explanation inside the verified passage.");
+    }
+  });
+
+  const shorthandPattern = /\b(?:vv?|verses?)\.?\s*(\d+)(?:\s*[-–—‑]\s*(\d+))?/gi;
+  let shorthand;
+  while ((shorthand = shorthandPattern.exec(text))) {
+    const start = Number(shorthand[1]);
+    const end = Number(shorthand[2] || shorthand[1]);
+    if (start < 1 || end > grounding.maxVerse || end < start) {
+      violations.push("Impossible shorthand verse reference: " + shorthand[0] + "; verified chapter ends at verse " + grounding.maxVerse + ".");
+    }
+  }
+
+  if (!userAskedForOriginalLanguage(message) && /\b(?:Hebrew|Greek|Aramaic)\b/i.test(text)) {
+    violations.push("Unrequested original-language claim. Do not introduce Hebrew, Greek, or Aramaic lexical claims unless the user asks for them.");
+  }
+
+  return Array.from(new Set(violations));
+}
+
+async function invalidWebReferences(text, fetchImpl) {
+  const refs = extractBibleReferences(text);
+  const byBook = new Map();
+  refs.forEach(function (ref) {
+    if (!byBook.has(ref.book)) byBook.set(ref.book, []);
+    byBook.get(ref.book).push(ref);
+  });
+
+  const invalid = [];
+  for (const entry of byBook.entries()) {
+    const book = entry[0];
+    const bookRefs = entry[1];
+    let rows = null;
+    try {
+      rows = await fetchWebBookRows(book, fetchImpl);
+    } catch (_) {}
+    if (!rows) continue;
+    bookRefs.forEach(function (ref) {
+      if (!referenceExistsInRows(ref, rows)) invalid.push(ref.raw);
+    });
+  }
+  return Array.from(new Set(invalid));
+}
+
+function stripKnownInvalidReferences(text, invalidReferences) {
+  let cleaned = String(text || "");
+  (invalidReferences || []).forEach(function (reference) {
+    if (!reference) return;
+    cleaned = cleaned.split(reference).join("");
+  });
+  return cleaned
+    .replace(/\(\s*\)/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function stripInvalidCitations(text) {
   return String(text || "")
     .replace(
-      /\(\s*(Song\s+of\s+(?:Solomon|Songs)|(?:[1-3]\s+)?[A-Za-z]+)\s+(\d+):(\d+(?:-\d+)?)\s*\)/gi,
+      new RegExp("\\(\\s*(" + BIBLE_BOOK_PATTERN + ")\\s+(\\d+):(\\d+(?:[-–—‑]\\d+)?)\\s*\\)", "gi"),
       function (full, book, chapter, verse) {
         return verseRefExists(book + " " + chapter + ":" + verse) ? full : "";
       }
@@ -612,13 +815,41 @@ function stripInvalidCitations(text) {
     .trim();
 }
 
-function cleanCloudReply(rawReply, fallbackPsyche) {
+function buildCorrectionMessages(originalMessages, originalReply, violations, grounding) {
+  const source = grounding && grounding.contextText ? grounding.contextText : "No additional source context available.";
+  return [
+    originalMessages[0],
+    {
+      role:"user",
+      content:[
+        "Rewrite the draft answer below so it is accurate and source-grounded.",
+        "Keep the same user-facing purpose, but fix every listed problem.",
+        "Use WEB wording only when quoting the supplied WEB source. Prefer paraphrase over uncertain quotation.",
+        "Do not add cross-references unless the original user explicitly requested them.",
+        "Do not add Hebrew/Greek/Aramaic lexical claims unless the original user explicitly requested them and verified lexical source material is supplied.",
+        "",
+        "VERIFIED WEB SOURCE:",
+        source,
+        "",
+        "VALIDATION PROBLEMS:",
+        violations.map(function (item) { return "- " + item; }).join("\n"),
+        "",
+        "DRAFT TO CORRECT:",
+        originalReply,
+        "",
+        "Return only the corrected answer, including the normal [CARD]...[/CARD] and PSYCHE line."
+      ].join("\n")
+    }
+  ];
+}
+
+function cleanCloudReply(rawReply, fallbackPsyche, invalidReferences) {
   let text = String(rawReply || "")
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
     .replace(/<think>[\s\S]*$/gi, "")
     .trim();
 
-  text = stripInvalidCitations(text);
+  text = stripInvalidCitations(stripKnownInvalidReferences(text, invalidReferences || []));
 
   const psycheMatch = text.match(/^\s*PSYCHE\s*:\s*(.+)$/im);
   const updatedPsyche = psycheMatch
@@ -704,7 +935,8 @@ async function handleChat(request, env) {
     return jsonResponse(request, env, denialPayload(decision, fallbackPsyche));
   }
 
-  const built = buildMessages(Object.assign({}, payload, { message:message, mode:mode }));
+  const scriptureGrounding = await buildWebGrounding(message);
+  const built = buildMessages(Object.assign({}, payload, { message:message, mode:mode }), scriptureGrounding);
   let rawReply;
   try {
     rawReply = await groqComplete(built.messages, env);
@@ -717,6 +949,25 @@ async function handleChat(request, env) {
       cardText:"",
       updatedPsyche:built.psyche
     });
+  }
+
+  let validationProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
+  let invalidReferences = await invalidWebReferences(rawReply);
+  invalidReferences.forEach(function (reference) {
+    validationProblems.push("Reference does not exist in the verified WEB dataset: " + reference + ".");
+  });
+  validationProblems = Array.from(new Set(validationProblems));
+
+  if (validationProblems.length) {
+    try {
+      rawReply = await groqComplete(
+        buildCorrectionMessages(built.messages, rawReply, validationProblems, scriptureGrounding),
+        env
+      );
+      invalidReferences = await invalidWebReferences(rawReply);
+    } catch (error) {
+      console.warn("Ask Deeper correction pass failed:", error && error.message ? error.message : error);
+    }
   }
 
   try {
@@ -732,7 +983,7 @@ async function handleChat(request, env) {
     });
   }
 
-  const cleaned = cleanCloudReply(rawReply, built.psyche);
+  const cleaned = cleanCloudReply(rawReply, built.psyche, invalidReferences);
   const remainingCredits = decision.tier === "free"
     ? Math.max(0, Number(decision.remaining || 0) - 1)
     : Number(decision.remaining || 0);
@@ -896,8 +1147,20 @@ export const __test = {
   sanitizeMetadata:sanitizeMetadata,
   selectedMode:selectedMode,
   buildMessages:buildMessages,
+  normalizeBibleBook:normalizeBibleBook,
+  extractBibleReferences:extractBibleReferences,
   verseRefExists:verseRefExists,
+  chapterVerseMap:chapterVerseMap,
+  referenceExistsInRows:referenceExistsInRows,
+  groundingFromRows:groundingFromRows,
+  buildWebGrounding:buildWebGrounding,
+  userAskedForCrossReferences:userAskedForCrossReferences,
+  userAskedForOriginalLanguage:userAskedForOriginalLanguage,
+  findGroundingViolations:findGroundingViolations,
+  invalidWebReferences:invalidWebReferences,
+  stripKnownInvalidReferences:stripKnownInvalidReferences,
   stripInvalidCitations:stripInvalidCitations,
+  buildCorrectionMessages:buildCorrectionMessages,
   cleanCloudReply:cleanCloudReply,
   verifyLemonSignature:verifyLemonSignature,
   parseFsDocument:parseFsDocument,
