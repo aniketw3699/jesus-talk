@@ -1,5 +1,3 @@
-const API_BASE = "https://oneintoone-jesus-api.aniketw3699.workers.dev";
-
 const ALLOWED_API_PATHS = new Set([
   "/chat",
   "/api/chat",
@@ -9,7 +7,7 @@ const ALLOWED_API_PATHS = new Set([
   "/api/readiness"
 ]);
 
-async function proxyApi(request) {
+async function proxyApi(request, env) {
   const incoming = new URL(request.url);
   const upstreamPath = incoming.pathname.replace(/^\/api-preview/, "") || "/";
 
@@ -17,7 +15,17 @@ async function proxyApi(request) {
     return new Response("Preview API route not allowed.", { status:404 });
   }
 
-  const upstream = new URL(API_BASE + upstreamPath);
+  if (!env.API || typeof env.API.fetch !== "function") {
+    return new Response(
+      JSON.stringify({ detail:"Preview API service binding unavailable." }),
+      {
+        status:503,
+        headers:{ "Content-Type":"application/json; charset=utf-8" }
+      }
+    );
+  }
+
+  const upstream = new URL("https://oneintoone-internal.invalid" + upstreamPath);
   upstream.search = incoming.search;
 
   const headers = new Headers(request.headers);
@@ -36,7 +44,7 @@ async function proxyApi(request) {
     init.body = await request.arrayBuffer();
   }
 
-  const response = await fetch(new Request(upstream.toString(), init));
+  const response = await env.API.fetch(new Request(upstream.toString(), init));
   const responseHeaders = new Headers(response.headers);
   responseHeaders.delete("access-control-allow-origin");
   responseHeaders.delete("access-control-allow-credentials");
@@ -54,7 +62,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api-preview" || url.pathname.startsWith("/api-preview/")) {
-      return proxyApi(request);
+      return proxyApi(request, env);
     }
 
     return env.ASSETS.fetch(request);
