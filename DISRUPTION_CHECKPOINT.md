@@ -63,7 +63,7 @@ This removes app-store friction and directly connects SEO discovery to product u
 
 The user should not have to understand the routing architecture before asking a question. The default Talk experience should classify the turn automatically.
 
-Explicit prayer and supported burden/guidance flows stay local. Open-ended Christian conversation and basic Bible knowledge may use the standard cloud model. Ask Deeper uses the higher-depth cloud path.
+Explicit prayer and supported burden/guidance flows stay local. Prepared Scripture and a growing set of verified Christian/Bible knowledge answers are served from the user's device before any AI request. Open-ended Christian conversation can use the standard cloud model when device-side answers are not sufficient. Ask Deeper uses the higher-depth cloud path.
 
 Privacy copy and response-state UI must make this boundary understandable without forcing the user to choose a backend manually.
 
@@ -71,7 +71,7 @@ Privacy copy and response-state UI must make this boundary understandable withou
 
 Free/core:
 - unlimited local prayer
-- automatic Talk routing
+- automatic invisible routing with device-first answers
 - standard Jesus/Scripture-scoped conversation when cloud intelligence is needed
 - Bible + local search
 - Lay It Down
