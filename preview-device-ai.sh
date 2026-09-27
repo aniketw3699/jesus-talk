@@ -198,14 +198,16 @@ for i in {1..30}; do
   served_router="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/offline-core.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
   served_headers="$(curl -sSI -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
 
-  if printf '%s' "$served_launch" | grep -Fq "$API_VERSION_URL" && \
-     printf '%s' "$served_index" | grep -Fq 'Ask Anything · Jesus-Centered Guidance & Scripture' && \
-     printf '%s' "$served_knowledge" | grep -Fq 'version:"1.3.0"' && \
-     printf '%s' "$served_knowledge" | grep -Fq 'id:"st-michael-prayer"' && \
-     printf '%s' "$served_knowledge" | grep -Fq 'id:"world-end-date"' && \
-     printf '%s' "$served_knowledge" | grep -Fq 'id:"jesus-virgin-celibate"' && \
-     printf '%s' "$served_router" | grep -Fq 'version:"2.5.1"' && \
-     printf '%s' "$served_headers" | grep -qi '^cache-control: no-store'; then
+  served_headers_lower="$(printf '%s' "$served_headers" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$served_launch" == *"$API_VERSION_URL"* ]] && \
+     [[ "$served_index" == *"Ask Anything · Jesus-Centered Guidance & Scripture"* ]] && \
+     [[ "$served_knowledge" == *'version:"1.3.0"'* ]] && \
+     [[ "$served_knowledge" == *'id:"st-michael-prayer"'* ]] && \
+     [[ "$served_knowledge" == *'id:"world-end-date"'* ]] && \
+     [[ "$served_knowledge" == *'id:"jesus-virgin-celibate"'* ]] && \
+     [[ "$served_router" == *'version:"2.5.1"'* ]] && \
+     [[ "$served_headers_lower" == *"cache-control: no-store"* ]]; then
     preview_ready=1
     break
   fi
