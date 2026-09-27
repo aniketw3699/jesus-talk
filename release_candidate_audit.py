@@ -67,10 +67,10 @@ def main():
     for marker in [
         "Unlimited local prayer",
         "No app install required",
-        "Ask Deeper · Cloud",
-        "Comfort · Local",
-        "Written Prayer · Local",
-        "Guidance · Local",
+        "Talk · Auto",
+        ">✨ Ask Deeper</button>",
+        ">🙏 Prayer</button>",
+        ">🧭 Guidance</button>",
     ]:
         if marker not in index:
             failures.append(f"index.html: disruption marker missing -> {marker!r}")
