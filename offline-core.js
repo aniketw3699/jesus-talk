@@ -355,24 +355,75 @@
     return buildNormalExperience(text, selectedMode, analysis);
   }
 
-  function containsDeepQuestion(text) {
-    if (!DATA || !Array.isArray(DATA.deepQuestionPatterns)) return false;
-    return DATA.deepQuestionPatterns.some(function(pattern) { return pattern.test(text); });
+  function containsPremiumDeepQuestion(text) {
+    const value = String(text || "");
+    const patterns = [
+      /\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation)\b/i,
+      /\b(theology|theological|doctrine|doctrinal|trinity|trinitarian|predestination|eschatology|soteriology|christology)\b/i,
+      /\b(historical context|literary context|original language|verse[- ]by[- ]verse|exegesis|hermeneutic|hermeneutics)\b/i,
+      /\b(compare|difference between|catholic|orthodox|protestant|reformed|pentecostal)\b.*\b(view|views|teaching|teachings|interpretation|interpretations)\b/i,
+      /\b(contradiction|contradictions|contradict)\b/i,
+      /\bwhy did (jesus|paul|god|moses|peter)\b/i
+    ];
+    if (patterns.some(function(pattern) { return pattern.test(value); })) return true;
+    return value.length > 700 && /\?/.test(value);
+  }
+
+  function looksLikeExplicitPrayerRequest(text) {
+    const clean = normalize(text);
+    return /\b(pray|prayer|pray for|help me pray|write a prayer|say a prayer|bless|blessing)\b/.test(clean);
+  }
+
+  function looksLikeGuidanceRequest(text) {
+    const clean = normalize(text);
+    return /\b(what should i do|help me decide|need guidance|guide me|next step|discern|decision|choose|choice)\b/.test(clean);
+  }
+
+  function looksLikeKnowledgeQuestion(text) {
+    const clean = normalize(text);
+    if (!clean) return false;
+    if (/^(who|what|when|where|why|how|which)\b/.test(clean)) return true;
+    if (/\b(tell me about|explain|define|meaning of|what is|who is|who was|where is|when did|why did|how did|how many)\b/.test(clean)) return true;
+    if (/\b(ten commandments|commandments|apostles|disciples|mother mary|virgin mary|mary magdalene|baptism|eucharist|communion|resurrection|crucifixion|old testament|new testament|gospel|psalm|proverb)\b/.test(clean)) return true;
+    return /\?$/.test(String(text || "").trim()) && clean.split(" ").length <= 16;
+  }
+
+  function looksLikeSeriousPersonalSituation(text) {
+    const clean = normalize(text);
+    return /\b(dying|terminal|cancer|hospital|icu|surgery|doctor said|medical emergency|lost my job|fired|death|died|funeral|abused|abuse|violence)\b/.test(clean);
   }
 
   function decideRoute(text, mode, online) {
     const selectedMode = mode || "comfort";
     const isOnline = online !== false;
     const analysis = analyze(text);
+
     if (analysis.safety) return { route:"local", reason:"safety", analysis:analysis };
-    if (buildCasualExperience(text)) return { route:"local", reason:"casual-conversation", analysis:{ topic:"conversation", confidence:1, matchedTerms:[] } };
-    if (!isOnline) return { route:"local", reason:"offline", analysis:analysis };
-    if (selectedMode === "study") return { route:"cloud", reason:"study-mode", analysis:analysis };
-    if (containsDeepQuestion(text)) return { route:"cloud", reason:"deep-question", analysis:analysis };
-    if (String(text || "").length > 650 && /\?/.test(String(text || ""))) {
-      return { route:"cloud", reason:"complex-long-question", analysis:analysis };
+    if (buildCasualExperience(text)) {
+      return { route:"local", reason:"casual-conversation", analysis:{ topic:"conversation", confidence:1, matchedTerms:[] } };
     }
-    return { route:"local", reason:"core-prayer", analysis:analysis };
+    if (!isOnline) return { route:"local", reason:"offline", analysis:analysis };
+
+    if (selectedMode === "prayer" || looksLikeExplicitPrayerRequest(text)) {
+      return { route:"local", reason:"prayer-request", analysis:analysis };
+    }
+    if (selectedMode === "guidance" || looksLikeGuidanceRequest(text)) {
+      return { route:"local", reason:"guidance-request", analysis:analysis };
+    }
+
+    if (selectedMode === "study" || containsPremiumDeepQuestion(text)) {
+      return { route:"cloud-deep", cloudMode:"study", reason:selectedMode === "study" ? "study-mode" : "deep-question", analysis:analysis };
+    }
+
+    if (looksLikeKnowledgeQuestion(text) || looksLikeSeriousPersonalSituation(text)) {
+      return { route:"cloud-standard", cloudMode:"conversation", reason:"open-conversation", analysis:analysis };
+    }
+
+    if (analysis.confidence >= 0.25 && Array.isArray(analysis.matchedTerms) && analysis.matchedTerms.length > 0) {
+      return { route:"local", reason:"matched-local-topic", analysis:analysis };
+    }
+
+    return { route:"cloud-standard", cloudMode:"conversation", reason:"general-conversation", analysis:analysis };
   }
 
   function shouldHandleLocally(text, mode, online) {
@@ -396,7 +447,7 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.0.0",
+    version:"2.1.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
