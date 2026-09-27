@@ -116,7 +116,7 @@ async function testLocalPrayerEngine() {
   check(helloExperience.analysis.topic === "conversation", "Greeting does not fall into generic prayer topic");
   check(!(helloExperience.reply || "").includes("Scripture anchors:"), "Greeting does not force Scripture anchors");
   const identityExperience = engine.buildExperience("Who are you?", "comfort");
-  check(/Scripture-guided Christian companion/i.test(identityExperience.reply || ""), "Identity question gets direct conversational answer");
+  check(/Christian digital companion/i.test(identityExperience.reply || ""), "Identity question gets direct non-technical product answer");
 
   const mary = engine.decideRoute("Who is Mother Mary?", "comfort", true);
   check(mary.route === "local-knowledge", "Basic Christian knowledge uses device knowledge before cloud");
@@ -138,6 +138,13 @@ async function testLocalPrayerEngine() {
 
   const prayerStillLocal = engine.decideRoute("Please write a prayer for my mother", "comfort", true);
   check(prayerStillLocal.route === "local", "Explicit prayer request remains private local");
+
+  const namedPrayerLookup = engine.decideRoute("Tell me the St Michael prayer", "comfort", true);
+  check(
+    namedPrayerLookup.route === "cloud-standard" &&
+    namedPrayerLookup.reason === "universal-question",
+    "Named prayer lookup uses real conversation instead of the generic prayer generator"
+  );
   const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
   check(
     worldScience.route === "cloud-standard" && worldScience.reason === "universal-question",
@@ -387,8 +394,8 @@ async function testIndexFlowContracts() {
   check(index.includes("Ask naturally — 1into1 chooses the response path automatically."), "UI explains automatic routing without exposing backend modes");
   check(!index.includes('id="modeComfort"') && !index.includes('id="modePrayer"') && !index.includes('id="modeGuidance"'), "Manual response-mode selector is removed");
   check(index.includes('/local-knowledge.js'), "Chat page loads the device knowledge engine");
-  check(index.includes('id="deviceAiSetup"') && index.includes('enablePrivateDeviceAI()'), "Eligible devices have explicit private AI setup control");
-  check(deviceAISetup.includes("userInitiated:true"), "Private AI model preparation requires explicit setup action");
+  check(index.includes('id="deviceAiSetup"') && index.includes('enablePrivateDeviceAI()'), "Eligible devices have explicit private mode setup control");
+  check(deviceAISetup.includes("userInitiated:true"), "Private Mode model preparation requires explicit setup action");
   check(deviceAIAnswer.includes("getStatus()") && deviceAIAnswer.includes("status.ready"), "Conversation uses device LLM only after it is ready");
   check(submit.includes("routeDecision.route === 'device-general'") && submit.includes("answerWithPreparedDeviceAI"), "Offline universal questions can use prepared device LLM");
   check(submit.includes('data.error === "SERVICE_DEGRADED"') && submit.includes("answerWithPreparedDeviceAI"), "Cloud failure tries universal device AI before narrower fallbacks");

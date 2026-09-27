@@ -191,7 +191,7 @@
     } else if (/^(how are you|how are you doing|how is it going|hows it going|how have you been)$/.test(clean)) {
       reply = "I’m here and ready to listen. What’s on your mind today?";
     } else if (/^(who are you|what are you|what is this|what can you do|tell me about yourself)$/.test(clean)) {
-      reply = "I’m 1into1 with Jesus, a Scripture-guided Christian companion—not Jesus himself. I can listen, help you pray, explore the Bible, or talk through what you’re carrying.";
+      reply = "I’m 1into1, a Christian digital companion—not Jesus himself. I can listen, help you pray, explore the Bible, or talk through what you’re carrying.";
     } else if (/^(thanks|thank you|thank you so much|thanks a lot|appreciate it)$/.test(clean)) {
       reply = "You’re welcome. I’m here whenever you want to talk, pray, or look at Scripture together.";
     } else if (/^(bye|goodbye|good night|see you|see you later|talk later)$/.test(clean)) {
@@ -373,7 +373,7 @@
 
   function looksLikeExplicitPrayerRequest(text) {
     const clean = normalize(text);
-    return /\b(pray|prayer|pray for|help me pray|write a prayer|say a prayer|bless|blessing)\b/.test(clean);
+    return /\b(please pray|pray for me|pray with me|pray for my|pray about|help me pray|write (?:me )?a prayer|write a prayer for|say a prayer for|can you pray|bless me|bless my)\b/.test(clean);
   }
 
   function decideRoute(text, mode, online) {
