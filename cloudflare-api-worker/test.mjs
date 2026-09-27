@@ -76,7 +76,7 @@ const universalMedicalDecision = __test.buildMessages({
   userIntentions: "seeking guidance"
 });
 assert.match(universalMedicalDecision.messages[0].content, /pregnancy, medical treatment/i);
-assert.match(universalMedicalDecision.messages[0].content, /answer the question directly/i);
+assert.match(universalMedicalDecision.messages[0].content, /Christian moral\/spiritual guidance/i);
 
 assert.deepEqual(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard"),
