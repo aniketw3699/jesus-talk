@@ -188,9 +188,8 @@ async function testLocalPrayerEngine() {
   );
   const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
   check(
-    worldScience.route === "cloud-standard" &&
-    worldScience.cloudMode === "bridge" &&
-    worldScience.reason === "christian-bridge",
+    worldScience.route === "local-scope" &&
+    worldScience.reason === "bible-scope-boundary",
     "Standalone science is bridged to Jesus/Scripture instead of answered as a science encyclopedia"
   );
 
@@ -230,9 +229,8 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    shoppingQuestion.route === "cloud-standard" &&
-    shoppingQuestion.cloudMode === "bridge" &&
-    shoppingQuestion.reason === "christian-bridge",
+    shoppingQuestion.route === "local-scope" &&
+    shoppingQuestion.reason === "bible-scope-boundary",
     "Shopping and technology are bridged to Christian stewardship instead of general recommendations"
   );
 
@@ -242,9 +240,8 @@ async function testLocalPrayerEngine() {
     false
   );
   check(
-    offlineWorldQuestion.route === "device-general" &&
-    offlineWorldQuestion.cloudMode === "bridge" &&
-    offlineWorldQuestion.reason === "christian-bridge",
+    offlineWorldQuestion.route === "local-scope" &&
+    offlineWorldQuestion.reason === "bible-scope-boundary",
     "Offline world questions preserve the Christian bridge scope"
   );
 
@@ -257,9 +254,8 @@ async function testLocalPrayerEngine() {
     true
   );
   check(
-    deepStrategy.route === "cloud-standard" &&
-    deepStrategy.cloudMode === "bridge" &&
-    deepStrategy.reason === "christian-bridge",
+    deepStrategy.route === "local-scope" &&
+    deepStrategy.reason === "bible-scope-boundary",
     "Complex non-Christian strategy cannot turn Ask Deeper into a general research product"
   );
 
@@ -281,34 +277,58 @@ async function testLocalPrayerEngine() {
 
   const normalScience = engine.decideRoute("Explain black holes simply", "comfort", true);
   check(
-    normalScience.route === "cloud-standard" &&
-    normalScience.cloudMode === "bridge" &&
-    normalScience.reason === "christian-bridge",
+    normalScience.route === "local-scope" &&
+    normalScience.reason === "bible-scope-boundary",
     "Simple science is accepted as input but bridged into the Christian scope"
   );
 
   const politicsBridge = engine.decideRoute("who is elon musk and what trump has to do about it", "comfort", true);
   check(
-    politicsBridge.route === "cloud-standard" &&
-    politicsBridge.cloudMode === "bridge" &&
-    politicsBridge.reason === "christian-bridge",
+    politicsBridge.route === "local-scope" &&
+    politicsBridge.reason === "bible-scope-boundary",
     "Public-figure/political prompt cannot become general news or biography"
   );
 
   const mathBridge = engine.decideRoute("calculate 20 divide by 4", "comfort", true);
   check(
-    mathBridge.route === "cloud-standard" &&
-    mathBridge.cloudMode === "bridge" &&
-    mathBridge.reason === "christian-bridge",
+    mathBridge.route === "local-scope" &&
+    mathBridge.reason === "bible-scope-boundary",
     "Standalone calculation remains outside product knowledge scope"
   );
 
   const religionBridge = engine.decideRoute("what your view on bhagwan ram?", "comfort", true);
   check(
-    religionBridge.route === "cloud-standard" &&
-    religionBridge.cloudMode === "bridge" &&
-    religionBridge.reason === "christian-bridge",
+    religionBridge.route === "local-scope" &&
+    religionBridge.reason === "bible-scope-boundary",
     "Other-religion prompt is handled only through a Christian perspective"
+  );
+
+  const businessIdeas = engine.decideRoute("i want to earn money tell me business ideas", "comfort", true);
+  check(
+    businessIdeas.route === "local-scope" &&
+    businessIdeas.reason === "bible-scope-boundary",
+    "Business-idea request is hard-stopped before cloud AI"
+  );
+  const businessScopeAnswer = engine.buildScopeRedirect("i want to earn money tell me business ideas");
+  check(
+    Boolean(
+      businessScopeAnswer &&
+      /does not generate business ideas/i.test(businessScopeAnswer.reply || "") &&
+      /Jesus and the Bible only/i.test(businessScopeAnswer.reply || "") &&
+      !/tutoring|coaching|online store|handyman|youtube channel/i.test(businessScopeAnswer.reply || "")
+    ),
+    "Business-idea redirect contains only the Bible/Jesus boundary and no business suggestions"
+  );
+
+  const businessIdeasDeep = engine.decideRoute(
+    "Give me a detailed research-level list of ten business ideas and a 90-day plan",
+    "study",
+    true
+  );
+  check(
+    businessIdeasDeep.route === "local-scope" &&
+    businessIdeasDeep.reason === "bible-scope-boundary",
+    "Ask Deeper cannot bypass the Bible-only knowledge boundary"
   );
 
   const christianComparison = engine.decideRoute("What does Christianity say about worshipping other gods?", "comfort", true);
