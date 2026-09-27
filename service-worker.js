@@ -1,6 +1,6 @@
-const CACHE_VERSION = "1into1-shell-v13";
-const PAGE_CACHE = "1into1-pages-v13";
-const STATIC_CACHE = "1into1-static-v13";
+const CACHE_VERSION = "1into1-shell-v14";
+const PAGE_CACHE = "1into1-pages-v14";
+const STATIC_CACHE = "1into1-static-v14";
 const BIBLE_CACHE = "1into1-bible-web-v1";
 
 const BIBLE_SOURCE_BASE = "https://raw.githubusercontent.com/TehShrike/world-english-bible/master/json/";
@@ -194,7 +194,7 @@ self.addEventListener("fetch", event => {
     event.respondWith(
       fetch(request)
         .then(response => {
-          if (response && response.ok && isSameOrigin(url)) {
+          if (response && response.ok && response.status === 200 && isSameOrigin(url)) {
             const copy = response.clone();
             caches.open(PAGE_CACHE).then(cache => cache.put(request, copy));
           }
@@ -213,7 +213,7 @@ self.addEventListener("fetch", event => {
       caches.match(request).then(cached => {
         const network = fetch(request)
           .then(response => {
-            if (response && response.ok) {
+            if (response && response.ok && response.status === 200) {
               const copy = response.clone();
               caches.open(STATIC_CACHE).then(cache => cache.put(request, copy));
             }
