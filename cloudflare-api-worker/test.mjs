@@ -62,6 +62,9 @@ const worldBridge = __test.buildMessages({
 assert.equal(worldBridge.mode, "bridge");
 assert.match(worldBridge.messages[0].content, /Do NOT answer it as a general encyclopedia/i);
 assert.match(worldBridge.messages[0].content, /Jesus or Scripture/i);
+assert.match(worldBridge.messages[0].content, /1-2 concise paragraphs/i);
+assert.match(worldBridge.messages[0].content, /Do not append a prayer, reflection, share card/i);
+
 
 assert.equal(__test.bridgeReplyIsChristian("Elon Musk leads Tesla and SpaceX."), false);
 assert.equal(__test.bridgeReplyIsChristian("Scripture can help us think about wealth, power, and leadership."), true);
@@ -242,6 +245,15 @@ const cleaned = __test.cleanCloudReply(
 assert.equal(cleaned.reply, "A response.");
 assert.equal(cleaned.cardText, "A blessing.");
 assert.equal(cleaned.updatedPsyche, "Growing in peace");
+
+const spacedCard = __test.cleanCloudReply(
+  "A concise Christian bridge answer.\n\n[ CARD ]\nA blessing that must not leak.\n[/ CARD ]\nPSYCHE: Curious about faith",
+  "Seeking wisdom"
+);
+assert.equal(spacedCard.reply, "A concise Christian bridge answer.");
+assert.equal(spacedCard.cardText, "A blessing that must not leak.");
+assert.doesNotMatch(spacedCard.reply, /\[\s*\/?\s*CARD\s*\]/i);
+
 
 const secret = "test-secret";
 const raw = '{"hello":"world"}';
