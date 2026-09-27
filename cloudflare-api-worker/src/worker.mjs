@@ -1301,6 +1301,7 @@ export const __test = {
   sanitizeMetadata:sanitizeMetadata,
   selectedMode:selectedMode,
   buildMessages:buildMessages,
+  modelCandidates:modelCandidates,
   normalizeBibleBook:normalizeBibleBook,
   extractBibleReferences:extractBibleReferences,
   verseRefExists:verseRefExists,
