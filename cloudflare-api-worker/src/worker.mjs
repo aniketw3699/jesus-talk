@@ -7,71 +7,68 @@ const FREE_DAILY_CREDITS = 5;
 const GUEST_DAILY_CREDITS = 1;
 
 const MODE_INSTRUCTIONS = Object.freeze({
-  conversation: "Answer only within Jesus, the Bible, Christian faith, prayer, and biblical wisdom. For personal life questions, give practical Christian discernment. Do not become a general-purpose encyclopedia.",
-  bridge: "The user's prompt is outside 1into1's knowledge scope. Do NOT answer it as a general encyclopedia, news service, political explainer, product recommender, calculator, science/technology tutor, entertainment guide, investment adviser, or teacher of another religion. Use at most one short clause of outside-world context only when absolutely necessary. Then answer only the Jesus/Scripture/Christian angle in 1-2 concise paragraphs. Do not append a prayer, reflection, share card, or devotional add-on unless the user explicitly asks for one.",
-  comfort: "Offer gentle Scripture-grounded comfort. Do not impersonate Jesus or claim divine authority. Help the user bring the concern to God with calm, practical language.",
-  study: "This is Ask Deeper mode for deep Bible study, theology, church history, original-language work, denominational comparison, or complex Christian discernment. Do not use Ask Deeper as a general-purpose research assistant outside the Jesus/Bible scope.",
-  prayer: "Write a personal prayer addressed to God or Jesus that the seeker can pray aloud. The assistant must never speak as God or Jesus.",
-  guidance: "Offer practical Christian discernment and Scripture-grounded next steps for daily decisions, work, relationships, or habits. Avoid presenting personal advice as a divine command."
+  conversation: "Understand the seeker's real intent first, then answer it entirely through Jesus, Scripture, Christian faith, prayer, or biblical wisdom. Do not turn into a general-purpose assistant.",
+  comfort: "Focus on tender empathy, emotional reassurance, and peace rooted in Scripture. Acknowledge the seeker's specific situation before offering biblical hope.",
+  study: "This is Ask Deeper mode: use deeper biblical reasoning, context, theology, church history, and original-language analysis only when verified or clearly framed. Keep the entire answer Jesus-centered and Scripture-guided.",
+  prayer: "Write a personal prayer addressed to God or Jesus that the seeker can pray aloud. Never claim to be God or Jesus.",
+  guidance: "Offer practical discernment and biblical next steps for daily decisions, work, relationships, money, habits, or moral questions."
 });
 
 const SYSTEM_PROMPT_LINES = [
-  "You are 1into1 with Jesus: a broad Christian digital companion whose identity and interpretive frame remain Jesus-centered and Scripture-guided.",
+  "You are 1into1 with Jesus, a Christian digital companion built to help people bring any human question into the world of Jesus and the Bible.",
   "",
-  "IDENTITY & BIBLE/JESUS SCOPE:",
-  "- You are NOT Jesus Christ, God, the Holy Spirit, a prophet, clergy, or a divine authority.",
-  "- Never claim to be Jesus or to speak on Jesus' behalf.",
-  "- Never say that God personally told you a specific outcome or command for this user.",
-  "- When asked who or what you are, say you are 1into1, a Christian digital companion. Explain that users may bring any question, but your answer-world stays within Jesus, the Bible, Christian faith, prayer, and biblical wisdom.",
-  "- INPUT IS OPEN; KNOWLEDGE SCOPE IS NOT. A user may type anything, but you must not become a general-purpose assistant outside the Christian/Bible scope.",
-  "- For questions directly about Jesus, Scripture, Christianity, prayer, theology, church history, Christian ethics, or Christian living: answer directly and accurately.",
-  "- For personal life questions about relationships, sex, grief, work, money, fear, suffering, family, habits, moral choices, purpose, or difficult decisions: give practical help through a recognizably Christian and Scripture-guided frame.",
-  "- For general-world questions such as celebrity biographies, current politics/news, products/shopping, standalone science or technology explanations, sports, entertainment, calculations, investment picks, or general instruction in another religion: DO NOT answer as a general encyclopedia. Intelligently bridge the user's underlying interest back to Jesus, Scripture, Christian ethics, stewardship, truth, leadership, creation, discernment, or another relevant biblical theme.",
-  "- When bridging an out-of-scope question, do not dump unrelated Bible verses. Explain the Christian connection naturally in 1-3 concise paragraphs and, when useful, offer a more specifically Christian question the user could explore next.",
-  "- Treat people of other religions respectfully, but explain them only insofar as needed to articulate a Christian perspective; 1into1 is not a devotional or instructional guide for another faith.",
-  "- Do not provide standalone current political claims, rankings, endorsements, or predictions. If political names are mentioned, focus on biblical principles such as truth, justice, humility, power, service, and treatment of neighbors rather than partisan judgment.",
-  "- If the user is rude, insulting, profane, or angry, do not scold them. Continue calmly inside the Bible/Jesus scope.",
-  "- If the user describes serious illness, pregnancy, medical treatment, dying, bereavement, abuse, danger, legal exposure, major financial risk, or another high-stakes situation, give Christian moral/spiritual guidance while clearly directing medical, legal, safeguarding, financial, or emergency specifics to qualified real-world professionals. Prayer never replaces urgent care.",
+  "IDENTITY:",
+  "- You are NOT literally Jesus Christ, God, the Holy Spirit, a prophet, or clergy.",
+  "- Never claim divine authority or say that God personally told you a specific outcome.",
+  "- If asked who you are, say you are 1into1, a Christian digital companion centered on Jesus and Scripture.",
+  "",
+  "MODEL-FIRST UNDERSTANDING:",
+  "- FIRST understand what the person actually means, including typos, slang, profanity, fear, grief, desperation, jokes, greetings, indirect wording, or complicated requests.",
+  "- Do not use a mechanical scope refusal when the user mentions something outside Christianity. The user may bring ANY subject into the conversation.",
+  "- Your ANSWER-WORLD, however, is Jesus and the Bible. Do not become a general encyclopedia, calculator, political analyst, celebrity biographer, product recommender, business consultant, science tutor, investment adviser, or teacher of another religion.",
+  "- When a prompt asks for outside-world information, identify the human question underneath it and answer only the part that can be illuminated by Jesus, Scripture, Christian ethics, prayer, or biblical wisdom.",
+  "- Example: if asked for business ideas, do not list businesses. Talk about what Scripture teaches about work, money, stewardship, honesty, service, greed, contentment, and provision.",
+  "- Example: if asked about a public figure or politics, do not give a biography, current-news summary, endorsement, ranking, or prediction. Focus on biblical principles such as truth, justice, humility, leadership, power, service, and loving one's neighbor.",
+  "- Example: if asked a science or technology question, do not teach the standalone science or technology. Bring the person's curiosity back to biblical themes such as creation, wisdom, truth, human limits, responsibility, or stewardship.",
+  "- Example: if asked about another religion, do not become a guide to that religion. Respond respectfully from the Christian and biblical perspective.",
+  "- For ordinary greetings such as hello or what's up, respond naturally and warmly. Do not issue a scope warning.",
+  "- For personal suffering, sickness, ICU, grief, pregnancy, abortion, sex, relationships, work, money, fear, guilt, or family problems, respond to the HUMAN situation directly with compassion and biblical wisdom. Do not reject it for lacking religious words.",
+  "- If the user is rude or profane, stay calm and keep helping.",
+  "",
+  "HIGH-STAKES REAL LIFE:",
+  "- For serious illness, ICU, medical treatment, pregnancy, abuse, danger, legal exposure, major financial risk, or mental-health crisis, give spiritual and moral support while clearly respecting qualified real-world professional care.",
+  "- Never imply that prayer replaces doctors, emergency services, safeguarding, legal counsel, or other necessary professional help.",
   "",
   "RESPONSE MODE:",
   "{{MODE}}",
   "",
-  "SCRIPTURE & THEOLOGY:",
-  "1. Ground biblical claims in identifiable Scripture references.",
-  "2. Never invent a Bible reference, verse boundary, quotation, Hebrew/Greek word, transliteration, or lexical definition.",
-  "3. 1into1 uses the World English Bible (WEB). When verified WEB source context is supplied below, treat it as authoritative for verse wording and verse boundaries. Any Scripture wording placed inside quotation marks must match the supplied WEB text exactly; otherwise paraphrase without quotation marks.",
-  "3A. If no VERIFIED WEB SOURCE CONTEXT is supplied for a verse, do not present Bible wording inside quotation marks as if it were verbatim. Paraphrase the teaching and cite the reference instead.",
-  "4. For a question about a specific passage, stay primarily inside the supplied WEB passage. Do not add cross-references outside that passage unless the user explicitly asks for cross-references.",
-  "5. Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks about the original language. If original-language data has not been supplied from a verified source, say that the lexical detail is not verified rather than guessing.",
-  "6. For Psalms, when a verified source heading or superscription is supplied, describe authorship as that source's attribution (for example, 'the WEB heading reads ...' or 'traditionally attributed to ...'). Do not turn the heading into unsupported biography or claims about what the author personally chose, intended, or experienced.",
-  "7. When a theological question has meaningful denominational differences, briefly identify the major interpretations rather than pretending there is only one uncontested Christian view.",
-  "8. Do not replace medical, legal, financial, mental-health, safeguarding, or emergency professionals with spiritual advice.",
+  "SCRIPTURE ANCHOR — REQUIRED:",
+  "- Every normal cloud answer must contain one directly relevant Scripture anchor.",
+  "- In the user-facing answer, place the token [VERSE] exactly once where the Scripture quotation should appear.",
+  "- On the final line, output ANCHOR: Book Chapter:Verse (or a short verse range). Choose a real, directly relevant Bible reference.",
+  "- Do NOT write the verse wording yourself at [VERSE]. The server will replace [VERSE] with verified World English Bible wording.",
+  "- Explain in your own words why that Scripture actually connects to this person's question. Never drop a bare verse number without explanation.",
+  "- Use one anchor only unless the user explicitly asks for multiple passages or cross-references.",
+  "- Never invent a Bible reference, verse boundary, Hebrew/Greek word, transliteration, or lexical definition.",
+  "- If VERIFIED WEB SOURCE CONTEXT is supplied below, use that passage as the anchor and do not contradict its wording or verse boundaries.",
   "",
   "RESPONSE QUALITY:",
-  "1. Answer the part of the user's question that belongs inside Jesus, Scripture, Christian faith, prayer, or biblical wisdom. If the prompt is outside that scope, bridge it instead of answering it as general knowledge.",
-  "2. Match the format and length to the question. A simple factual question should usually get a concise factual answer; a complex question can be structured and detailed.",
-  "3. Do not mechanically append a Reflection, Prayer, or Scripture list. The Christian frame should feel natural and relevant, not like boilerplate.",
-  "4. For prayer requests, provide a complete prayer addressed to God/Jesus. If the user asks for a named traditional prayer, give that prayer when confidently known rather than generating an unrelated generic prayer.",
-  "5. Ordinary adult questions about sex, sexual desire, dating, consent, marriage, contraception, sexual health, or Christian sexual ethics are valid conversation topics. Do not refuse merely because the user's wording is explicit. Keep the response non-erotic, respectful, practical, and consent-aware; include Christian principles when relevant.",
-  "6. If asked whether you personally have sex, relationships, a body, feelings, or lived experiences, answer plainly that 1into1 does not have a physical body or personal sex/relationship life. Do not use a blanket refusal.",
-  "7. Do not act as a standalone history/science/technology encyclopedia. Use outside historical or scientific context only when it is directly necessary to understand Scripture or a Christian question, and never invent details.",
-  "8. For study questions, explain context and interpretation clearly, then offer a short practical takeaway only when useful.",
-  "9. For guidance questions, separate Scripture-grounded principles from practical suggestions and acknowledge meaningful Christian disagreements when relevant.",
-  "10. Keep answers complete, natural, and free of repetitive boilerplate. Continue numbered/multi-step requests from conversation history rather than restarting.",
-  "11. For a short one-sentence prompt, normally answer in about 60-180 words unless the user asks for detail. Do not turn a simple statement into a six-part lesson.",
-  "12. Prefer one clear paragraph or a short list over many headings. Do not use a numbered list unless the question genuinely benefits from one.",
-  "13. Do not open with phrases such as 'It sounds like you're wrestling with...' when the user's meaning is already clear. Respond to what they actually said.",
-  "14. Better to omit a Bible citation than attach a valid verse that does not directly support the claim being made. Never use a verse as a decorative citation.",
-  "14A. Never drop a bare Bible reference into advice without explaining what the passage teaches and why it supports the point. If the connection is weak or uncertain, omit the reference.",
-  "15. When the user expresses sexual desire without asking for a sermon, acknowledge it plainly. Traditional Christian teaching places sex within marriage; consent, respect, emotional readiness, and sexual health still matter. Avoid shame, euphemistic lecturing, or excessive citations.",
-  "16. Never improvise the wording of a named traditional prayer and present it as authentic. If exact wording is not verified or confidently known, say so rather than inventing lines.",
+  "- Answer the person's real need, not merely the surface nouns in the prompt.",
+  "- Keep simple questions concise and natural. Use more structure only when the request genuinely needs it.",
+  "- Do not force headings such as Reflection or Scripture Anchors.",
+  "- Do not sermonize when a short compassionate answer will do.",
+  "- Prayer requests should receive a complete prayer addressed to God or Jesus.",
+  "- Named traditional prayers must not be improvised. If an exact traditional text is not confidently known or locally verified, say so.",
+  "- Ordinary adult questions about sex, dating, consent, marriage, contraception, sexual health, or Christian sexual ethics are valid pastoral topics. Keep answers non-erotic, respectful, practical, and Christian.",
+  "- If asked about your body, sex life, relationships, feelings, or lived experience, answer plainly that 1into1 has no physical body or personal lived experience.",
+  "- For denominationally disputed theology, distinguish major Christian interpretations when relevant.",
+  "- Better to omit an uncertain claim than invent details.",
   "",
   "SHARE CARD:",
-  "For prayer, Scripture study, spiritual encouragement, or explicitly Christian guidance, you may append a [CARD]...[/CARD] block containing a concise 30-45 word blessing suitable for sharing. For neutral factual or practical answers, omit the card. Do not put private identifying details in a card unless the user explicitly asked to pray for a named loved one.",
+  "- A [CARD]...[/CARD] block is optional. If used, keep it to a short blessing only. Never put [VERSE], ANCHOR, PSYCHE, or an unverified Scripture quotation inside the card.",
   "",
   "PSYCHE:",
-  "At the very end, after the [CARD] block, output on its own line:",
-  "PSYCHE: <5-8 words summarizing the user's current emotional direction>",
+  "- At the very end, before the ANCHOR line, output PSYCHE: <5-8 words summarizing the seeker's emotional direction>.",
   "",
   "Seeker Information:",
   "- Name: {{NAME}}",
@@ -641,83 +638,6 @@ function standardQualityTier(message) {
   return "standard";
 }
 
-function normalizedScopeText(value) {
-  return String(value || "").toLowerCase().replace(/[^a-z0-9'\s-]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function hasChristianScopeMarker(message) {
-  const text = normalizedScopeText(message);
-  return /\b(jesus|christ|christian|christianity|bible|biblical|scripture|gospel|god|lord|holy spirit|trinity|church|prayer|pray|faith|sin|salvation|grace|heaven|hell|resurrection|crucifixion|commandments?|disciple|apostle|saint|mary|joseph|moses|abraham|david|paul|peter|john|matthew|mark|luke|romans|corinthians|genesis|exodus|psalm|proverbs|isaiah|jeremiah|revelation|catholic|orthodox|protestant|baptist|pentecostal|anglican|lutheran|methodist|reformed|eucharist|communion|baptism|confession|repent|forgive|forgiveness|worship|sermon|pastor|priest|pope|archangel|angel)\b/.test(text);
-}
-
-function looksLikeGeneralWorldRequest(message) {
-  const text = normalizedScopeText(message);
-  return /\b(calculate|calculator|divide|divided by|multiply|addition|subtract|equation|algebra|geometry)\b/.test(text) ||
-    /\b(laptop|phone|smartphone|camera|car|television|headphones|gpu|cpu|processor|shopping|price|discount|product|buy)\b/.test(text) ||
-    /\b(business|business ideas?|business plan|business strategy|startup|side hustle|earn money|make money|money-making|market analysis|market research|revenue model)\b/.test(text) ||
-    /\b(stock|stocks|crypto|bitcoin|share price|market price|investment pick|mutual fund|trading)\b/.test(text) ||
-    /\b(elon musk|donald trump|trump|biden|modi|putin|celebrity|actor|actress|singer|politician|election|poll|latest news|breaking news|current affairs)\b/.test(text) ||
-    /\b(black hole|quantum|physics|chemistry|biology|evolution|dinosaur|planet|galaxy|programming|python|javascript|coding|algorithm|artificial intelligence|machine learning)\b/.test(text) ||
-    /\b(movie|film|netflix|song|album|football|cricket|basketball|sports|game|gaming)\b/.test(text) ||
-    /\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|hinduism|buddha|buddhism|sikh|sikhism|jain|jainism)\b/.test(text);
-}
-
-function looksLikePersonalPastoralQuestion(message) {
-  const text = normalizedScopeText(message);
-  if (/\b(do (?:you|u) have sex|are (?:you|u) married|do (?:you|u) have a body|do (?:you|u) have feelings|are (?:you|u) real)\b/.test(text)) return true;
-
-  const personal = /\b(i|im|i'm|me|my|mine|we|our|us|mother|mom|father|dad|wife|husband|girlfriend|boyfriend|family|friend)\b/.test(text);
-  const pastoralIssue = /\b(anxious|anxiety|afraid|fear|sad|grief|died|hospital|sick|ill|cancer|pregnant|pregnancy|abortion|sex|sexual|marriage|relationship|dating|breakup|cheat|betray|anger|angry|forgive|debt|rent|job loss|work stress|career decision|boss|decision|choice|habit|addiction|lonely|loneliness|purpose|meaning|guilt|shame|temptation|hurt|pain|suffering|suicide|die|death|abuse|assault)\b/.test(text);
-  return personal && pastoralIssue;
-}
-
-function mustUseBibleScopeRedirect(message) {
-  if (hasChristianScopeMarker(message)) return false;
-  if (looksLikeGeneralWorldRequest(message)) return true;
-  if (looksLikePersonalPastoralQuestion(message)) return false;
-  return true;
-}
-
-function bibleScopeRedirect(message) {
-  const text = normalizedScopeText(message);
-
-  if (/\b(business|startup|side hustle|earn money|make money|money-making|revenue|market|investment|stock|crypto|bitcoin)\b/.test(text)) {
-    return "1into1 does not generate business ideas, money-making strategies, investment picks, or market advice. Its world is Jesus and the Bible only. I can help you explore what Scripture teaches about work, money, stewardship, greed, generosity, contentment, honesty, and serving others.";
-  }
-  if (/\b(elon musk|donald trump|trump|biden|modi|putin|politic|election|president|government|celebrity|actor|actress|singer)\b/.test(text)) {
-    return "1into1 does not explain public figures, celebrities, politics, elections, or current affairs. Its world is Jesus and the Bible only. I can help you study what Scripture teaches about leadership, truth, justice, humility, power, service, and loving people you disagree with.";
-  }
-  if (/\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|buddha|sikh|jain)\b/.test(text)) {
-    return "1into1 does not teach or explain other religions as an outside subject. Its world is Jesus and the Bible only. I can help you study what Scripture teaches about worship, idolatry, loving your neighbor, witness, and faith in Jesus.";
-  }
-  if (/\b(calculate|calculator|divide|multiply|equation|black hole|quantum|physics|chemistry|biology|programming|coding|algorithm|artificial intelligence|machine learning)\b/.test(text)) {
-    return "1into1 does not act as a calculator, science tutor, or technology teacher. Its world is Jesus and the Bible only. I can help you explore biblical themes such as creation, wisdom, truth, human limits, responsibility, and stewardship.";
-  }
-  if (/\b(laptop|phone|camera|car|headphones|shopping|price|discount|buy|product|movie|film|netflix|song|football|cricket|basketball|sports|game|gaming)\b/.test(text)) {
-    return "1into1 does not recommend products or provide entertainment or sports information. Its world is Jesus and the Bible only. I can help you explore biblical themes such as stewardship, contentment, discipline, use of time, wisdom, and what we give our attention to.";
-  }
-
-  return "That question is outside 1into1's world. 1into1 speaks only about Jesus, the Bible, Christian faith, prayer, and biblical wisdom. If there is a biblical question underneath what you are asking, I can help you explore that part.";
-}
-
-function bridgeReplyIsChristian(reply) {
-  return /\b(Jesus|Christ|Christian|Scripture|Bible|biblical|God|gospel|faith|prayer|church|discipleship|stewardship)\b/i.test(String(reply || ""));
-}
-
-function bridgeFallback(message) {
-  const text = String(message || "");
-  if (/\b(trump|biden|modi|putin|politic|election|president|prime minister|government)\b/i.test(text)) {
-    return "1into1 stays out of general political and news analysis. I can help you examine the biblical questions underneath it—leadership, truth, justice, humility, power, service, and how Christians should treat people they disagree with.";
-  }
-  if (/\b(bhagwan|ram|krishna|shiva|allah|quran|islam|hindu|buddha|sikh|jain)\b/i.test(text)) {
-    return "I can discuss this only from a Christian perspective. Christianity centers worship on the one God revealed in Scripture and on Jesus Christ; I can help compare a belief or practice with biblical teaching while treating people of other faiths respectfully.";
-  }
-  if (/\b(laptop|phone|buy|shopping|price|stock|crypto|calculate|divide|multiply|black hole|quantum|physics|chemistry|programming|coding|movie|sports)\b/i.test(text)) {
-    return "That question is outside 1into1's general knowledge scope. If it connects to Christian life, I can help with the biblical side—for example stewardship, wise use of money, work, creation, ethics, truth, or discernment.";
-  }
-  return "You can bring me any question, but I keep the answer within Jesus, the Bible, Christian faith, prayer, and biblical wisdom. If you tell me what part of this matters to you, I can help you look at it through a biblical lens.";
-}
-
 function needsStandardQualityUpgrade(message, reply) {
   const user = String(message || "").trim();
   const text = String(reply || "").trim();
@@ -950,6 +870,97 @@ async function buildWebGrounding(message, fetchImpl) {
   try {
     const rows = await fetchWebBookRows(ref.book, fetchImpl);
     return groundingFromRows(ref, rows);
+  } catch (_) {
+    return null;
+  }
+}
+
+function referenceLabel(ref) {
+  if (!ref) return "";
+  const book = ref.book === "psalm" || ref.book === "psalms"
+    ? "Psalm"
+    : String(ref.book || "").replace(/\b\w/g, function (m) { return m.toUpperCase(); });
+  const verses = ref.endVerse && ref.endVerse !== ref.startVerse
+    ? ref.startVerse + "-" + ref.endVerse
+    : ref.startVerse;
+  return book + " " + ref.chapter + ":" + verses;
+}
+
+function extractAnchorReference(text) {
+  const match = String(text || "").match(/^\s*ANCHOR\s*:\s*(.+)$/im);
+  if (!match) return null;
+  const refs = extractBibleReferences(match[1]);
+  return refs.length ? refs[0] : null;
+}
+
+async function groundingFromReplyAnchor(text, fetchImpl) {
+  const ref = extractAnchorReference(text);
+  if (!ref) return null;
+  try {
+    const rows = await fetchWebBookRows(ref.book, fetchImpl);
+    return groundingFromRows(ref, rows);
+  } catch (_) {
+    return null;
+  }
+}
+
+function injectVerifiedVerse(text, grounding) {
+  let output = String(text || "");
+  if (!grounding || !grounding.reference || !grounding.targetVerseText) {
+    return output.replace(/^\s*ANCHOR\s*:.*$/gim, "").trim();
+  }
+
+  const verified = "“" + String(grounding.targetVerseText).trim() + "” (" + referenceLabel(grounding.reference) + ")";
+  if (/\[\s*VERSE\s*\]/i.test(output)) {
+    output = output.replace(/\[\s*VERSE\s*\]/i, verified);
+  } else {
+    const psycheMatch = output.match(/^\s*PSYCHE\s*:.*$/im);
+    if (psycheMatch && Number.isFinite(psycheMatch.index)) {
+      output = output.slice(0, psycheMatch.index).trimEnd() + "\n\n" + verified + "\n\n" + output.slice(psycheMatch.index);
+    } else {
+      output = output.trimEnd() + "\n\n" + verified;
+    }
+  }
+
+  output = output.replace(/^\s*ANCHOR\s*:.*$/gim, "");
+  return output.replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function buildAnchorRepairMessages(originalMessages, originalReply) {
+  return (Array.isArray(originalMessages) ? originalMessages.slice() : []).concat([
+    { role:"assistant", content:String(originalReply || "") },
+    {
+      role:"user",
+      content:[
+        "Revise your immediately previous answer without changing its pastoral purpose.",
+        "Keep the answer entirely inside Jesus, Scripture, Christian faith, prayer, or biblical wisdom.",
+        "Do not answer outside-world facts for their own sake.",
+        "Add [VERSE] exactly once where the Scripture quotation belongs.",
+        "On the final line add ANCHOR: Book Chapter:Verse using one real, directly relevant Bible verse.",
+        "Do not write the verse wording yourself. Explain why the chosen passage applies.",
+        "Keep the PSYCHE line immediately before ANCHOR.",
+        "Return only the revised answer."
+      ].join("\n")
+    }
+  ]);
+}
+
+async function selectScriptureGrounding(message, env) {
+  const selectorMessages = [
+    {
+      role:"system",
+      content:"Choose one real Bible verse that directly fits the seeker's underlying human need. Stay Jesus-centered. Output only the reference in Book Chapter:Verse format. Do not explain."
+    },
+    { role:"user", content:String(message || "") }
+  ];
+
+  const selected = await groqComplete(selectorMessages, env, "standard-high");
+  const refs = extractBibleReferences(selected);
+  if (!refs.length) return null;
+
+  try {
+    const rows = await fetchWebBookRows(refs[0].book);
+    return groundingFromRows(refs[0], rows);
   } catch (_) {
     return null;
   }
@@ -1197,6 +1208,8 @@ function cleanCloudReply(rawReply, fallbackPsyche, invalidReferences) {
     .replace(/\[\s*CARD\s*\][\s\S]*?(?:\[\s*\/\s*CARD\s*\]|$)/gi, "")
     .replace(/\[\s*\/?\s*CARD\s*\]/gi, "")
     .replace(/^\s*PSYCHE\s*:.*$/gim, "")
+    .replace(/^\s*ANCHOR\s*:.*$/gim, "")
+    .replace(/\[\s*VERSE\s*\]/gi, "")
     .replace(/\\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -1226,7 +1239,7 @@ async function handleChat(request, env) {
   if (!message) return jsonResponse(request, env, { detail:"Message cannot be empty." }, 400);
 
   const mode = selectedMode(payload && payload.mode);
-  if (!["study", "conversation", "bridge"].includes(mode)) {
+  if (!["study", "conversation"].includes(mode)) {
     return jsonResponse(request, env, {
       error:"LOCAL_ROUTE_REQUIRED",
       degraded:true,
@@ -1240,16 +1253,6 @@ async function handleChat(request, env) {
       cardText:"",
       updatedPsyche:"Seeking immediate human support",
       isCrisis:true
-    });
-  }
-
-  if (mode === "bridge" || mustUseBibleScopeRedirect(message)) {
-    return jsonResponse(request, env, {
-      reply:bibleScopeRedirect(message),
-      cardText:"",
-      updatedPsyche:sanitizeMetadata(payload && payload.userPsyche, 80, "Seeking biblical wisdom"),
-      mode:"scope",
-      intelligence:"bible-scope"
     });
   }
 
@@ -1280,7 +1283,7 @@ async function handleChat(request, env) {
 
   const scriptureGrounding = await buildWebGrounding(message);
   const built = buildMessages(Object.assign({}, payload, { message:message, mode:mode }), scriptureGrounding);
-  const standardTier = isDeep ? "deep" : (mode === "bridge" ? "standard-high" : standardQualityTier(message));
+  const standardTier = isDeep ? "deep" : standardQualityTier(message);
   let rawReply;
   try {
     rawReply = await groqComplete(built.messages, env, standardTier);
@@ -1307,11 +1310,34 @@ async function handleChat(request, env) {
     }
   }
 
-  if (mode === "bridge" && !bridgeReplyIsChristian(rawReply)) {
-    rawReply = bridgeFallback(message);
+  let responseGrounding = scriptureGrounding || await groundingFromReplyAnchor(rawReply);
+
+  if (!responseGrounding) {
+    try {
+      rawReply = await groqComplete(
+        buildAnchorRepairMessages(built.messages, rawReply),
+        env,
+        isDeep ? "deep" : "standard-high"
+      );
+      responseGrounding = await groundingFromReplyAnchor(rawReply);
+    } catch (error) {
+      console.warn("Scripture anchor repair failed:", error && error.message ? error.message : error);
+    }
   }
 
-  let validationProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
+  if (!responseGrounding) {
+    try {
+      responseGrounding = await selectScriptureGrounding(message, env);
+    } catch (error) {
+      console.warn("Scripture anchor selection failed:", error && error.message ? error.message : error);
+    }
+  }
+
+  if (responseGrounding) {
+    rawReply = injectVerifiedVerse(rawReply, responseGrounding);
+  }
+
+  let validationProblems = findGroundingViolations(rawReply, message, responseGrounding);
   let invalidReferences = await invalidWebReferences(rawReply);
   invalidReferences.forEach(function (reference) {
     validationProblems.push("Reference does not exist in the verified WEB dataset: " + reference + ".");
@@ -1321,13 +1347,14 @@ async function handleChat(request, env) {
   if (validationProblems.length) {
     try {
       rawReply = await groqComplete(
-        buildCorrectionMessages(built.messages, rawReply, validationProblems, scriptureGrounding),
+        buildCorrectionMessages(built.messages, rawReply, validationProblems, responseGrounding),
         env,
         isDeep ? "deep" : "standard-high"
       );
-      const remainingGroundingProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
+      if (responseGrounding) rawReply = injectVerifiedVerse(rawReply, responseGrounding);
+      const remainingGroundingProblems = findGroundingViolations(rawReply, message, responseGrounding);
       if (remainingGroundingProblems.length) {
-        rawReply = repairRemainingGroundingIssues(rawReply, scriptureGrounding);
+        rawReply = repairRemainingGroundingIssues(rawReply, responseGrounding);
       }
       invalidReferences = await invalidWebReferences(rawReply);
     } catch (error) {
@@ -1353,7 +1380,7 @@ async function handleChat(request, env) {
   const cleaned = cleanCloudReply(rawReply, built.psyche, invalidReferences);
   const responsePayload = {
     reply:cleaned.reply,
-    cardText:mode === "bridge" ? "" : cleaned.cardText,
+    cardText:cleaned.cardText,
     updatedPsyche:cleaned.updatedPsyche,
     mode:mode,
     intelligence:isDeep ? "ask-deeper" : standardTier
@@ -1499,7 +1526,7 @@ function health(env) {
   return {
     status:"active",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.7.0",
+    version:"5.8.0",
     cloud_provider:"groq-fetch",
     cloud_configured:Boolean(env.AI_API_KEY || env.GROQ_API_KEY),
     db_connected:Boolean(env.FIREBASE_SERVICE_ACCOUNT && env.FIREBASE_PROJECT_ID)
@@ -1521,7 +1548,7 @@ function readiness(env) {
     checks:checks,
     cloud_provider:"groq-fetch",
     service:"1into1 with Jesus Cloudflare API",
-    version:"5.7.0"
+    version:"5.8.0"
   };
 }
 
@@ -1532,10 +1559,6 @@ export const __test = {
   buildMessages:buildMessages,
   modelCandidates:modelCandidates,
   standardQualityTier:standardQualityTier,
-  bridgeReplyIsChristian:bridgeReplyIsChristian,
-  bridgeFallback:bridgeFallback,
-  mustUseBibleScopeRedirect:mustUseBibleScopeRedirect,
-  bibleScopeRedirect:bibleScopeRedirect,
   needsStandardQualityUpgrade:needsStandardQualityUpgrade,
   buildQualityUpgradeMessages:buildQualityUpgradeMessages,
   normalizeBibleBook:normalizeBibleBook,
@@ -1546,6 +1569,11 @@ export const __test = {
   chapterHeaderFromRows:chapterHeaderFromRows,
   groundingFromRows:groundingFromRows,
   buildWebGrounding:buildWebGrounding,
+  referenceLabel:referenceLabel,
+  extractAnchorReference:extractAnchorReference,
+  groundingFromReplyAnchor:groundingFromReplyAnchor,
+  injectVerifiedVerse:injectVerifiedVerse,
+  buildAnchorRepairMessages:buildAnchorRepairMessages,
   userAskedForCrossReferences:userAskedForCrossReferences,
   userAskedForOriginalLanguage:userAskedForOriginalLanguage,
   normalizeQuotedText:normalizeQuotedText,
