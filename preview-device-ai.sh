@@ -45,6 +45,28 @@ echo "This does NOT publish to 1into1.com and does NOT modify the production Wor
 npx --yes wrangler@4.141.0 deploy \
   --config wrangler.device-preview.jsonc
 
+PREVIEW_URL="https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
+
 echo
-echo "Open: https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
+echo "Checking the LIVE preview -> cloud API path..."
+proxy_ok=0
+for i in {1..15}; do
+  if curl -fsS "$PREVIEW_URL/api-preview/api/health" > /tmp/oneintoone-preview-health.json 2>/dev/null; then
+    if grep -q '"status":"active"' /tmp/oneintoone-preview-health.json; then
+      proxy_ok=1
+      break
+    fi
+  fi
+  sleep 1
+done
+
+if [ "$proxy_ok" -ne 1 ]; then
+  echo "FAIL: live preview could not reach the cloud API through /api-preview."
+  cat /tmp/oneintoone-preview-health.json 2>/dev/null || true
+  exit 1
+fi
+
+echo "PASS: live preview can reach the cloud API through the same-origin proxy."
+echo
+echo "Open: $PREVIEW_URL"
 echo "Production 1into1.com was not targeted by this command."
