@@ -4,6 +4,7 @@ import previewWorker from "./device-preview-worker.mjs";
 let proxiedRequest = null;
 
 const env = {
+  API_VERSION_ID:"candidate-version-123",
   API:{
     fetch:async function(request) {
       proxiedRequest = request;
@@ -47,6 +48,10 @@ assert.equal(
 assert.equal(proxiedRequest.headers.get("origin"), null);
 assert.equal(proxiedRequest.headers.get("referer"), null);
 assert.equal(proxiedRequest.headers.get("content-type"), "application/json");
+assert.equal(
+  proxiedRequest.headers.get("cloudflare-workers-version-overrides"),
+  'oneintoone-jesus-api="candidate-version-123"'
+);
 
 const assetResponse = await previewWorker.fetch(
   new Request("https://oneintoone-jesus-device-preview.aniketw3699.workers.dev/"),

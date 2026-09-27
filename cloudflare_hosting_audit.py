@@ -186,8 +186,11 @@ if '"/api-preview"' not in preview_worker_source or "env.ASSETS.fetch(request)" 
     raise SystemExit("FAIL: device preview Worker must proxy preview API traffic and serve static assets")
 if "env.API.fetch" not in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker must call the API through its internal Service Binding")
+if "Cloudflare-Workers-Version-Overrides" not in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker must pin the downstream API candidate version")
 if "1into1.com" in preview_worker_source:
     raise SystemExit("FAIL: device preview Worker script must not target the production frontend domain")
 
 print("PASS: dedicated device-AI Worker is isolated to workers.dev with no production routes.")
 print("PASS: isolated preview has a same-origin API proxy backed by an internal Service Binding.")
+print("PASS: preview proxy can pin a non-deployed API candidate version without production traffic.")

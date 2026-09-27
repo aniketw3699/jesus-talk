@@ -34,6 +34,13 @@ async function proxyApi(request, env) {
   headers.delete("referer");
   headers.delete("content-length");
 
+  if (env.API_VERSION_ID) {
+    headers.set(
+      "Cloudflare-Workers-Version-Overrides",
+      'oneintoone-jesus-api="' + String(env.API_VERSION_ID) + '"'
+    );
+  }
+
   const init = {
     method:request.method,
     headers:headers,
