@@ -2,15 +2,19 @@
 
 This checkpoint was inserted before the final release candidate to answer a business question: does 1into1 with Jesus have a sufficiently distinct reason to exist when strong Christian apps already offer substantial functionality for free?
 
+## September 27 routing amendment
+
+The launch QA exposed a regression: the local-first router was treating arbitrary chat as a prayer template. The product architecture is now corrected so users can type naturally without first selecting a category. The router decides among local prayer/support, standard Christian conversation AI, and Ask Deeper. Out-of-scope general-world questions are not answered as a general-purpose assistant; they are redirected to a Christian/Scripture-centered angle.
+
 ## Finding
 
 Continue — but do **not** position the product as merely a free Bible, an offline Bible, a private prayer app, or a cheap AI Bible chatbot. Each of those positions already has direct competition.
 
 The sharpened product promise is:
 
-> **Unlimited private local prayer, directly in the browser — no account or app-store install required for core use. The app tells the user when a response is local/on-device and when they deliberately choose cloud Ask Deeper.**
+> **One Christian conversation box with invisible intent routing: unlimited private local prayer in the browser, no account or app-store install required for core use, standard Jesus/Scripture-scoped conversation when open-ended intelligence is needed, and Ask Deeper reserved for higher-depth theology and Bible study.**
 
-Plus monetizes optional cloud intelligence and future encrypted cross-device services rather than putting ordinary prayer behind a usage quota.
+Plus monetizes higher-depth Ask Deeper intelligence and future encrypted cross-device services rather than putting ordinary prayer behind a usage quota. Standard conversation must remain strictly inside the Christian/Scripture scope and should use the lightweight cloud model when a local response is not appropriate.
 
 ## Competitive reality
 
@@ -55,16 +59,20 @@ The user should be able to pray repeatedly without an account, subscription, or 
 
 This removes app-store friction and directly connects SEO discovery to product use.
 
-### 3. Make the local/cloud boundary visible
+### 3. Make routing automatic, but keep the local/cloud boundary transparent
 
-The user should never need to guess whether private text is staying on-device or going to cloud AI.
+The user should not have to understand the routing architecture before asking a question. The default Talk experience should classify the turn automatically.
 
-Local modes should be labeled Local. Ask Deeper should be labeled Cloud.
+Explicit prayer and supported burden/guidance flows stay local. Open-ended Christian conversation and basic Bible knowledge may use the standard cloud model. Ask Deeper uses the higher-depth cloud path.
 
-### 4. Pay for intelligence, not prayer
+Privacy copy and response-state UI must make this boundary understandable without forcing the user to choose a backend manually.
 
-Free:
+### 4. Pay for deeper intelligence, not prayer
+
+Free/core:
 - unlimited local prayer
+- automatic Talk routing
+- standard Jesus/Scripture-scoped conversation when cloud intelligence is needed
 - Bible + local search
 - Lay It Down
 - journeys
@@ -72,10 +80,10 @@ Free:
 - Pray for Someone
 - local Scripture guidance
 
-Paid / limited cloud:
+Paid / limited higher-depth cloud:
 - Ask Deeper
 - optional encrypted cross-device backup
-- future cloud features
+- future premium cloud features
 
 ### 5. Protect cloud economics
 
@@ -133,10 +141,10 @@ Phase 12 should proceed only while these conditions remain true:
 1. Core local prayer has no prayer-use quota.
 2. Core use does not require an account.
 3. Core use does not require app-store installation.
-4. Local prayer is visibly distinguished from cloud Ask Deeper.
+4. Automatic Talk routing preserves local prayer while clearly distinguishing standard cloud conversation from higher-depth Ask Deeper when relevant.
 5. Lay It Down text remains ephemeral.
 6. Plus cloud use has a fair-use/anti-abuse ceiling.
 7. No UI claims that the AI is Jesus.
-8. The free/paid boundary is “prayer is free; optional cloud intelligence is paid.”
+8. The free/paid boundary is “prayer is free; standard scoped conversation is available; higher-depth Ask Deeper is the metered/premium intelligence layer.”
 
 If future work violates these conditions, stop and reassess the product positioning before release.
