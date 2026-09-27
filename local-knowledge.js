@@ -127,11 +127,35 @@
     }
   ];
 
-  function extractReference(text) {
+  function escapeRegex(value) {
+    return String(value || "").replace(/[.*+?^$\{\}()|[\]\\]/g, "\\  function extractReference(text) {
     const source = String(text || "");
     const match = source.match(/\b((?:[1-3]\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?)\s+(\d+):(\d+)(?:\s*[-–—]\s*(\d+))?/);
     if (!match) return "";
     return match[1] + " " + match[2] + ":" + match[3] + (match[4] ? "-" + match[4] : "");
+  }");
+  }
+
+  function extractReference(text) {
+    const source = String(text || "");
+    const manifest = window.ONEINTOONE_BIBLE_MANIFEST;
+    const books = manifest && Array.isArray(manifest.books)
+      ? manifest.books.map(function(book) { return book.name; }).sort(function(a,b) { return b.length - a.length; })
+      : [];
+
+    const aliases = [];
+    books.forEach(function(name) {
+      aliases.push({ typed:name, canonical:name });
+      if (name === "Psalms") aliases.push({ typed:"Psalm", canonical:"Psalms" });
+    });
+
+    for (const alias of aliases) {
+      const pattern = new RegExp("\\b" + escapeRegex(alias.typed) + "\\s+(\\d+):(\\d+)(?:\\s*[-–—]\\s*(\\d+))?", "i");
+      const match = source.match(pattern);
+      if (!match) continue;
+      return alias.canonical + " " + match[1] + ":" + match[2] + (match[3] ? "-" + match[3] : "");
+    }
+    return "";
   }
 
   async function answerDirectReference(text) {
