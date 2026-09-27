@@ -34,7 +34,7 @@ assert.match(conversational.messages[0].content, /rude, insulting, profane, or a
 
 assert.deepEqual(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard"),
-  ["openai/gpt-oss-20b"]
+  ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
 );
 assert.equal(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "deep")[0],
