@@ -7,6 +7,7 @@ const FREE_DAILY_CREDITS = 5;
 const GUEST_DAILY_CREDITS = 1;
 
 const MODE_INSTRUCTIONS = Object.freeze({
+  conversation: "Respond naturally to the user's actual message while staying inside a Christian, Jesus-centered, Scripture-guided frame. Ordinary conversation should feel conversational rather than like a forced devotional template.",
   comfort: "Offer gentle Scripture-grounded comfort. Do not impersonate Jesus or claim divine authority. Help the user bring the concern to God with calm, practical language.",
   study: "This is Ask Deeper mode. Focus on biblical context, literary setting, theology, and interpretation. Distinguish the biblical text from interpretation and note meaningful differences among major Christian traditions when relevant.",
   prayer: "Write a personal prayer addressed to God or Jesus that the seeker can pray aloud. The assistant must never speak as God or Jesus.",
@@ -22,6 +23,10 @@ const SYSTEM_PROMPT_LINES = [
   "- Never say that God personally told you a specific outcome or command for this user.",
   "- Help the seeker pray to Jesus/God, understand Scripture, reflect, and make thoughtful next steps.",
   "- Be warm and pastoral without using language that falsely implies divine identity.",
+  "- The product's scope is Jesus, Christianity, prayer, Scripture, faith, spiritual reflection, and biblically framed life guidance.",
+  "- If a user asks for unrelated general-world facts, celebrity/news trivia, shopping, technical help, finance, or other material outside this scope, do not answer it as a general-purpose assistant. Briefly say that 1into1 stays within the Christian/Scripture-focused space and, when useful, offer a faith-centered angle instead.",
+  "- If the user is rude, insulting, profane, or angry, do not scold them and do not force a prayer. Respond calmly, acknowledge the emotion, and remain available within the Christian/Scripture-focused space.",
+  "- If the user describes serious illness, dying, bereavement, abuse, danger, or another vulnerable real-life situation, respond compassionately, keep spiritual support alongside appropriate real-world help, and never imply prayer replaces emergency, medical, legal, or safeguarding support.",
   "",
   "RESPONSE MODE:",
   "{{MODE}}",
@@ -573,19 +578,34 @@ function buildMessages(payload, scriptureGrounding) {
   return { messages:messages, mode:mode, psyche:psyche };
 }
 
-function modelCandidates(env) {
-  return String(env.AI_MODELS || "openai/gpt-oss-20b,openai/gpt-oss-120b")
+function parseModelList(value) {
+  return String(value || "")
     .split(",")
     .map(function (model) { return model.trim(); })
     .filter(Boolean);
 }
 
-async function groqComplete(messages, env) {
+function modelCandidates(env, quality) {
+  const configured = parseModelList(env.AI_MODELS || "openai/gpt-oss-20b,openai/gpt-oss-120b");
+  if (quality === "deep") {
+    const deep = parseModelList(env.DEEP_AI_MODELS || "");
+    if (deep.length) return deep;
+    const preferred = configured.filter(function(model) { return /120b/i.test(model); });
+    return preferred.concat(configured.filter(function(model) { return !preferred.includes(model); }));
+  }
+
+  const standard = parseModelList(env.STANDARD_AI_MODELS || "");
+  if (standard.length) return standard;
+  const lightweight = configured.filter(function(model) { return /20b/i.test(model); });
+  return lightweight.length ? lightweight : configured.slice(0, 1);
+}
+
+async function groqComplete(messages, env, quality) {
   const apiKey = env.AI_API_KEY || env.GROQ_API_KEY;
   if (!apiKey) throw new Error("AI API key is missing");
 
   let lastError = null;
-  for (const model of modelCandidates(env)) {
+  for (const model of modelCandidates(env, quality || "standard")) {
     try {
       const response = await fetch(GROQ_CHAT_URL, {
         method:"POST",
@@ -597,7 +617,7 @@ async function groqComplete(messages, env) {
           model:model,
           messages:messages,
           temperature:0.7,
-          max_tokens:4096,
+          max_tokens:quality === "deep" ? 4096 : 1800,
           stream:false
         })
       });
@@ -1004,7 +1024,7 @@ async function handleChat(request, env) {
   if (!message) return jsonResponse(request, env, { detail:"Message cannot be empty." }, 400);
 
   const mode = selectedMode(payload && payload.mode);
-  if (mode !== "study") {
+  if (!["study", "conversation"].includes(mode)) {
     return jsonResponse(request, env, {
       error:"LOCAL_ROUTE_REQUIRED",
       degraded:true,
@@ -1021,38 +1041,42 @@ async function handleChat(request, env) {
     });
   }
 
+  const isDeep = mode === "study";
   const fallbackPsyche = sanitizeMetadata(payload && payload.userPsyche, 80, "A soul seeking peace");
-  let user;
-  let decision;
-  try {
-    user = await getVerifiedUser(request, env);
-    decision = await resolveEntitlement(user, request, env);
-  } catch (error) {
-    console.error("Entitlement lookup failed:", error && error.message ? error.message : error);
-    return jsonResponse(request, env, {
-      error:"SERVICE_DEGRADED",
-      degraded:true,
-      reply:DEGRADED_REPLY,
-      cardText:"",
-      updatedPsyche:fallbackPsyche
-    });
-  }
+  let user = null;
+  let decision = null;
 
-  if (!decision.allowed) {
-    return jsonResponse(request, env, denialPayload(decision, fallbackPsyche));
+  if (isDeep) {
+    try {
+      user = await getVerifiedUser(request, env);
+      decision = await resolveEntitlement(user, request, env);
+    } catch (error) {
+      console.error("Entitlement lookup failed:", error && error.message ? error.message : error);
+      return jsonResponse(request, env, {
+        error:"SERVICE_DEGRADED",
+        degraded:true,
+        reply:DEGRADED_REPLY,
+        cardText:"",
+        updatedPsyche:fallbackPsyche
+      });
+    }
+
+    if (!decision.allowed) {
+      return jsonResponse(request, env, denialPayload(decision, fallbackPsyche));
+    }
   }
 
   const scriptureGrounding = await buildWebGrounding(message);
   const built = buildMessages(Object.assign({}, payload, { message:message, mode:mode }), scriptureGrounding);
   let rawReply;
   try {
-    rawReply = await groqComplete(built.messages, env);
+    rawReply = await groqComplete(built.messages, env, isDeep ? "deep" : "standard");
   } catch (error) {
-    console.error("Ask Deeper provider failed:", error && error.message ? error.message : error);
+    console.error((isDeep ? "Ask Deeper" : "Standard conversation") + " provider failed:", error && error.message ? error.message : error);
     return jsonResponse(request, env, {
       error:"SERVICE_DEGRADED",
       degraded:true,
-      reply:DEGRADED_REPLY,
+      reply:isDeep ? DEGRADED_REPLY : "The conversational service is temporarily unavailable. You can still use local prayer, Bible, journeys, journal, and Lay It Down on this device.",
       cardText:"",
       updatedPsyche:built.psyche
     });
@@ -1069,7 +1093,8 @@ async function handleChat(request, env) {
     try {
       rawReply = await groqComplete(
         buildCorrectionMessages(built.messages, rawReply, validationProblems, scriptureGrounding),
-        env
+        env,
+        isDeep ? "deep" : "standard"
       );
       const remainingGroundingProblems = findGroundingViolations(rawReply, message, scriptureGrounding);
       if (remainingGroundingProblems.length) {
@@ -1077,35 +1102,41 @@ async function handleChat(request, env) {
       }
       invalidReferences = await invalidWebReferences(rawReply);
     } catch (error) {
-      console.warn("Ask Deeper correction pass failed:", error && error.message ? error.message : error);
+      console.warn((isDeep ? "Ask Deeper" : "Standard conversation") + " correction pass failed:", error && error.message ? error.message : error);
     }
   }
 
-  try {
-    await consumeEntitlement(user, decision, env);
-  } catch (error) {
-    console.error("Quota consumption failed:", error && error.message ? error.message : error);
-    return jsonResponse(request, env, {
-      error:"SERVICE_DEGRADED",
-      degraded:true,
-      reply:DEGRADED_REPLY,
-      cardText:"",
-      updatedPsyche:built.psyche
-    });
+  if (isDeep) {
+    try {
+      await consumeEntitlement(user, decision, env);
+    } catch (error) {
+      console.error("Quota consumption failed:", error && error.message ? error.message : error);
+      return jsonResponse(request, env, {
+        error:"SERVICE_DEGRADED",
+        degraded:true,
+        reply:DEGRADED_REPLY,
+        cardText:"",
+        updatedPsyche:built.psyche
+      });
+    }
   }
 
   const cleaned = cleanCloudReply(rawReply, built.psyche, invalidReferences);
-  const remainingCredits = decision.tier === "free"
-    ? Math.max(0, Number(decision.remaining || 0) - 1)
-    : Number(decision.remaining || 0);
-
-  return jsonResponse(request, env, {
+  const responsePayload = {
     reply:cleaned.reply,
     cardText:cleaned.cardText,
     updatedPsyche:cleaned.updatedPsyche,
-    remainingCredits:remainingCredits,
-    mode:mode
-  });
+    mode:mode,
+    intelligence:isDeep ? "ask-deeper" : "standard"
+  };
+
+  if (isDeep) {
+    responsePayload.remainingCredits = decision.tier === "free"
+      ? Math.max(0, Number(decision.remaining || 0) - 1)
+      : Number(decision.remaining || 0);
+  }
+
+  return jsonResponse(request, env, responsePayload);
 }
 
 async function entitlementPayload(request, env) {
