@@ -817,16 +817,16 @@ function stripInvalidCitations(text) {
 
 function buildCorrectionMessages(originalMessages, originalReply, violations, grounding) {
   const source = grounding && grounding.contextText ? grounding.contextText : "No additional source context available.";
-  return [
-    originalMessages[0],
+  return (Array.isArray(originalMessages) ? originalMessages.slice() : []).concat([
+    { role:"assistant", content:String(originalReply || "") },
     {
       role:"user",
       content:[
-        "Rewrite the draft answer below so it is accurate and source-grounded.",
+        "Revise your immediately previous answer so it is accurate and source-grounded.",
         "Keep the same user-facing purpose, but fix every listed problem.",
         "Use WEB wording only when quoting the supplied WEB source. Prefer paraphrase over uncertain quotation.",
-        "Do not add cross-references unless the original user explicitly requested them.",
-        "Do not add Hebrew/Greek/Aramaic lexical claims unless the original user explicitly requested them and verified lexical source material is supplied.",
+        "Do not add cross-references unless my original question explicitly requested them.",
+        "Do not add Hebrew/Greek/Aramaic lexical claims unless my original question explicitly requested them and verified lexical source material is supplied.",
         "",
         "VERIFIED WEB SOURCE:",
         source,
@@ -834,13 +834,10 @@ function buildCorrectionMessages(originalMessages, originalReply, violations, gr
         "VALIDATION PROBLEMS:",
         violations.map(function (item) { return "- " + item; }).join("\n"),
         "",
-        "DRAFT TO CORRECT:",
-        originalReply,
-        "",
         "Return only the corrected answer, including the normal [CARD]...[/CARD] and PSYCHE line."
       ].join("\n")
     }
-  ];
+  ]);
 }
 
 function cleanCloudReply(rawReply, fallbackPsyche, invalidReferences) {
