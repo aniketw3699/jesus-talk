@@ -1,6 +1,6 @@
-const CACHE_VERSION = "1into1-shell-v12";
-const PAGE_CACHE = "1into1-pages-v12";
-const STATIC_CACHE = "1into1-static-v12";
+const CACHE_VERSION = "1into1-shell-v13";
+const PAGE_CACHE = "1into1-pages-v13";
+const STATIC_CACHE = "1into1-static-v13";
 const BIBLE_CACHE = "1into1-bible-web-v1";
 
 const BIBLE_SOURCE_BASE = "https://raw.githubusercontent.com/TehShrike/world-english-bible/master/json/";
