@@ -331,10 +331,10 @@ async function testIndexFlowContracts() {
   check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
   check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
-  check(index.includes("Comfort · Local"), "UI labels Comfort as Local");
-  check(index.includes("Written Prayer · Local"), "UI labels Written Prayer as Local");
-  check(index.includes("Guidance · Local"), "UI labels Guidance as Local");
-  check(index.includes("Ask Deeper · Cloud"), "UI labels Ask Deeper as Cloud");
+  check(index.includes("Talk · Auto"), "UI makes automatic routing the default");
+  check(index.includes(">🙏 Prayer</button>"), "UI exposes an explicit Prayer override");
+  check(index.includes(">🧭 Guidance</button>"), "UI exposes an explicit Guidance override");
+  check(index.includes(">✨ Ask Deeper</button>"), "UI exposes premium Ask Deeper as an explicit override");
   check(index.includes("grid-template-columns:repeat(4,minmax(0,1fr))"), "Mobile response modes render as four visible columns");
   check(index.includes("No account needed"), "UI promises no-account core use");
   check(index.includes("No app install required"), "UI promises no-install browser core use");
