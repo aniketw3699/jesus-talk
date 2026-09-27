@@ -3124,10 +3124,11 @@
       trackSanctuaryEvent('prayer_submitted', { mode: currentPastoralMode });
 
       const localEngine = window.OneIntoOneOffline;
+      let routeDecision = null;
       if (localEngine && typeof localEngine.decideRoute === 'function') {
-        const routeDecision = localEngine.decideRoute(text, currentPastoralMode, navigator.onLine);
+        routeDecision = localEngine.decideRoute(text, currentPastoralMode, navigator.onLine);
         if (routeDecision.route === 'local') {
-          const reason = navigator.onLine ? 'local-first' : 'offline';
+          const reason = navigator.onLine ? (routeDecision.reason || 'local-first') : 'offline';
           setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason), 140);
           return;
         }
@@ -3137,6 +3138,16 @@
         setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline'), 180);
         return;
       }
+
+      const requestMode = routeDecision && routeDecision.cloudMode
+        ? routeDecision.cloudMode
+        : (currentPastoralMode === 'study' ? 'study' : 'conversation');
+
+      trackSanctuaryEvent('conversation_routed', {
+        route: routeDecision ? routeDecision.route : 'cloud-standard',
+        reason: routeDecision ? routeDecision.reason : 'router-unavailable',
+        mode: requestMode
+      });
 
       let idToken = "";
       if (currentUser && currentUser.getIdToken) {
@@ -3159,7 +3170,7 @@
             userName: currentUserName,
             userPsyche: currentPsyche,
             userIntentions: userIntentions,
-            mode: currentPastoralMode,
+            mode: requestMode,
             history: activeConversationHistory
           })
         });
