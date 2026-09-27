@@ -138,7 +138,7 @@
     {
       id:"world-end-date",
       match:function(clean) {
-        return /\b(when|what time|what date|which year)\b.*\b(world|earth)\b.*\b(end|ends|ending)\b/.test(clean) ||
+        return /\b(when|what time|what date|which year)\b.*\b(world|earth)\b.*\bend[a-z]{0,4}\b/.test(clean) ||
           /\b(when|what time|what date|which year)\b.*\b(second coming|jesus return|christ return)\b/.test(clean);
       },
       build:function() {
