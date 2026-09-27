@@ -696,6 +696,47 @@
     .connection-status.preparing { color:#536070; background:rgba(243,245,248,.92); border-color:rgba(83,96,112,.18); }
     .connection-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
 
+    .auth-discovery-card {
+      display:none;
+      flex-shrink:0;
+      margin:10px 12px 4px;
+      padding:11px 12px;
+      border:1px solid rgba(184,134,40,.34);
+      border-radius:16px;
+      background:linear-gradient(135deg,rgba(255,255,255,.97),rgba(251,245,232,.96));
+      box-shadow:0 5px 18px rgba(82,58,18,.08);
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .auth-discovery-copy { min-width:0; }
+    .auth-discovery-kicker {
+      color:var(--gold-deep); font-size:9.5px; font-weight:900;
+      text-transform:uppercase; letter-spacing:.75px; margin-bottom:2px;
+    }
+    .auth-discovery-title {
+      color:#241d12; font-size:13px; font-weight:800; line-height:1.3; margin-bottom:2px;
+    }
+    .auth-discovery-note {
+      color:var(--text-muted); font-size:10.5px; line-height:1.35;
+    }
+    .auth-discovery-btn {
+      flex:0 0 auto; min-height:38px; padding:8px 13px; border:0; border-radius:12px;
+      background:linear-gradient(135deg,#dfb455,#c28e2a); color:#fff;
+      font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; font-weight:800;
+      cursor:pointer; box-shadow:0 3px 10px rgba(194,142,42,.22);
+    }
+    .auth-status-message {
+      display:none; margin-top:10px; padding:9px 11px; border-radius:11px;
+      background:#fff8e8; border:1px solid rgba(184,134,40,.32);
+      color:#614a20; font-size:11.5px; line-height:1.45; font-weight:600;
+    }
+    .auth-status-message.error {
+      display:block; background:#fff5f5; border-color:rgba(185,28,28,.22); color:#8a2d2d;
+    }
+    .auth-status-message.info { display:block; }
+    #privacySignInBtn:disabled { opacity:.68; cursor:wait; }
+
     @media (max-width: 640px) {
       /* MOBILE BLESSING MODAL FIT */
       .blessing-modal-overlay {
@@ -732,7 +773,13 @@
         background:rgba(255,255,255,.92); display:grid; place-items:center; font-size:16px; cursor:pointer;
         box-shadow:0 3px 12px rgba(54,42,20,.08);
       }
-      .mobile-home-panel { display:block; flex-shrink:0; padding:14px 14px 10px; }
+      .auth-discovery-card {
+        margin:10px 14px 0; padding:10px 11px; border-radius:14px; gap:9px;
+      }
+      .auth-discovery-title { font-size:12.5px; }
+      .auth-discovery-note { font-size:10px; }
+      .auth-discovery-btn { min-height:40px; padding:8px 11px; font-size:10.5px; }
+      .mobile-home-panel { display:block; flex-shrink:0; padding:12px 14px 10px; }
       .mobile-home-panel.is-hidden { display:none; }
       .mobile-home-kicker {
         color:var(--gold-deep); text-transform:uppercase; letter-spacing:1.1px; font-size:10px; font-weight:800; margin-bottom:4px;
@@ -864,6 +911,16 @@
         <div class="connection-status preparing" id="connectionStatus" aria-live="polite"><span class="connection-dot"></span><span id="connectionStatusText">Preparing offline access</span></div>
       </div>
     </header>
+
+    <!-- OPTIONAL ACCOUNT DISCOVERY — CORE LOCAL EXPERIENCE NEVER REQUIRES SIGN-IN -->
+    <section class="auth-discovery-card" id="authDiscoveryCard" aria-label="Optional free account">
+      <div class="auth-discovery-copy">
+        <div class="auth-discovery-kicker">Ask Deeper · Free account</div>
+        <div class="auth-discovery-title">Sign in for 5 Ask Deeper questions each day</div>
+        <div class="auth-discovery-note">Optional — local prayer, Bible, journal and journeys still work without an account.</div>
+      </div>
+      <button class="auth-discovery-btn" type="button" onclick="openPrivacyModal()">Continue with Google</button>
+    </section>
 
     <!-- MOBILE-FIRST BURDEN ENTRY -->
     <section class="mobile-home-panel" id="mobileHomePanel" aria-labelledby="mobileHomeTitle">
@@ -1143,7 +1200,8 @@
         <p><strong>Analytics:</strong> We may collect product-usage events such as feature opens or mode changes. Prayer text is not deliberately included in those analytics events.</p>
       </div>
 
-      <button class="primary-gold-btn" onclick="proceedToGoogleAuth()">
+      <div class="auth-status-message" id="authStatusMessage" role="status" aria-live="polite"></div>
+      <button class="primary-gold-btn" id="privacySignInBtn" onclick="proceedToGoogleAuth()">
         Continue to Secure Sign In
       </button>
     </div>
@@ -3402,18 +3460,78 @@
     
     function escapeRegex(s) { return (s || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
     function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    function openPrivacyModal() { privacyModal.style.display = "flex"; }
+    function updateAuthDiscoveryUI() {
+      const card = document.getElementById("authDiscoveryCard");
+      if (!card) return;
+      card.style.display = currentUser ? "none" : "flex";
+    }
+
+    function setAuthStatus(message = "", state = "") {
+      const status = document.getElementById("authStatusMessage");
+      if (!status) return;
+      status.textContent = message;
+      status.className = "auth-status-message" + (state ? " " + state : "");
+    }
+
+    function openPrivacyModal() {
+      setAuthStatus("", "");
+      const btn = document.getElementById("privacySignInBtn");
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Continue to Secure Sign In";
+      }
+      privacyModal.style.display = "flex";
+    }
+
     function closePrivacyModal() { privacyModal.style.display = "none"; }
+
     async function proceedToGoogleAuth() {
-      closePrivacyModal();
+      const btn = document.getElementById("privacySignInBtn");
       if (!navigator.onLine) {
-        alert("Sign-in needs an internet connection. Your local prayer space and journal still work offline.");
+        setAuthStatus("Sign-in needs an internet connection. Your local prayer space and journal still work offline.", "error");
         return;
       }
+
+      if (typeof firebase === "undefined" || !firebase.auth) {
+        setAuthStatus("Secure sign-in is still loading. Please wait a moment and try again.", "error");
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Opening Google Sign-In…";
+      }
+      setAuthStatus("A secure Google sign-in window should open. This privacy card will stay here until sign-in succeeds.", "info");
+
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
-        await firebase.auth().signInWithPopup(provider);
-      } catch (err) {}
+        const result = await firebase.auth().signInWithPopup(provider);
+        if (result && result.user) {
+          setAuthStatus("Signed in securely.", "info");
+          closePrivacyModal();
+        } else {
+          setAuthStatus("Google sign-in did not complete. Please try again.", "error");
+        }
+      } catch (err) {
+        const code = String((err && err.code) || "");
+        let message = "Google sign-in could not be completed. Please try again.";
+        if (code.includes("popup-blocked")) {
+          message = "Your browser blocked the Google sign-in window. Allow pop-ups for this site, then try again.";
+        } else if (code.includes("popup-closed-by-user") || code.includes("cancelled-popup-request")) {
+          message = "Sign-in was cancelled. You can try again whenever you are ready.";
+        } else if (code.includes("unauthorized-domain")) {
+          message = "Google sign-in is not yet authorized for this preview address. The preview domain needs to be added to Firebase Authentication before sign-in can work here.";
+        } else if (code.includes("network-request-failed")) {
+          message = "Google sign-in could not reach the network. Check your connection and try again.";
+        }
+        console.warn("Google sign-in note:", code || "unknown");
+        setAuthStatus(message, "error");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Continue to Secure Sign In";
+        }
+      }
     }
     
     function handleAuthAction() { 
@@ -3426,6 +3544,7 @@
           userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
           authBtn.textContent = "Sign In";
           updateCreditUI();
+          updateAuthDiscoveryUI();
         });
       } else { 
         openPrivacyModal(); 
@@ -3522,6 +3641,7 @@
             currentUserName = user.displayName ? user.displayName.split(' ')[0] : "beloved";
             userGreeting.textContent = `Grace and peace be with you, ${currentUserName}`;
             authBtn.textContent = "Sign Out";
+            updateAuthDiscoveryUI();
             await syncAccountEntitlements(user);
 
             if (!pendingBiblePrompt) {
@@ -3535,6 +3655,7 @@
             userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
             authBtn.textContent = "Sign In";
             updateCreditUI();
+            updateAuthDiscoveryUI();
 
             if (!quizDone && !pendingBiblePrompt) {
               startOnboardingQuiz();
@@ -3556,6 +3677,7 @@
         });
       } else {
         authHasResolved = true;
+        updateAuthDiscoveryUI();
         if (pendingBiblePrompt) {
           const promptToSent = pendingBiblePrompt;
           const modeToUse = pendingBibleMode;
