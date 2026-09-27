@@ -626,9 +626,10 @@ function needsStandardQualityUpgrade(message, reply) {
   const user = String(message || "").trim();
   const text = String(reply || "").trim();
   if (!text) return true;
+  const normalizedText = text.replace(/[’]/g, "'");
 
   const refusal = /\b(i(?:'m| am) sorry[, ]+but i can'?t help|i can'?t help with that|i cannot help with that|i can'?t assist|i cannot assist)\b/i;
-  if (refusal.test(text)) return true;
+  if (refusal.test(normalizedText)) return true;
 
   const forcedDevotionalHeading = /(?:^|\n)\s*(?:\*\*|#{1,3}\s*)?(reflection|prayer|scripture anchors?)(?:\*\*)?\s*:?(?:\n|$)/im;
   const explicitlyAskedForPrayer = /\b(pray|prayer|devotional|reflection)\b/i.test(user);
