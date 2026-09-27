@@ -134,7 +134,9 @@ if assets.get("html_handling") != "auto-trailing-slash":
     raise SystemExit("FAIL: Workers HTML routing must keep clean canonical paths")
 if not isinstance(wrangler.get("previews"), dict):
     raise SystemExit("FAIL: Workers Preview configuration is missing")
+if wrangler.get("preview_urls") is not True:
+    raise SystemExit("FAIL: workers.dev Preview URLs must be enabled for feature testing")
 
 print("PASS: Workers Static Assets configuration points only to ./dist.")
-print("PASS: Workers Preview configuration is available without changing production routes.")
+print("PASS: Workers Preview configuration exposes isolated workers.dev URLs without changing production routes.")
 print("PASS: Worker routing preserves clean HTML URLs and custom 404 behavior.")
