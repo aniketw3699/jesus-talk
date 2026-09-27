@@ -144,6 +144,14 @@ const sigBytes = new Uint8Array(
 const sigHex = Array.from(sigBytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 assert.equal(await __test.verifyLemonSignature(raw, sigHex, secret), true);
 assert.equal(await __test.verifyLemonSignature(raw, sigHex.slice(2), secret), false);
+assert.equal(
+  await __test.verifyConfiguredLemonSignature(raw, sigHex, { LEMON_WEBHOOK_SECRET:"wrong", LEMON_TEST_WEBHOOK_SECRET:secret }),
+  true
+);
+assert.equal(
+  await __test.verifyConfiguredLemonSignature(raw, sigHex, { LEMON_WEBHOOK_SECRET:"wrong" }),
+  false
+);
 
 const parsed = __test.parseFsDocument({
   fields: {
