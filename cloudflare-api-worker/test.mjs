@@ -71,6 +71,21 @@ assert.equal(__test.bridgeReplyIsChristian("Scripture can help us think about we
 assert.match(__test.bridgeFallback("Who is Trump?"), /leadership, truth, justice/i);
 assert.match(__test.bridgeFallback("What is Bhagwan Ram?"), /Christian perspective/i);
 
+assert.equal(__test.mustUseBibleScopeRedirect("i want to earn money tell me business ideas"), true);
+assert.equal(__test.mustUseBibleScopeRedirect("who is elon musk"), true);
+assert.equal(__test.mustUseBibleScopeRedirect("calculate 20 divide by 4"), true);
+assert.equal(__test.mustUseBibleScopeRedirect("I am pregnant. Should I have an abortion?"), false);
+assert.equal(__test.mustUseBibleScopeRedirect("What does Jesus teach about money?"), false);
+assert.match(
+  __test.bibleScopeRedirect("i want to earn money tell me business ideas"),
+  /does not generate business ideas/i
+);
+assert.doesNotMatch(
+  __test.bibleScopeRedirect("i want to earn money tell me business ideas"),
+  /tutoring|coaching|online store|handyman|youtube channel/i
+);
+
+
 const universalMedicalDecision = __test.buildMessages({
   message: "I am pregnant. Should I have an abortion?",
   mode: "conversation",
