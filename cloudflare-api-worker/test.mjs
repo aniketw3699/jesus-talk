@@ -5,6 +5,7 @@ assert.equal(__test.sanitizeInput("  hello\u0000 world  ", 20), "hello world");
 assert.equal(__test.sanitizeMetadata("<script>Ani</script>", 30, "x"), "scriptAniscript");
 assert.equal(__test.selectedMode("STUDY"), "study");
 assert.equal(__test.selectedMode("conversation"), "conversation");
+assert.equal(__test.selectedMode("bridge"), "comfort");
 assert.equal(__test.selectedMode("unknown"), "comfort");
 
 const built = __test.buildMessages({
@@ -17,9 +18,9 @@ const built = __test.buildMessages({
 });
 assert.equal(built.mode, "study");
 assert.equal(built.messages.at(-1).content, "Explain John 3:16");
-assert.match(built.messages[0].content, /NOT Jesus Christ/);
+assert.match(built.messages[0].content, /NOT literally Jesus Christ/);
 assert.match(built.messages[0].content, /World English Bible \(WEB\)/);
-assert.match(built.messages[0].content, /Do not make Hebrew, Greek, or Aramaic lexical claims unless the user explicitly asks/);
+assert.match(built.messages[0].content, /Never invent a Bible reference, verse boundary, Hebrew\/Greek word/);
 
 const conversational = __test.buildMessages({
   message: "Who is Mother Mary?",
@@ -29,8 +30,67 @@ const conversational = __test.buildMessages({
   userIntentions: "faith"
 });
 assert.equal(conversational.mode, "conversation");
-assert.match(conversational.messages[0].content, /stays within the Christian\/Scripture-focused space/i);
-assert.match(conversational.messages[0].content, /rude, insulting, profane, or angry/i);
+assert.match(conversational.messages[0].content, /MODEL-FIRST UNDERSTANDING/i);
+assert.match(conversational.messages[0].content, /user may bring ANY subject/i);
+assert.match(conversational.messages[0].content, /ANSWER-WORLD.*Jesus and the Bible/i);
+assert.match(conversational.messages[0].content, /rude or profane, stay calm and keep helping/i);
+assert.match(conversational.messages[0].content, /Ordinary adult questions about sex/i);
+assert.match(conversational.messages[0].content, /Do not force headings such as Reflection or Scripture Anchors/i);
+assert.match(conversational.messages[0].content, /named traditional prayer/i);
+assert.match(conversational.messages[0].content, /1into1 has no physical body or personal lived experience/i);
+assert.match(conversational.messages[0].content, /Keep simple questions concise and natural/i);
+assert.match(conversational.messages[0].content, /Every normal cloud answer must contain one directly relevant Scripture anchor/i);
+assert.match(conversational.messages[0].content, /Named traditional prayers must not be improvised/i);
+
+
+const deepChristian = __test.buildMessages({
+  message: "Compare Catholic and Orthodox views of salvation using Scripture, church history, and major objections.",
+  mode: "study",
+  userName: "beloved",
+  userPsyche: "focused",
+  userIntentions: "faith"
+});
+assert.match(deepChristian.messages[0].content, /deeper biblical reasoning, context, theology/i);
+
+const businessConversation = __test.buildMessages({
+  message: "i want to earn money tell me business ideas",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "hopeful",
+  userIntentions: "work"
+});
+assert.equal(businessConversation.mode, "conversation");
+assert.match(businessConversation.messages[0].content, /if asked for business ideas, do not list businesses/i);
+assert.match(businessConversation.messages[0].content, /work, money, stewardship, honesty, service, greed, contentment, and provision/i);
+
+const icuConversation = __test.buildMessages({
+  message: "my mother is in ICU please save her",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "afraid",
+  userIntentions: "prayer"
+});
+assert.match(icuConversation.messages[0].content, /personal suffering, sickness, ICU/i);
+assert.match(icuConversation.messages[0].content, /respond to the HUMAN situation directly with compassion and biblical wisdom/i);
+
+const greetingConversation = __test.buildMessages({
+  message: "whats up",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "calm",
+  userIntentions: "conversation"
+});
+assert.match(greetingConversation.messages[0].content, /ordinary greetings such as hello or what's up, respond naturally and warmly/i);
+
+const universalMedicalDecision = __test.buildMessages({
+  message: "I am pregnant. Should I have an abortion?",
+  mode: "conversation",
+  userName: "beloved",
+  userPsyche: "uncertain",
+  userIntentions: "seeking guidance"
+});
+assert.match(universalMedicalDecision.messages[0].content, /medical treatment, pregnancy/i);
+assert.match(universalMedicalDecision.messages[0].content, /spiritual and moral support/i);
 
 assert.deepEqual(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard"),
@@ -40,6 +100,62 @@ assert.equal(
   __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "deep")[0],
   "openai/gpt-oss-120b"
 );
+
+assert.equal(
+  __test.modelCandidates({ AI_MODELS:"openai/gpt-oss-20b,openai/gpt-oss-120b" }, "standard-high")[0],
+  "openai/gpt-oss-120b"
+);
+
+assert.equal(__test.standardQualityTier("did jesus was virgin?"), "standard-high");
+assert.equal(__test.standardQualityTier("my mother is in hospital please help"), "standard-high");
+assert.equal(__test.standardQualityTier("my mother is in ICU please save her"), "standard-high");
+assert.equal(__test.standardQualityTier("Explain black holes simply"), "standard");
+
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "i want to have sex",
+    "It sounds like you're wrestling with a deeply personal question.\n\n**Reflection**\nHere is a very long sermon-like response ".repeat(12)
+  ),
+  true
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "do u have sex?",
+    "I’m sorry, but I can’t help with that."
+  ),
+  true
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "What does fear mean for a Christian?",
+    "Fear can make us feel alone, but Scripture turns us toward God's presence. [VERSE]\n\nThis passage matters because it points the fearful person toward trust in God rather than panic.\nPSYCHE: Seeking courage in God\nANCHOR: Psalm 56:3"
+  ),
+  false
+);
+
+assert.equal(
+  __test.needsStandardQualityUpgrade(
+    "whats up",
+    "I'm here with you."
+  ),
+  true
+);
+
+const upgradedMessages = __test.buildQualityUpgradeMessages(conversational.messages);
+assert.match(upgradedMessages[0].content, /STANDARD QUALITY ESCALATION/);
+assert.match(upgradedMessages[0].content, /under about 180 words/);
+
+const ungroundedQuoteProblems = __test.findGroundingViolations(
+  'Jesus says, “This invented wording is definitely not verified source text.” (Matthew 24:36)',
+  'When will the world end?',
+  null
+);
+assert.ok(ungroundedQuoteProblems.some((item) => /Unverified Scripture quotation/.test(item)));
+
+
 
 const psalm23Rows = [
   { type:"header", value:"A Psalm by David." },
@@ -68,6 +184,20 @@ assert.match(psalmGrounding.contextText, /World English Bible \(WEB\)/);
 assert.match(psalmGrounding.contextText, /verified chapter has verses 1-6/);
 assert.match(psalmGrounding.contextText, /Source heading: A Psalm by David\./);
 assert.match(psalmGrounding.contextText, /1\. Yahweh is my shepherd: I shall lack nothing\./);
+
+const anchorRef = __test.extractAnchorReference("A response.\nPSYCHE: Calm\nANCHOR: Psalm 23:1");
+assert.equal(anchorRef.book, "psalm");
+assert.equal(anchorRef.chapter, 23);
+assert.equal(anchorRef.startVerse, 1);
+
+const injectedVerse = __test.injectVerifiedVerse(
+  "God's care is personal.\n\n[VERSE]\n\nThis verse shows why trust belongs at the center.\nPSYCHE: Growing in trust\nANCHOR: Psalm 23:1",
+  psalmGrounding
+);
+assert.match(injectedVerse, /“Yahweh is my shepherd: I shall lack nothing\.” \(Psalm 23:1\)/);
+assert.doesNotMatch(injectedVerse, /\[VERSE\]/i);
+assert.doesNotMatch(injectedVerse, /ANCHOR:/i);
+
 
 const badPsalmDraft = [
   "Psalm 23 is a Davidic psalm, and David chose this picture because he had been a shepherd.",
@@ -143,12 +273,21 @@ assert.equal(
 );
 
 const cleaned = __test.cleanCloudReply(
-  "A response.\n\n[CARD]A blessing.[/CARD]\nPSYCHE: Growing in peace",
+  "A response.\n\n[CARD]A blessing.[/CARD]\nPSYCHE: Growing in peace\nANCHOR: Psalm 23:1",
   "Seeking peace"
 );
 assert.equal(cleaned.reply, "A response.");
 assert.equal(cleaned.cardText, "A blessing.");
 assert.equal(cleaned.updatedPsyche, "Growing in peace");
+
+const spacedCard = __test.cleanCloudReply(
+  "A concise Christian bridge answer.\n\n[ CARD ]\nA blessing that must not leak.\n[/ CARD ]\nPSYCHE: Curious about faith",
+  "Seeking wisdom"
+);
+assert.equal(spacedCard.reply, "A concise Christian bridge answer.");
+assert.equal(spacedCard.cardText, "A blessing that must not leak.");
+assert.doesNotMatch(spacedCard.reply, /\[\s*\/?\s*CARD\s*\]/i);
+
 
 const secret = "test-secret";
 const raw = '{"hello":"world"}';
@@ -189,7 +328,7 @@ const env = {
   FIREBASE_PROJECT_ID: "jesus-chat-bd89f",
   PLUS_DAILY_FAIR_USE_LIMIT: "100",
   ALLOWED_ORIGINS:
-    "https://www.1into1.com,https://1into1.com,https://oneintoone-jesus.aniketw3699.workers.dev"
+    "https://www.1into1.com,https://1into1.com,https://oneintoone-jesus.aniketw3699.workers.dev,https://oneintoone-jesus-device-preview.aniketw3699.workers.dev,https://oneintoone-jesus-final-preview.aniketw3699.workers.dev"
 };
 
 const healthResponse = await worker.fetch(new Request("https://worker.test/api/health"), env);
@@ -220,6 +359,38 @@ assert.equal(preflight.status, 204);
 assert.equal(
   preflight.headers.get("access-control-allow-origin"),
   "https://oneintoone-jesus.aniketw3699.workers.dev"
+);
+
+const devicePreviewPreflight = await worker.fetch(
+  new Request("https://worker.test/chat", {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://oneintoone-jesus-device-preview.aniketw3699.workers.dev",
+      "Access-Control-Request-Method": "POST"
+    }
+  }),
+  env
+);
+assert.equal(devicePreviewPreflight.status, 204);
+assert.equal(
+  devicePreviewPreflight.headers.get("access-control-allow-origin"),
+  "https://oneintoone-jesus-device-preview.aniketw3699.workers.dev"
+);
+
+const finalPreviewPreflight = await worker.fetch(
+  new Request("https://worker.test/chat", {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://oneintoone-jesus-final-preview.aniketw3699.workers.dev",
+      "Access-Control-Request-Method": "POST"
+    }
+  }),
+  env
+);
+assert.equal(finalPreviewPreflight.status, 204);
+assert.equal(
+  finalPreviewPreflight.headers.get("access-control-allow-origin"),
+  "https://oneintoone-jesus-final-preview.aniketw3699.workers.dev"
 );
 
 const deniedPreflight = await worker.fetch(

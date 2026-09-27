@@ -191,7 +191,7 @@
     } else if (/^(how are you|how are you doing|how is it going|hows it going|how have you been)$/.test(clean)) {
       reply = "I’m here and ready to listen. What’s on your mind today?";
     } else if (/^(who are you|what are you|what is this|what can you do|tell me about yourself)$/.test(clean)) {
-      reply = "I’m 1into1 with Jesus, a Scripture-guided Christian companion—not Jesus himself. I can listen, help you pray, explore the Bible, or talk through what you’re carrying.";
+      reply = "I’m 1into1, a Christian digital companion—not Jesus himself. You can bring me any question, but I keep the answer within Jesus, the Bible, Christian faith, prayer, and biblical wisdom. If something is outside that world, I’ll help you look at the part Scripture can speak to.";
     } else if (/^(thanks|thank you|thank you so much|thanks a lot|appreciate it)$/.test(clean)) {
       reply = "You’re welcome. I’m here whenever you want to talk, pray, or look at Scripture together.";
     } else if (/^(bye|goodbye|good night|see you|see you later|talk later)$/.test(clean)) {
@@ -199,7 +199,7 @@
     } else if (/^(can we talk|i want to talk|i just want to talk|talk to me|can i talk to you)$/.test(clean)) {
       reply = "Of course. You don’t have to turn everything into a prayer immediately. Tell me what’s on your mind, and we can take it from there.";
     } else if (/\b(fuck you|fuck off|go away|i hate you|i dont like you|i don't like you|you are stupid|youre stupid|you're stupid|idiot)\b/.test(clean)) {
-      reply = "I hear that you’re frustrated. I won’t argue with you or force this into a prayer. If something in my response felt wrong, tell me what missed the mark and I’ll try to respond more clearly within the Christian and Scripture-focused space.";
+      reply = "I hear that you’re frustrated. I won’t argue with you or force this into a prayer. Tell me what missed the mark and I’ll try to answer the actual question more clearly while staying grounded in Christian values.";
     } else {
       return null;
     }
@@ -357,42 +357,41 @@
     return buildNormalExperience(text, selectedMode, analysis);
   }
 
-  function containsPremiumDeepQuestion(text) {
+  function isHighStakesLifeQuestion(text) {
+    return /\b(pregnan(?:t|cy)|abortion|miscarriage|ectopic|suicid(?:e|al)|self[- ]?harm|overdose|medical emergency|chest pain|severe bleeding|diagnosis|medication dose|domestic violence|sexual assault|rape|abuse|being abused|immediate danger|emergency room|arrested|criminal charge)\b/i.test(String(text || ""));
+  }
+
+  function premiumDepthScore(text) {
     const value = String(text || "");
-    const patterns = [
-      /\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation)\b/i,
-      /\b(theology|theological|doctrine|doctrinal|trinity|trinitarian|predestination|eschatology|soteriology|christology)\b/i,
-      /\b(historical context|literary context|original language|verse[- ]by[- ]verse|exegesis|hermeneutic|hermeneutics)\b/i,
-      /\b(compare|difference between|catholic|orthodox|protestant|reformed|pentecostal)\b.*\b(view|views|teaching|teachings|interpretation|interpretations)\b/i,
-      /\b(contradiction|contradictions|contradict)\b/i,
-      /\bwhy did (jesus|paul|god|moses|peter)\b/i
-    ];
-    if (patterns.some(function(pattern) { return pattern.test(value); })) return true;
-    return value.length > 700 && /\?/.test(value);
+    const clean = normalize(value);
+    if (!clean || isHighStakesLifeQuestion(value)) return 0;
+
+    let score = 0;
+    if (/\b(deep dive|go deeper|in[- ]depth|detailed analysis|comprehensive analysis|research[- ]level|rigorous analysis|thorough analysis)\b/i.test(value)) score += 5;
+    if (/\b(greek|hebrew|aramaic|manuscript|textual variant|canon formation|exegesis|hermeneutics?|original language|verse[- ]by[- ]verse)\b/i.test(value)) score += 4;
+    if (/\b(compare|contrast|evaluate|analy[sz]e|critique|synthesize|assess)\b/i.test(value)) score += 2;
+
+    const denominationMentions = (value.match(/\b(catholic|orthodox|protestant|reformed|pentecostal|anglican|lutheran|baptist|methodist)\b/gi) || []).length;
+    if (/\b(compare|contrast|difference|interpretation|view|views)\b/i.test(value) && denominationMentions >= 2) score += 3;
+    if (/\b(pros and cons|trade[- ]offs?|multiple perspectives|arguments? for and against|case for and against|steelman|scenarios?|compare the evidence|major objections)\b/i.test(value)) score += 3;
+    if (/\b(scripture|biblical|bible|theology|doctrine|christian|church history|discernment|stewardship|vocation)\b/i.test(value)) score += 2;
+    if (/\b(sources?|citations?|evidence|historical sources?)\b/i.test(value)) score += 2;
+
+    const connectors = (clean.match(/\b(and|also|then|versus|vs|compare|consider|including|while|but|plus)\b/g) || []).length;
+    if (connectors >= 3) score += 1;
+    if (connectors >= 6) score += 1;
+    if (value.length >= 220) score += 1;
+    if (value.length >= 420) score += 1;
+    return score;
+  }
+
+  function containsPremiumDeepQuestion(text) {
+    return premiumDepthScore(text) >= 5;
   }
 
   function looksLikeExplicitPrayerRequest(text) {
     const clean = normalize(text);
-    return /\b(pray|prayer|pray for|help me pray|write a prayer|say a prayer|bless|blessing)\b/.test(clean);
-  }
-
-  function looksLikeGuidanceRequest(text) {
-    const clean = normalize(text);
-    return /\b(what should i do|help me decide|need guidance|guide me|next step|discern|decision|choose|choice)\b/.test(clean);
-  }
-
-  function looksLikeKnowledgeQuestion(text) {
-    const clean = normalize(text);
-    if (!clean) return false;
-    if (/^(who|what|when|where|why|how|which)\b/.test(clean)) return true;
-    if (/\b(tell me about|explain|define|meaning of|what is|who is|who was|where is|when did|why did|how did|how many)\b/.test(clean)) return true;
-    if (/\b(ten commandments|commandments|apostles|disciples|mother mary|virgin mary|mary magdalene|baptism|eucharist|communion|resurrection|crucifixion|old testament|new testament|gospel|psalm|proverb)\b/.test(clean)) return true;
-    return /\?$/.test(String(text || "").trim()) && clean.split(" ").length <= 16;
-  }
-
-  function looksLikeSeriousPersonalSituation(text) {
-    const clean = normalize(text);
-    return /\b(dying|terminal|cancer|hospital|icu|surgery|doctor said|medical emergency|lost my job|fired|death|died|funeral|abused|abuse|violence)\b/.test(clean);
+    return /\b(please pray|pray for me|pray with me|pray for my|pray about|help me pray|write (?:me )?a prayer|write a prayer for|say a prayer for|can you pray|bless me|bless my)\b/.test(clean);
   }
 
   function decideRoute(text, mode, online) {
@@ -401,37 +400,27 @@
     const analysis = analyze(text);
 
     if (analysis.safety) return { route:"local", reason:"safety", analysis:analysis };
-    if (buildCasualExperience(text)) {
-      return { route:"local", reason:"casual-conversation", analysis:{ topic:"conversation", confidence:1, matchedTerms:[] } };
-    }
 
     const localKnowledge = window.ONEINTOONE_LOCAL_KNOWLEDGE;
     if (localKnowledge && typeof localKnowledge.canAnswer === "function" && localKnowledge.canAnswer(text)) {
       return { route:"local-knowledge", reason:"device-knowledge", analysis:analysis };
     }
 
-    if (!isOnline) return { route:"local", reason:"offline", analysis:analysis };
-
-    if (selectedMode === "prayer" || looksLikeExplicitPrayerRequest(text)) {
-      return { route:"local", reason:"prayer-request", analysis:analysis };
-    }
-    if (selectedMode === "guidance" || looksLikeGuidanceRequest(text)) {
-      return { route:"local", reason:"guidance-request", analysis:analysis };
-    }
-
     if (selectedMode === "study" || containsPremiumDeepQuestion(text)) {
-      return { route:"cloud-deep", cloudMode:"study", reason:selectedMode === "study" ? "study-mode" : "deep-question", analysis:analysis };
+      return {
+        route:isOnline ? "cloud-deep" : "device-general",
+        cloudMode:"study",
+        reason:selectedMode === "study" ? "study-mode" : "deep-question",
+        analysis:analysis
+      };
     }
 
-    if (looksLikeKnowledgeQuestion(text) || looksLikeSeriousPersonalSituation(text)) {
-      return { route:"cloud-standard", cloudMode:"conversation", reason:"open-conversation", analysis:analysis };
-    }
-
-    if (analysis.confidence >= 0.25 && Array.isArray(analysis.matchedTerms) && analysis.matchedTerms.length > 0) {
-      return { route:"local", reason:"matched-local-topic", analysis:analysis };
-    }
-
-    return { route:"cloud-standard", cloudMode:"conversation", reason:"general-conversation", analysis:analysis };
+    return {
+      route:isOnline ? "cloud-standard" : "device-general",
+      cloudMode:"conversation",
+      reason:"model-first-conversation",
+      analysis:analysis
+    };
   }
 
   function shouldHandleLocally(text, mode, online) {
@@ -455,11 +444,12 @@
   }
 
   window.OneIntoOneOffline = {
-    version:"2.2.0",
+    version:"2.8.0",
     analyze:analyze,
     buildExperience:buildExperience,
     buildResponse:function(text, mode) { return buildExperience(text, mode).reply; },
     decideRoute:decideRoute,
+    premiumDepthScore:premiumDepthScore,
     shouldHandleLocally:shouldHandleLocally,
     clearLocalMemory:clearLocalMemory,
     getLocalMemorySummary:getLocalMemorySummary

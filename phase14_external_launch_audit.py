@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Phase 14 external-launch readiness checks.
+"""External launch dependency audit for 1into1 with Jesus.
 
-This audit validates the live Cloudflare preview/API after the Ask Deeper and
-Lemon Squeezy integration. Firestore rules and encrypted-backup E2E are now
-verified; production DNS is still intentionally untouched until Phase 15.
+This began as the Phase 14 prelaunch audit. It now supports both the historical
+prelaunch checkpoint and the current production-era repository configuration.
+Modern pull requests must not fail merely because the retired prelaunch
+workers.dev frontend is no longer deployed.
 """
 
 from __future__ import annotations
@@ -14,8 +15,12 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-PREVIEW_BASE = os.getenv(
+ROOT = Path(__file__).resolve().parent
+PRODUCTION_ORIGIN = "https://www.1into1.com"
+PRODUCTION_APEX_ORIGIN = "https://1into1.com"
+LEGACY_PREVIEW_BASE = os.getenv(
     "PHASE14_PREVIEW_BASE",
     "https://oneintoone-jesus.aniketw3699.workers.dev",
 ).rstrip("/")
@@ -23,9 +28,6 @@ API_BASE = os.getenv(
     "PHASE14_API_BASE",
     "https://oneintoone-jesus-api.aniketw3699.workers.dev",
 ).rstrip("/")
-
-PREVIEW_ORIGIN = PREVIEW_BASE
-PRODUCTION_ORIGIN = "https://www.1into1.com"
 LEMON_HOST = "https://purple1into1.lemonsqueezy.com/checkout/buy/"
 
 
@@ -34,7 +36,7 @@ def request(url: str, method: str = "GET", headers: dict | None = None, timeout:
         url,
         method=method,
         headers={
-            "User-Agent": "1into1-phase14-audit/2.0",
+            "User-Agent": "1into1-external-launch-audit/3.0",
             **(headers or {}),
         },
     )
@@ -43,6 +45,8 @@ def request(url: str, method: str = "GET", headers: dict | None = None, timeout:
             return response.status, dict(response.headers), response.read()
     except urllib.error.HTTPError as exc:
         return exc.code, dict(exc.headers), exc.read()
+    except urllib.error.URLError as exc:
+        return 0, {}, str(exc).encode("utf-8", errors="replace")
 
 
 def text(body: bytes) -> str:
@@ -83,37 +87,8 @@ def cors_preflight(origin: str):
     )
 
 
-def main() -> int:
-    failures: list[str] = []
-    blockers: list[str] = []
-    passes: list[str] = []
-
-    # Cloudflare live preview.
-    for path in ["/", "/launch-config.js", "/billing-config.js", "/bible.html", "/privacy.html"]:
-        status, _, body = request(PREVIEW_BASE + path)
-        if status != 200:
-            failures.append(f"Cloudflare preview {path} returned {status}")
-        elif not body:
-            failures.append(f"Cloudflare preview {path} returned an empty body")
-    if not failures:
-        passes.append("Cloudflare workers.dev preview serves key product assets")
-
-    status, _, launch_body = request(PREVIEW_BASE + "/launch-config.js")
-    launch = text(launch_body) if status == 200 else ""
-    if js_string(launch, "environment") != "prelaunch":
-        failures.append("live preview is not in the expected prelaunch environment")
-    if bool_from_js(launch, "plusCheckoutEnabled") is not True:
-        failures.append("Plus checkout is not enabled on the Phase 14 preview")
-    if bool_from_js(launch, "encryptedBackupEnabled") is not True:
-        failures.append("encrypted backup must be ON after Firestore rules and E2E verification")
-    if js_string(launch, "backendApiUrl") != API_BASE:
-        failures.append("live preview backend URL does not match the Cloudflare API")
-    if not any("live preview" in f for f in failures):
-        passes.append("live preview routes Ask Deeper to Cloudflare and exposes Plus checkout")
-
-    status, _, billing_body = request(PREVIEW_BASE + "/billing-config.js")
-    billing = text(billing_body) if status == 200 else ""
-    checkout_urls = re.findall(r'checkoutUrl\s*:\s*"([^"]*)"', billing)
+def validate_billing(source: str, failures: list[str], passes: list[str]) -> None:
+    checkout_urls = re.findall(r'checkoutUrl\s*:\s*"([^"]*)"', source)
     if len(checkout_urls) != 2:
         failures.append("billing config must contain exactly monthly and annual checkout URLs")
     elif not all(url.startswith(LEMON_HOST) for url in checkout_urls):
@@ -123,7 +98,62 @@ def main() -> int:
     else:
         passes.append("Lemon Squeezy monthly and annual checkout URLs are connected")
 
-    # Backend live health/readiness.
+
+def validate_repository_launch_config(failures: list[str], passes: list[str]) -> str:
+    launch = (ROOT / "launch-config.js").read_text(encoding="utf-8")
+    billing = (ROOT / "billing-config.js").read_text(encoding="utf-8")
+    environment = js_string(launch, "environment")
+
+    if environment not in {"prelaunch", "production"}:
+        failures.append(f"unsupported repository environment: {environment!r}")
+        return environment
+
+    if js_string(launch, "backendApiUrl") != API_BASE:
+        failures.append("repository backend URL does not match the Cloudflare API")
+
+    if environment == "production":
+        if bool_from_js(launch, "plusCheckoutEnabled") is not True:
+            failures.append("production Plus checkout must be enabled")
+        if bool_from_js(launch, "encryptedBackupEnabled") is not True:
+            failures.append("production encrypted backup must be enabled")
+        if js_string(launch, "canonicalHost") != PRODUCTION_ORIGIN:
+            failures.append("production canonical host must be https://www.1into1.com")
+        if not any("repository" in item or "production" in item for item in failures):
+            passes.append("repository launch config matches the current production architecture")
+    else:
+        passes.append("repository remains on the legacy prelaunch checkpoint")
+
+    validate_billing(billing, failures, passes)
+    return environment
+
+
+def validate_legacy_preview(failures: list[str], passes: list[str]) -> None:
+    for path in ["/", "/launch-config.js", "/billing-config.js", "/bible.html", "/privacy.html"]:
+        status, _, body = request(LEGACY_PREVIEW_BASE + path)
+        if status != 200:
+            failures.append(f"legacy Cloudflare preview {path} returned {status}")
+        elif not body:
+            failures.append(f"legacy Cloudflare preview {path} returned an empty body")
+
+    if not any("legacy Cloudflare preview" in item for item in failures):
+        passes.append("legacy workers.dev preview serves key product assets")
+
+
+def validate_production_frontend(failures: list[str], passes: list[str]) -> None:
+    # External frontend smoke only. Branch content is validated separately by
+    # Cloudflare Hosting Checkpoint against the exact generated dist/ bundle.
+    for path in ["/", "/bible.html", "/privacy.html"]:
+        status, _, body = request(PRODUCTION_ORIGIN + path)
+        if status != 200:
+            failures.append(f"production frontend {path} returned {status}")
+        elif not body:
+            failures.append(f"production frontend {path} returned an empty body")
+
+    if not any("production frontend" in item for item in failures):
+        passes.append("production frontend serves key public product pages")
+
+
+def validate_backend(failures: list[str], passes: list[str]) -> None:
     status, _, body = request(API_BASE + "/api/health")
     if status != 200:
         failures.append(f"backend health returned {status}")
@@ -135,8 +165,8 @@ def main() -> int:
             if not health.get("db_connected"):
                 failures.append("backend reports Firebase database disconnected")
             if not health.get("cloud_configured"):
-                failures.append("backend reports Ask Deeper cloud provider unconfigured")
-            if not any("backend" in f for f in failures):
+                failures.append("backend reports cloud provider unconfigured")
+            if not any("backend" in item for item in failures):
                 passes.append(
                     f"backend health active; provider={health.get('cloud_provider') or 'unknown'}"
                 )
@@ -157,22 +187,27 @@ def main() -> int:
                 "guest_hash_salt",
                 "production_www_origin",
                 "production_apex_origin",
-                "cloudflare_preview_origin",
             )
             for required in required_checks:
                 if not checks.get(required):
                     failures.append(f"backend readiness check is false: {required}")
             if readiness.get("status") != "ready":
                 failures.append("backend readiness endpoint does not report ready")
-            elif not any("readiness" in f for f in failures):
-                passes.append("backend readiness endpoint reports ready with all Phase 14B secrets")
+            elif not any("readiness" in item for item in failures):
+                passes.append("backend readiness endpoint reports ready")
         except Exception as exc:
             failures.append(f"backend readiness response is invalid JSON: {exc}")
 
-    for origin, label in (
+
+def validate_cors(environment: str, failures: list[str], passes: list[str]) -> None:
+    origins = [
         (PRODUCTION_ORIGIN, "production www origin"),
-        (PREVIEW_ORIGIN, "Cloudflare preview origin"),
-    ):
+        (PRODUCTION_APEX_ORIGIN, "production apex origin"),
+    ]
+    if environment == "prelaunch":
+        origins.append((LEGACY_PREVIEW_BASE, "legacy Cloudflare preview origin"))
+
+    for origin, label in origins:
         status, headers, _ = cors_preflight(origin)
         if status not in (200, 204):
             failures.append(f"{label} CORS preflight returned {status}")
@@ -183,29 +218,34 @@ def main() -> int:
         else:
             passes.append(f"{label} is accepted by backend CORS")
 
-    passes.append(
-        "encrypted backup is enabled after Firestore rules and create/restore/"
-        "wrong-password/new-device/delete E2E verification"
-    )
-    blockers.append(
-        "Production 1into1.com DNS/custom-domain cutover remains intentionally pending Phase 15."
-    )
 
-    print("PHASE 14 EXTERNAL LAUNCH AUDIT")
-    print(f"Preview: {PREVIEW_BASE}")
+def main() -> int:
+    failures: list[str] = []
+    passes: list[str] = []
+
+    environment = validate_repository_launch_config(failures, passes)
+
+    if environment == "prelaunch":
+        validate_legacy_preview(failures, passes)
+        frontend_label = LEGACY_PREVIEW_BASE
+    else:
+        validate_production_frontend(failures, passes)
+        frontend_label = PRODUCTION_ORIGIN
+
+    validate_backend(failures, passes)
+    validate_cors(environment, failures, passes)
+
+    print("EXTERNAL LAUNCH DEPENDENCY AUDIT")
+    print(f"Environment: {environment or 'unknown'}")
+    print(f"Frontend: {frontend_label}")
     print(f"API: {API_BASE}")
 
     for item in passes:
         print("PASS:", item)
-    for item in blockers:
-        print("BLOCKER:", item)
     for item in failures:
         print("FAIL:", item)
 
-    print(
-        f"SUMMARY passes={len(passes)} blockers={len(blockers)} failures={len(failures)}"
-    )
-
+    print(f"SUMMARY passes={len(passes)} failures={len(failures)}")
     return 1 if failures else 0
 
 

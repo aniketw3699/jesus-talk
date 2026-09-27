@@ -80,21 +80,30 @@ async function testLocalPrayerEngine() {
     "comfort",
     true
   );
-  check(anxiety.route === "local", "Ordinary anxiety/work prayer routes locally");
+  check(
+    anxiety.route === "cloud-standard" && anxiety.reason === "model-first-conversation",
+    "Open-ended anxiety/work conversation uses Christian reasoning"
+  );
 
   const prayerMode = engine.decideRoute(
     "Please help me pray about my family",
     "prayer",
     true
   );
-  check(prayerMode.route === "local", "Written Prayer routes locally");
+  check(
+    prayerMode.route === "cloud-standard" && prayerMode.reason === "model-first-conversation",
+    "Written Prayer reaches model-first pastoral reasoning"
+  );
 
   const guidance = engine.decideRoute(
     "I need guidance about a difficult decision",
     "guidance",
     true
   );
-  check(guidance.route === "local", "Life Guidance routes locally");
+  check(
+    guidance.route === "cloud-standard" && guidance.reason === "model-first-conversation",
+    "Life guidance uses Christian reasoning instead of a canned topic template"
+  );
 
   const study = engine.decideRoute(
     "Explain Romans 8 in Greek and its historical context",
@@ -105,12 +114,15 @@ async function testLocalPrayerEngine() {
 
   const casualMemoryBefore = localStorage.getItem("oneintoone_local_memory_v1");
   const helloRoute = engine.decideRoute("Hello", "comfort", true);
-  check(helloRoute.route === "local" && helloRoute.reason === "casual-conversation", "Greeting routes to natural local conversation");
+  check(
+    helloRoute.route === "cloud-standard" && helloRoute.reason === "model-first-conversation",
+    "Greeting reaches model-first conversation instead of a scope or canned local reply"
+  );
   const helloExperience = engine.buildExperience("Hello", "comfort");
   check(helloExperience.analysis.topic === "conversation", "Greeting does not fall into generic prayer topic");
   check(!(helloExperience.reply || "").includes("Scripture anchors:"), "Greeting does not force Scripture anchors");
   const identityExperience = engine.buildExperience("Who are you?", "comfort");
-  check(/Scripture-guided Christian companion/i.test(identityExperience.reply || ""), "Identity question gets direct conversational answer");
+  check(/Christian digital companion/i.test(identityExperience.reply || ""), "Identity question gets direct non-technical product answer");
 
   const mary = engine.decideRoute("Who is Mother Mary?", "comfort", true);
   check(mary.route === "local-knowledge", "Basic Christian knowledge uses device knowledge before cloud");
@@ -125,16 +137,226 @@ async function testLocalPrayerEngine() {
   check(Boolean(maryAnswer && /Acts 1:14/.test(maryAnswer.reply) && !/John 20:14/.test(maryAnswer.reply)), "Mary answer uses verified local references and avoids Mary Magdalene confusion");
 
   const insult = engine.decideRoute("Fuck you", "comfort", true);
-  check(insult.route === "local" && insult.reason === "casual-conversation", "Hostile chat has a calm on-device fallback");
+  check(
+    insult.route === "cloud-standard" && insult.reason === "model-first-conversation",
+    "Hostile chat reaches the model, whose prompt requires a calm Christian response"
+  );
 
   const dying = engine.decideRoute("My mom is dying. Please help me.", "comfort", true);
   check(dying.route === "cloud-standard" && dying.cloudMode === "conversation", "Serious personal situation routes to nuanced standard conversation AI");
 
   const prayerStillLocal = engine.decideRoute("Please write a prayer for my mother", "comfort", true);
-  check(prayerStillLocal.route === "local", "Explicit prayer request remains private local");
+  check(
+    prayerStillLocal.route === "cloud-standard" && prayerStillLocal.reason === "model-first-conversation",
+    "Explicit prayer request reaches semantic personalized prayer generation"
+  );
+
+  const namedPrayerLookup = engine.decideRoute("tell me the st micheals prayer", "comfort", true);
+  check(
+    namedPrayerLookup.route === "local-knowledge",
+    "Named Saint Michael prayer uses curated local knowledge"
+  );
+  const stMichaelAnswer = await knowledge.answer("tell me the st micheals prayer");
+  check(
+    Boolean(stMichaelAnswer && /Saint Michael, the Archangel, defend us in battle/i.test(stMichaelAnswer.reply) && /Seeking the ruin of souls\. Amen\./i.test(stMichaelAnswer.reply)),
+    "Saint Michael prayer is available directly on device"
+  );
+
+  const worldEndRoute = engine.decideRoute("when will the world endf", "comfort", true);
+  check(worldEndRoute.route === "local-knowledge", "World-end date question uses curated Christian knowledge");
+  const worldEndAnswer = await knowledge.answer("when will the world endf");
+  check(
+    Boolean(worldEndAnswer && /does not give a date/i.test(worldEndAnswer.reply) && /Matthew 24:36/.test(worldEndAnswer.reply)),
+    "World-end answer is concise and avoids invented Scripture quotation"
+  );
+
+  const jesusVirginRoute = engine.decideRoute("did jesus was virgin?", "comfort", true);
+  check(jesusVirginRoute.route === "local-knowledge", "Ambiguous Jesus virgin question uses curated answer");
+  const jesusVirginAnswer = await knowledge.answer("did jesus was virgin?");
+  check(
+    Boolean(jesusVirginAnswer && /If you mean whether Jesus himself had sex or was married/i.test(jesusVirginAnswer.reply) && /If you mean whether Jesus was born of a virgin/i.test(jesusVirginAnswer.reply)),
+    "Jesus virgin answer handles both meanings instead of guessing"
+  );
+
+
+  const jesusDeathRoute = engine.decideRoute("When was Jesus died?", "comfort", true);
+  check(jesusDeathRoute.route === "local-knowledge", "Jesus crucifixion date uses curated Christian history");
+  const jesusDeathAnswer = await knowledge.answer("When was Jesus died?");
+  check(
+    Boolean(jesusDeathAnswer && /AD 30 and AD 33/i.test(jesusDeathAnswer.reply) && !/first week of.*Nisan/i.test(jesusDeathAnswer.reply)),
+    "Jesus death answer keeps historical uncertainty and avoids the incorrect first-week-of-Nisan claim"
+  );
+
+  const explicitSex = engine.decideRoute("I'm a girl I want to get fucked", "comfort", true);
+  check(
+    explicitSex.route === "cloud-standard" && explicitSex.reason === "model-first-conversation",
+    "Explicit adult sexual wording remains a valid standard conversation topic"
+  );
+
+  const bodyQuestion = engine.decideRoute("Do u have sex?", "comfort", true);
+  check(
+    bodyQuestion.route === "cloud-standard" && bodyQuestion.reason === "model-first-conversation",
+    "Personal-body question routes to ordinary conversation rather than refusal"
+  );
+  const worldScience = engine.decideRoute("Explain how black holes work", "comfort", true);
+  check(
+    worldScience.route === "cloud-standard" &&
+    worldScience.cloudMode === "conversation" &&
+    worldScience.reason === "model-first-conversation",
+    "Standalone science reaches the model, which is responsible for answering only through Jesus/Scripture"
+  );
+
+  const detailedPregnancyDecision = engine.decideRoute(
+    "Give me an in-depth detailed analysis of abortion options, compare the trade-offs and scenarios because I am pregnant.",
+    "comfort",
+    true
+  );
+  check(
+    detailedPregnancyDecision.route === "cloud-standard",
+    "High-stakes pregnancy question is never automatically paywalled behind Ask Deeper"
+  );
+
+  const emergencyQuestion = engine.decideRoute(
+    "Give me a detailed analysis of severe chest pain and compare what it could mean.",
+    "comfort",
+    true
+  );
+  check(
+    emergencyQuestion.route === "cloud-standard",
+    "Medical emergency wording stays standard instead of triggering paid depth"
+  );
+
+  const pregnancyDecision = engine.decideRoute(
+    "I am pregnant. Should I have an abortion?",
+    "comfort",
+    true
+  );
+  check(
+    pregnancyDecision.route === "cloud-standard" && pregnancyDecision.reason === "model-first-conversation",
+    "Pregnancy decision is routed to real reasoning instead of canned local guidance"
+  );
+
+  const shoppingQuestion = engine.decideRoute(
+    "Which laptop should I buy for video editing?",
+    "comfort",
+    true
+  );
+  check(
+    shoppingQuestion.route === "cloud-standard" &&
+    shoppingQuestion.cloudMode === "conversation" &&
+    shoppingQuestion.reason === "model-first-conversation",
+    "Shopping/technology reaches semantic reasoning while the system prompt controls the Bible-only answer"
+  );
+
+  const offlineWorldQuestion = engine.decideRoute(
+    "Explain quantum computing",
+    "comfort",
+    false
+  );
+  check(
+    offlineWorldQuestion.route === "device-general" &&
+    offlineWorldQuestion.cloudMode === "conversation" &&
+    offlineWorldQuestion.reason === "model-first-conversation",
+    "Offline questions reach the prepared device model with the same Bible-only semantic prompt"
+  );
+
 
   const deepTheology = engine.decideRoute("Compare Catholic and Protestant interpretations of Mary", "comfort", true);
   check(deepTheology.route === "cloud-deep" && deepTheology.cloudMode === "study", "Comparative theology routes to Ask Deeper");
+  const deepStrategy = engine.decideRoute(
+    "Give me an in-depth strategic analysis comparing three ways to leave my job, start a business, evaluate the trade-offs, risks and scenarios, and build a 90-day roadmap.",
+    "comfort",
+    true
+  );
+  check(
+    deepStrategy.route === "cloud-deep" &&
+    deepStrategy.cloudMode === "study",
+    "Complex requests can use Ask Deeper, while its system prompt still constrains the answer to Bible/Jesus"
+  );
+
+  const premiumScore = engine.premiumDepthScore(
+    "Compare Catholic, Orthodox, and Protestant views of salvation using biblical evidence, church history, major objections, Greek terminology, and arguments for and against each view."
+  );
+  check(premiumScore >= 5, "Multi-layered theology prompt receives a premium depth score");
+
+  const premiumRoute = engine.decideRoute(
+    "Compare Catholic, Orthodox, and Protestant views of salvation using biblical evidence, church history, major objections, Greek terminology, and arguments for and against each view.",
+    "comfort",
+    true
+  );
+  check(
+    premiumRoute.route === "cloud-deep" && premiumRoute.reason === "deep-question",
+    "Clearly multi-layered prompt reliably triggers Ask Deeper popup path"
+  );
+
+
+  const normalScience = engine.decideRoute("Explain black holes simply", "comfort", true);
+  check(
+    normalScience.route === "cloud-standard" &&
+    normalScience.reason === "model-first-conversation",
+    "Simple science reaches model-first reasoning rather than a keyword firewall"
+  );
+
+  const politicsBridge = engine.decideRoute("who is elon musk and what trump has to do about it", "comfort", true);
+  check(
+    politicsBridge.route === "cloud-standard" &&
+    politicsBridge.reason === "model-first-conversation",
+    "Public-figure/political prompt reaches semantic reasoning rather than a keyword firewall"
+  );
+
+  const mathBridge = engine.decideRoute("calculate 20 divide by 4", "comfort", true);
+  check(
+    mathBridge.route === "cloud-standard" &&
+    mathBridge.reason === "model-first-conversation",
+    "Standalone calculation reaches semantic reasoning rather than a keyword firewall"
+  );
+
+  const religionBridge = engine.decideRoute("what your view on bhagwan ram?", "comfort", true);
+  check(
+    religionBridge.route === "cloud-standard" &&
+    religionBridge.reason === "model-first-conversation",
+    "Other-religion prompt reaches semantic reasoning under the Christian system prompt"
+  );
+
+  const businessIdeas = engine.decideRoute("i want to earn money tell me business ideas", "comfort", true);
+  check(
+    businessIdeas.route === "cloud-standard" &&
+    businessIdeas.reason === "model-first-conversation",
+    "Business-idea request reaches semantic model reasoning"
+  );
+  const icuHelp = engine.decideRoute("my mother is in ICU please save her", "comfort", true);
+  check(
+    icuHelp.route === "cloud-standard" &&
+    icuHelp.reason === "model-first-conversation",
+    "ICU/family desperation reaches semantic pastoral reasoning instead of a scope rejection"
+  );
+
+  const whatsUp = engine.decideRoute("whats up", "comfort", true);
+  check(
+    whatsUp.route === "cloud-standard" &&
+    whatsUp.reason === "model-first-conversation",
+    "Casual greeting reaches natural model conversation instead of a scope rejection"
+  );
+
+  const businessIdeasDeep = engine.decideRoute(
+    "Give me a detailed research-level list of ten business ideas and a 90-day plan",
+    "study",
+    true
+  );
+  check(
+    businessIdeasDeep.route === "cloud-deep" &&
+    businessIdeasDeep.cloudMode === "study",
+    "Ask Deeper receives complex input while the model prompt keeps the output Bible/Jesus-only"
+  );
+
+  const christianComparison = engine.decideRoute("What does Christianity say about worshipping other gods?", "comfort", true);
+  check(
+    christianComparison.route === "cloud-standard" &&
+    christianComparison.cloudMode === "conversation" &&
+    christianComparison.reason === "model-first-conversation",
+    "Explicit Christian comparative question remains directly in Christian conversation"
+  );
+
   const casualMemoryAfter = localStorage.getItem("oneintoone_local_memory_v1");
   check(casualMemoryAfter === casualMemoryBefore, "Casual conversation is not stored as spiritual memory");
 
@@ -143,7 +365,7 @@ async function testLocalPrayerEngine() {
     "study",
     false
   );
-  check(offlineStudy.route === "local", "Offline mode forces local fallback even for study");
+  check(offlineStudy.route === "device-general", "Offline deep questions route to device reasoning instead of a generic local template");
 
   const safety = engine.buildExperience(
     "I want to kill myself tonight",
@@ -301,6 +523,8 @@ async function testIndexFlowContracts() {
   const creditUi = functionBody(index, "updateCreditUI");
   const authDiscovery = functionBody(index, "updateAuthDiscoveryUI");
   const entitlementSync = functionBody(index, "syncAccountEntitlements");
+  const deviceAISetup = functionBody(index, "enablePrivateDeviceAI");
+  const deviceAIAnswer = functionBody(index, "answerWithPreparedDeviceAI");
 
   const routeIndex = submit.indexOf("decideRoute");
   const fetchIndex = submit.indexOf("fetch(");
@@ -340,13 +564,309 @@ async function testIndexFlowContracts() {
   check(entitlementSync.includes(": 5;"), "Stale signed-in credit values do not display across UTC-day rollover");
   check(index.includes(".plan-radio-circle { width: 20px; height: 20px; flex: 0 0 20px;"), "Plus plan radio selector cannot shrink into an oval");
 
+  check(index.includes("Bring Any Question · Through Jesus & Scripture"), "Universal ask-anything product tagline is present");
+  check(!index.includes("Scripture Guidance & Daily Prayer Sanctuary"), "Legacy prayer-only tagline cannot overwrite the universal product identity");
   check(index.includes("Ask naturally — 1into1 chooses the response path automatically."), "UI explains automatic routing without exposing backend modes");
   check(!index.includes('id="modeComfort"') && !index.includes('id="modePrayer"') && !index.includes('id="modeGuidance"'), "Manual response-mode selector is removed");
   check(index.includes('/local-knowledge.js'), "Chat page loads the device knowledge engine");
+  check(index.includes('id="deviceAiSetup"') && index.includes('enablePrivateDeviceAI()'), "Eligible devices have explicit private mode setup control");
+  check(deviceAISetup.includes("userInitiated:true"), "Private Mode model preparation requires explicit setup action");
+  check(deviceAIAnswer.includes("getStatus()") && deviceAIAnswer.includes("status.ready"), "Conversation uses device LLM only after it is ready");
+  check(submit.includes("routeDecision.route === 'device-general'") && submit.includes("answerWithPreparedDeviceAI"), "Offline Christian-scope questions can use prepared device model");
+  check(submit.includes('data.error === "SERVICE_DEGRADED"') && submit.includes("answerWithPreparedDeviceAI"), "Cloud failure tries Christian-scoped device model before narrower fallbacks");
+  check(submit.includes("do not want to replace it with a generic prayer response"), "Cloud failure is never disguised as canned prayer guidance");
+  check(!deviceAIAnswer.includes("prepare("), "Conversation routing never triggers a model download");
+  check(index.includes('id="askDeeperChoiceModal"') && index.includes("requestAskDeeperChoice"), "Automatic higher-depth routing uses an in-product Ask Deeper choice");
+  check(submit.includes("openPlansModal()") && submit.includes("jesus_guest_interaction_used"), "Exhausted free Ask Deeper usage leads to sign-in or Plus conversion");
   check(index.includes("nextTurnModeOverride"), "Explicit Ask Deeper shortcuts apply to one turn only");
   check(index.includes("SERVICE_DEGRADED") && index.includes("answerWithDeviceKnowledge"), "Cloud failure falls back to device knowledge/local response");
   check(index.includes("No account needed"), "UI promises no-account core use");
   check(index.includes("No app install required"), "UI promises no-install browser core use");
+}
+
+
+async function testDeviceAIFoundation() {
+  const loaded = loadIntoSandbox([
+    "device-ai-capability.js"
+  ], {
+    isSecureContext: true
+  });
+
+  const detector = loaded.sandbox.OneIntoOneDeviceAI;
+
+  check(
+    Boolean(detector && typeof detector.inspect === "function"),
+    "Device AI capability detector loads"
+  );
+
+  const unsupported = await detector.inspect({
+    secureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8
+    }
+  });
+
+  check(
+    unsupported.eligible === false &&
+    unsupported.reason === "webgpu-unavailable",
+    "Device AI rejects browsers without WebGPU"
+  );
+
+  const capable = await detector.inspect({
+    secureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      gpu: {
+        requestAdapter: async function() {
+          return {};
+        }
+      },
+      storage: {
+        estimate: async function() {
+          return {
+            quota: 2 * 1024 * 1024 * 1024,
+            usage: 100 * 1024 * 1024
+          };
+        }
+      }
+    }
+  });
+
+  check(
+    capable.eligible === true &&
+    capable.tier === "strong",
+    "Strong WebGPU device qualifies for future on-device AI"
+  );
+
+  check(
+    capable.automaticModelDownload === false,
+    "Device AI foundation forbids automatic model downloads"
+  );
+
+  const index = fs.readFileSync("index.html", "utf8");
+  const serviceWorker = fs.readFileSync("service-worker.js", "utf8");
+
+  check(
+    index.includes('/device-ai-capability.js'),
+    "Chat page loads device AI capability detector"
+  );
+
+  check(
+    serviceWorker.includes('"/device-ai-capability.js"'),
+    "Device AI capability detector is cached for offline use"
+  );
+}
+
+
+async function testDeviceAIEngineFoundation() {
+  const loaded = loadIntoSandbox([
+    "device-ai-capability.js",
+    "device-ai-engine.js"
+  ], {
+    isSecureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      gpu: {
+        requestAdapter: async function() {
+          return {};
+        }
+      },
+      storage: {
+        estimate: async function() {
+          return {
+            quota: 4 * 1024 * 1024 * 1024,
+            usage: 256 * 1024 * 1024
+          };
+        }
+      }
+    }
+  });
+
+  const localAI = loaded.sandbox.OneIntoOneDeviceAIEngine;
+
+  check(
+    Boolean(localAI && typeof localAI.prepare === "function"),
+    "On-device LLM engine foundation loads"
+  );
+
+  check(
+    localAI.modelId === "Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "On-device LLM uses pinned low-resource model"
+  );
+
+  check(
+    localAI.runtimeUrl === "https://esm.run/@mlc-ai/web-llm@0.2.85",
+    "WebLLM runtime version is pinned"
+  );
+
+  const profile = localAI.getModelProfile();
+
+  check(
+    profile.hostedByOwner === false &&
+    profile.inferenceLocation === "user-device" &&
+    profile.automaticDownload === false,
+    "On-device model profile preserves zero-owner-spend architecture"
+  );
+
+  check(
+    localAI.getStatus().state === "idle",
+    "On-device model does not load automatically"
+  );
+
+  const blocked = await localAI.prepare({
+    userInitiated: false
+  });
+
+  check(
+    blocked.blocked === true &&
+    blocked.reason === "explicit-user-action-required",
+    "On-device model download requires explicit user action"
+  );
+
+  check(
+    localAI.getStatus().state === "idle",
+    "Blocked model preparation performs no initialization"
+  );
+
+  const beforeReady = await localAI.chat([
+    { role: "user", content: "Please pray with me" }
+  ]);
+
+  check(
+    beforeReady.ok === false &&
+    beforeReady.reason === "device-ai-not-ready",
+    "On-device generation cannot run before readiness"
+  );
+
+  let createCalls = 0;
+  let workerCalls = 0;
+
+  const prepared = await localAI.prepare({
+    userInitiated: true,
+    workerFactory: function() {
+      workerCalls += 1;
+      return {
+        terminate: function() {}
+      };
+    },
+    runtimeLoader: async function() {
+      return {
+        CreateWebWorkerMLCEngine: async function(worker, modelId, config) {
+          createCalls += 1;
+          if (config && typeof config.initProgressCallback === "function") {
+            config.initProgressCallback({
+              progress: 0.5,
+              text: "Loading test model"
+            });
+          }
+          return {
+            chat: {
+              completions: {
+                create: async function(request) {
+                  return {
+                    choices: [{
+                      message: {
+                        content: request.messages.length
+                          ? "A private device response."
+                          : ""
+                      }
+                    }]
+                  };
+                }
+              }
+            },
+            unload: async function() {}
+          };
+        }
+      };
+    }
+  });
+
+  check(
+    prepared.ready === true &&
+    createCalls === 1 &&
+    workerCalls === 1,
+    "Eligible device can prepare WebLLM in a dedicated worker"
+  );
+
+  const generated = await localAI.chat([
+    { role: "user", content: "I need encouragement today" }
+  ]);
+
+  check(
+    generated.ok === true &&
+    generated.source === "device-llm" &&
+    generated.text === "A private device response.",
+    "Prepared on-device LLM can generate a local response"
+  );
+
+  const unloaded = await localAI.unload();
+
+  check(
+    unloaded.state === "idle" && unloaded.ready === false,
+    "On-device LLM can unload and release its session"
+  );
+
+  const lowStorageLoaded = loadIntoSandbox([
+    "device-ai-capability.js",
+    "device-ai-engine.js"
+  ], {
+    isSecureContext: true,
+    navigator: {
+      deviceMemory: 8,
+      hardwareConcurrency: 8,
+      gpu: {
+        requestAdapter: async function() {
+          return {};
+        }
+      },
+      storage: {
+        estimate: async function() {
+          return {
+            quota: 2 * 1024 * 1024 * 1024,
+            usage: 1024 * 1024 * 1024
+          };
+        }
+      }
+    }
+  });
+
+  const lowStorage = await lowStorageLoaded.sandbox.OneIntoOneDeviceAIEngine.prepare({
+    userInitiated: true,
+    runtimeLoader: async function() {
+      throw new Error("runtime-must-not-load");
+    }
+  });
+
+  check(
+    lowStorage.blocked === true &&
+    lowStorage.reason === "insufficient-device-storage",
+    "On-device model refuses setup when known free storage is too low"
+  );
+
+  const index = fs.readFileSync("index.html", "utf8");
+  const serviceWorker = fs.readFileSync("service-worker.js", "utf8");
+  const workerSource = fs.readFileSync("device-ai-worker.js", "utf8");
+
+  check(
+    index.includes('/device-ai-engine.js'),
+    "Chat page loads on-device LLM engine foundation"
+  );
+
+  check(
+    serviceWorker.includes('"/device-ai-engine.js"') &&
+    serviceWorker.includes('"/device-ai-worker.js"'),
+    "On-device LLM scripts are cached in the app shell"
+  );
+
+  check(
+    workerSource.includes("WebWorkerMLCEngineHandler") &&
+    workerSource.includes("@mlc-ai/web-llm@0.2.85"),
+    "Dedicated device AI worker pins the WebLLM runtime"
+  );
 }
 
 async function main() {
@@ -354,6 +874,8 @@ async function main() {
   await testBibleEngine();
   await testPrivateBackupCrypto();
   await testIndexFlowContracts();
+  await testDeviceAIFoundation();
+  await testDeviceAIEngineFoundation();
 
   console.log("Release flow QA");
   console.log("PASS:", passes.length);

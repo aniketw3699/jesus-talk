@@ -132,6 +132,61 @@ if assets.get("not_found_handling") != "404-page":
     raise SystemExit("FAIL: Workers must preserve real 404 handling")
 if assets.get("html_handling") != "auto-trailing-slash":
     raise SystemExit("FAIL: Workers HTML routing must keep clean canonical paths")
+if not isinstance(wrangler.get("previews"), dict):
+    raise SystemExit("FAIL: Workers Preview configuration is missing")
+if wrangler.get("preview_urls") is not True:
+    raise SystemExit("FAIL: workers.dev Preview URLs must be enabled for feature testing")
 
 print("PASS: Workers Static Assets configuration points only to ./dist.")
+print("PASS: Workers Preview configuration exposes isolated workers.dev URLs without changing production routes.")
 print("PASS: Worker routing preserves clean HTML URLs and custom 404 behavior.")
+
+# Dedicated live-test Worker must never contain production/custom-domain routes.
+device_preview_path = ROOT / "wrangler.device-preview.jsonc"
+if not device_preview_path.is_file():
+    raise SystemExit("FAIL: wrangler.device-preview.jsonc is missing")
+try:
+    device_preview = json.loads(device_preview_path.read_text(encoding="utf-8"))
+except Exception as exc:
+    raise SystemExit(f"FAIL: device preview Wrangler config is not valid JSON: {exc}")
+
+if device_preview.get("name") != "oneintoone-jesus-final-preview":
+    raise SystemExit("FAIL: device preview Worker must use its isolated Worker name")
+if device_preview.get("main") != "device-preview-worker.mjs":
+    raise SystemExit("FAIL: device preview Worker must use the isolated proxy script")
+if device_preview.get("workers_dev") is not True:
+    raise SystemExit("FAIL: device preview Worker must use workers.dev")
+if device_preview.get("routes") or device_preview.get("route"):
+    raise SystemExit("FAIL: device preview Worker must not contain custom-domain or production routes")
+preview_assets = device_preview.get("assets") or {}
+if preview_assets.get("directory") != "./dist":
+    raise SystemExit("FAIL: device preview Worker must serve only ./dist")
+if preview_assets.get("binding") != "ASSETS":
+    raise SystemExit("FAIL: device preview Worker must expose the static bundle through ASSETS")
+
+if device_preview.get("services"):
+    raise SystemExit("FAIL: device preview Worker must not bind to the deployed production API")
+if preview_assets.get("not_found_handling") != "404-page":
+    raise SystemExit("FAIL: device preview Worker must preserve real 404 handling")
+if preview_assets.get("html_handling") != "auto-trailing-slash":
+    raise SystemExit("FAIL: device preview Worker must preserve clean HTML routing")
+
+preview_worker_path = ROOT / "device-preview-worker.mjs"
+if not preview_worker_path.is_file():
+    raise SystemExit("FAIL: device-preview-worker.mjs is missing")
+preview_worker_source = preview_worker_path.read_text(encoding="utf-8")
+if "env.ASSETS.fetch(request)" not in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker must serve the isolated static bundle")
+if '"/__preview-check"' not in preview_worker_source or "1into1-final-preview-v2" not in preview_worker_source:
+    raise SystemExit("FAIL: final preview Worker must expose deterministic self-check diagnostics")
+if "no-store, no-cache, must-revalidate, max-age=0" not in preview_worker_source:
+    raise SystemExit("FAIL: final preview Worker must disable browser caching")
+if "env.API" in preview_worker_source or "Cloudflare-Workers-Version-Overrides" in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker must not call or pin the deployed production API")
+if "1into1.com" in preview_worker_source:
+    raise SystemExit("FAIL: device preview Worker script must not target the production frontend domain")
+
+print("PASS: dedicated final-preview Worker is isolated to workers.dev with no production routes.")
+print("PASS: isolated preview frontend has no binding to the deployed production API.")
+print("PASS: candidate backend testing is isolated through a non-deployed Version URL.")
+print("PASS: final preview Worker has an exact live asset/API self-check endpoint.")

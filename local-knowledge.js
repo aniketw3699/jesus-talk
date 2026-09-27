@@ -109,6 +109,89 @@
       }
     },
     {
+      id:"st-michael-prayer",
+      match:function(clean) {
+        const hasSaint = /\b(st|saint)\b/.test(clean);
+        const michaelLike = /\bmich[a-z]{2,7}\b/.test(clean);
+        return hasSaint && michaelLike && /\b(prayer|pray)\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "Prayer to Saint Michael the Archangel:",
+            "",
+            "Saint Michael, the Archangel, defend us in battle,",
+            "Be our protection against the malice and snares of the devil.",
+            "We humbly beseech God to command him,",
+            "And do thou, O prince of the heavenly host,",
+            "By the divine power thrust into hell Satan",
+            "And the other evil spirits who roam through the world",
+            "Seeking the ruin of souls. Amen.",
+            "",
+            "This is a traditional Catholic prayer associated with Pope Leo XIII; it is not a Bible passage."
+          ].join("\n"),
+          [],
+          "traditional-prayer"
+        );
+      }
+    },
+    {
+      id:"world-end-date",
+      match:function(clean) {
+        return /\b(when|what time|what date|which year)\b.*\b(world|earth)\b.*\bend[a-z]{0,4}\b/.test(clean) ||
+          /\b(when|what time|what date|which year)\b.*\b(second coming|jesus return|christ return)\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "Christian Scripture does not give a date for the end of the world or Christ’s return.",
+            "",
+            "Jesus says that no one knows the day or hour (Matthew 24:36), and 1 Thessalonians 5:2 describes the day of the Lord as coming unexpectedly, like a thief in the night.",
+            "",
+            "So the biblical emphasis is readiness and faithful living, not date-setting."
+          ].join("\n"),
+          ["Matthew 24:36", "1 Thessalonians 5:2"],
+          "christian-knowledge"
+        );
+      }
+    },
+    {
+      id:"jesus-virgin-celibate",
+      match:function(clean) {
+        return /\b(jesus|christ)\b.*\b(virgin|celibate|sex|sexual|married|wife)\b/.test(clean) &&
+          !/\bvirgin birth\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "If you mean whether Jesus himself had sex or was married: the New Testament records no wife or sexual relationship for Jesus, and historic Christian tradition understands him as celibate. Scripture does not explicitly use the sentence “Jesus was a virgin.”",
+            "",
+            "If you mean whether Jesus was born of a virgin: Christianity teaches yes—Mary conceived Jesus by the Holy Spirit (Matthew 1:18–25; Luke 1:26–35)."
+          ].join("\n"),
+          ["Matthew 1:18-25", "Luke 1:26-35"],
+          "christian-knowledge"
+        );
+      }
+    },
+    {
+      id:"jesus-crucifixion-date",
+      match:function(clean) {
+        return /\b(when|what year|which year)\b.*\b(jesus|christ)\b.*\b(die|died|death|crucified|crucifixion)\b/.test(clean) ||
+          /\b(jesus|christ)\b.*\b(die|died|death|crucified|crucifixion)\b.*\b(when|what year|which year)\b/.test(clean);
+      },
+      build:function() {
+        return response(
+          [
+            "Jesus was crucified under the Roman governor Pontius Pilate around Passover. The exact year is uncertain; AD 30 and AD 33 are the two dates most commonly proposed.",
+            "",
+            "Christian tradition places the crucifixion on a Friday. The Gospel accounts are Matthew 27, Mark 15, Luke 23, and John 19. The precise relationship between the Gospel chronologies and the Passover calendar is debated, so it is better not to claim an exact Nisan date without explaining that debate."
+          ].join("\n"),
+          ["Matthew 27", "Mark 15", "Luke 23", "John 19"],
+          "christian-history"
+        );
+      }
+    },
+    {
       id:"mother-mary",
       match:function(clean) {
         return /^(who (is|was) )?(mother |virgin )?mary( of nazareth)?\??$/.test(clean);
@@ -189,7 +272,7 @@
   }
 
   window.ONEINTOONE_LOCAL_KNOWLEDGE = Object.freeze({
-    version:"1.0.1",
+    version:"1.3.0",
     canAnswer:canAnswer,
     answer:answer,
     extractReference:extractReference

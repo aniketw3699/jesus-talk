@@ -62,6 +62,8 @@
   <script defer src="/bible-manifest.js"></script>
   <script defer src="/local-bible-engine.js"></script>
   <script defer src="/local-knowledge.js"></script>
+  <script defer src="/device-ai-capability.js"></script>
+  <script defer src="/device-ai-engine.js"></script>
   <script defer src="/local-scripture-data.js"></script>
   <script defer src="/offline-core.js"></script>
   <script defer src="/local-experiences.js"></script>
@@ -265,6 +267,22 @@
     .auto-route-note {
       padding:4px 14px 2px; color:var(--text-muted); font-size:10px; font-weight:650;
       text-align:center; flex-shrink:0;
+    }
+
+    .device-ai-setup {
+      display:none; align-items:center; justify-content:center;
+      gap:6px; padding:0 12px 3px; text-align:center; flex-shrink:0;
+    }
+    .device-ai-setup.visible { display:flex; }
+    .device-ai-setup-btn {
+      border:1px solid rgba(143, 101, 28, 0.34); background:#fffdf8; color:var(--gold-deep);
+      border-radius:14px; padding:3px 9px; font:700 9.5px 'Plus Jakarta Sans', sans-serif;
+      cursor:pointer; box-shadow:none; line-height:1.2;
+    }
+    .device-ai-setup-btn:disabled { cursor:default; opacity:0.74; }
+    .device-ai-setup-status {
+      display:none; color:var(--text-muted); font-size:8.5px; line-height:1.15;
+      max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
 
     /* Named Spiritual Mode Chips */
@@ -894,7 +912,7 @@
       </div>
       <div class="header-titles">
         <h1 class="title-main"><span class="brand-one">1into1</span> <span class="brand-with">with Jesus</span></h1>
-        <p class="subtitle-grace" id="userGreeting">Scripture Guidance & Daily Prayer Sanctuary</p>
+        <p class="subtitle-grace" id="userGreeting">Bring Any Question · Through Jesus & Scripture</p>
         <div class="connection-status preparing" id="connectionStatus" aria-live="polite"><span class="connection-dot"></span><span id="connectionStatusText">Preparing offline access</span></div>
       </div>
     </header>
@@ -958,6 +976,12 @@
     </section>
 
     <div class="auto-route-note">Ask naturally — 1into1 chooses the response path automatically.</div>
+    <div class="device-ai-setup" id="deviceAiSetup" aria-live="polite">
+      <button class="device-ai-setup-btn" id="deviceAiSetupBtn" type="button" onclick="enablePrivateDeviceAI()" title="Runs privately on this device after a one-time model download">
+        ⚡ Private Mode
+      </button>
+      <span class="device-ai-setup-status" id="deviceAiSetupStatus"></span>
+    </div>
 
     <!-- NAMED SPIRITUAL OUTCOME CHIPS -->
     <div class="chips-deck">
@@ -984,7 +1008,7 @@
           type="text" 
           id="messageInput" 
           class="prayer-input" 
-          placeholder="Ask anything, pray, or tell me what's on your heart..." 
+          placeholder="Bring any question — through Jesus & Scripture..." 
           autocomplete="off"
         />
         <button type="submit" class="send-btn" aria-label="Send message">
@@ -1119,7 +1143,7 @@
       </div>
 
       <div class="privacy-notice-box" style="padding:10px 12px;margin-bottom:12px;font-size:11.5px;">
-        🔒 Created privately on this device. The name and note are not sent to the AI server. Internet is only needed when you choose to share.
+        🔒 Created privately on this device. The name and note are not sent to the cloud service. Internet is only needed when you choose to share.
       </div>
 
       <button class="primary-gold-btn" onclick="submitIntercessoryPrayer()">
@@ -1168,12 +1192,12 @@
       <button class="modal-close" onclick="closePrivacyModal()">✕</button>
       <div class="modal-header">
         <h3 class="modal-title">YOUR PRIVACY COMES FIRST</h3>
-        <p class="modal-desc">Private prayer stays local; open-ended Talk can use cloud AI automatically when the local engine is not the right fit.</p>
+        <p class="modal-desc">Private prayer stays local; open-ended Talk can use cloud reasoning automatically when the local engine is not the right fit.</p>
       </div>
 
       <div class="privacy-notice-box">
         <p><strong>Local prayer:</strong> Explicit prayer, many burden/support flows, journal, journeys, and Lay It Down are designed to stay on this device by default. Lay It Down text is never saved.</p>
-        <p><strong>Talk · Auto:</strong> Open-ended conversation, general Christian/Bible questions, and situations needing more nuanced language may be routed automatically to the configured standard cloud AI. The submitted message and limited recent context are sent so it can answer.</p>
+        <p><strong>Talk · Auto:</strong> Open-ended conversation, general Christian/Bible questions, and situations needing more nuanced language may be routed automatically to the configured standard cloud reasoning. The submitted message and limited recent context are sent so it can answer.</p>
         <p><strong>Ask Deeper:</strong> Deeper theology, historical context, original-language study, and comparative interpretation use the higher-depth cloud path and may count against Ask Deeper limits.</p>
         <p><strong>Account:</strong> Signing in syncs only account/entitlement information by default. Plus encrypted backup is optional and must be started by you; backup content is encrypted in your browser before upload.</p>
         <p><strong>Analytics:</strong> We may collect product-usage events such as feature opens or mode changes. Prayer text is not deliberately included in those analytics events.</p>
@@ -1324,6 +1348,19 @@
       <button class="primary-gold-btn" id="exportCardBtn" onclick="exportScriptureImage()">
         <span class="holy-cross-icon" style="filter: brightness(2);">✝</span> Share Blessing Card
       </button>
+    </div>
+  </div>
+
+  <!-- ASK DEEPER CHOICE — automatic only when higher-depth reasoning is detected -->
+  <div class="modal-backdrop" id="askDeeperChoiceModal">
+    <div class="modal-card" style="max-width:420px;">
+      <button class="modal-close" type="button" onclick="resolveAskDeeperChoice(false)" aria-label="Close">✕</button>
+      <div class="modal-header">
+        <h3 class="modal-title">✨ GO DEEPER?</h3>
+        <p class="modal-desc" id="askDeeperChoiceCopy">This question can benefit from deeper reasoning.</p>
+      </div>
+      <button class="primary-gold-btn" id="askDeeperUseBtn" type="button" onclick="resolveAskDeeperChoice(true)">Use Ask Deeper</button>
+      <button class="secondary-soft-btn" type="button" onclick="resolveAskDeeperChoice(false)" style="margin-top:10px;">Answer normally</button>
     </div>
   </div>
 
@@ -1565,6 +1602,36 @@
       sendQuickPrompt(prompt);
     }
 
+    let askDeeperChoiceResolver = null;
+
+    function requestAskDeeperChoice(remainingLabel) {
+      const modal = document.getElementById('askDeeperChoiceModal');
+      const copy = document.getElementById('askDeeperChoiceCopy');
+      const useBtn = document.getElementById('askDeeperUseBtn');
+
+      if (!modal || !copy || !useBtn) return Promise.resolve(false);
+
+      copy.textContent =
+        'This question can benefit from a deeper answer. Use ' +
+        remainingLabel +
+        ', or continue with a normal answer.';
+      useBtn.textContent = isSubscribed ? 'Use Ask Deeper' : 'Use 1 Ask Deeper';
+      modal.style.display = 'flex';
+
+      return new Promise(function(resolve) {
+        askDeeperChoiceResolver = resolve;
+      });
+    }
+
+    function resolveAskDeeperChoice(useDeeper) {
+      const modal = document.getElementById('askDeeperChoiceModal');
+      if (modal) modal.style.display = 'none';
+
+      const resolver = askDeeperChoiceResolver;
+      askDeeperChoiceResolver = null;
+      if (resolver) resolver(Boolean(useDeeper));
+    }
+
     /* PERSISTENT CREDIT / QUOTA BADGE */
     function updateCreditUI() {
       const badge = document.getElementById("creditBadge");
@@ -1652,7 +1719,7 @@
           study:"Ask the deeper Bible or theology question you want to explore...",
           prayer:"Tell me what you want to bring to God in prayer...",
           guidance:"Describe the decision or situation you want help discerning...",
-          comfort:"Ask anything, pray, or tell me what's on your heart..."
+          comfort:"Bring any question — through Jesus & Scripture..."
         };
         messageInput.placeholder = prompts[currentPastoralMode] || prompts.comfort;
       }
@@ -2991,6 +3058,25 @@
     }
 
     async function initOfflineFoundation() {
+      const isFreshFinalPreview = location.hostname === 'oneintoone-jesus-final-preview.aniketw3699.workers.dev';
+      if (isFreshFinalPreview) {
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(function(registration) { return registration.unregister(); }));
+          } catch (_) {}
+        }
+        if ('caches' in window) {
+          try {
+            const names = await caches.keys();
+            await Promise.all(names.map(function(name) { return caches.delete(name); }));
+          } catch (_) {}
+        }
+        offlineFoundationReady = false;
+        setConnectionStatus('Final preview · fresh build', 'ready');
+        return;
+      }
+
       if (!('serviceWorker' in navigator)) {
         setConnectionStatus(navigator.onLine ? 'Online' : 'Offline', navigator.onLine ? 'ready' : 'offline');
         return;
@@ -3060,6 +3146,123 @@
       }
     }
 
+    function setDeviceAISetupState(message, busy = false, ready = false) {
+      const panel = document.getElementById('deviceAiSetup');
+      const button = document.getElementById('deviceAiSetupBtn');
+      const status = document.getElementById('deviceAiSetupStatus');
+      if (!panel || !button || !status) return;
+
+      panel.classList.add('visible');
+      button.disabled = Boolean(busy || ready);
+      button.textContent = ready ? '✓ Private Mode' : (busy ? 'Preparing…' : '⚡ Private Mode');
+      status.textContent = message || '';
+      status.style.display = busy && message ? 'inline' : 'none';
+    }
+
+    function hideDeviceAISetup(reason = '') {
+      const panel = document.getElementById('deviceAiSetup');
+      if (panel) panel.classList.remove('visible');
+      if (reason) console.info('Private Mode unavailable:', reason);
+    }
+
+    async function refreshDeviceAISetupUI() {
+      const engine = window.OneIntoOneDeviceAIEngine;
+      if (!engine || typeof engine.inspect !== 'function') {
+        hideDeviceAISetup('engine-unavailable');
+        return;
+      }
+
+      const current = typeof engine.getStatus === 'function' ? engine.getStatus() : null;
+      if (current && current.ready) {
+        setDeviceAISetupState('', false, true);
+        return;
+      }
+
+      try {
+        const inspected = await engine.inspect();
+        if (inspected && inspected.state === 'available') {
+          setDeviceAISetupState('', false, false);
+          return;
+        }
+
+        const reason = inspected && inspected.error
+          ? String(inspected.error)
+          : inspected && inspected.reason
+          ? String(inspected.reason)
+          : 'device-mode-unavailable';
+        hideDeviceAISetup(reason);
+      } catch (error) {
+        hideDeviceAISetup(error && error.message ? String(error.message) : 'capability-check-failed');
+      }
+    }
+
+    async function enablePrivateDeviceAI() {
+      const engine = window.OneIntoOneDeviceAIEngine;
+      if (!engine || typeof engine.prepare !== 'function') return;
+
+      const accepted = window.confirm(
+        'Private Mode downloads about 1 GB once and then runs supported conversations on this device. Continue?'
+      );
+      if (!accepted) return;
+
+      setDeviceAISetupState('Checking device…', true, false);
+
+      const prepared = await engine.prepare({
+        userInitiated:true,
+        onProgress:function(progress) {
+          const pct = progress && Number.isFinite(Number(progress.progress))
+            ? Math.max(0, Math.min(100, Math.round(Number(progress.progress) * 100)))
+            : null;
+          const label = progress && progress.text ? String(progress.text) : 'Preparing';
+          setDeviceAISetupState(pct === null ? label : label + ' · ' + pct + '%', true, false);
+        }
+      });
+
+      if (prepared && prepared.ready) {
+        localStorage.setItem('oneintoone_device_ai_enabled_v1', 'true');
+        setDeviceAISetupState('', false, true);
+        trackSanctuaryEvent('device_ai_ready', { model:engine.modelId || 'device-model' });
+        return;
+      }
+
+      const reason = prepared && (prepared.reason || prepared.error)
+        ? String(prepared.reason || prepared.error)
+        : 'device-mode-unavailable';
+
+      hideDeviceAISetup(reason);
+      trackSanctuaryEvent('device_ai_setup_unavailable', { reason:reason });
+    }
+
+    async function answerWithPreparedDeviceAI(text, recipient = '') {
+      const engine = window.OneIntoOneDeviceAIEngine;
+      if (!engine || typeof engine.getStatus !== 'function' || typeof engine.chat !== 'function') return false;
+
+      const status = engine.getStatus();
+      if (!status || !status.ready) return false;
+
+      try {
+        const history = Array.isArray(activeConversationHistory)
+          ? activeConversationHistory.slice(-6)
+          : [];
+
+        const result = await engine.chat(
+          history.concat([{ role:'user', content:text }])
+        );
+
+        if (!result || result.ok !== true || !result.text) return false;
+
+        showThinking(false);
+        appendBotBubble(result.text, recipient);
+        saveConversationTurnLocally(text, result.text);
+        pulsePrivateLocalStatus();
+        trackSanctuaryEvent('device_llm_used', { model:result.modelId || engine.modelId || 'device-model' });
+        return true;
+      } catch (err) {
+        console.warn('Private device AI fallback note:', err);
+        return false;
+      }
+    }
+
     function answerWithPrivateLocalMode(text, recipient = '', reason = 'offline', turnMode = 'comfort') {
       const engine = window.OneIntoOneOffline;
       let experience = null;
@@ -3112,7 +3315,7 @@
       const turnMode = nextTurnModeOverride || "comfort";
       nextTurnModeOverride = "";
       currentPastoralMode = "comfort";
-      messageInput.placeholder = "Ask anything, pray, or tell me what's on your heart...";
+      messageInput.placeholder = "Bring any question — through Jesus & Scripture...";
 
       appendUserBubble(text);
       messageInput.value = "";
@@ -3138,23 +3341,56 @@
           setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, reason, turnMode), 140);
           return;
         }
+
+        if (routeDecision.route === 'device-general') {
+          const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+          if (deviceHandled) return;
+
+          showThinking(false);
+          appendBotBubble(
+            "I can discuss this question, but the full conversational engine is unavailable offline on this device. enable Private Mode on a supported device or reconnect to continue with this question.",
+            turnRecipient
+          );
+          trackSanctuaryEvent('universal_question_offline_unavailable', {
+            reason:routeDecision.reason || 'offline'
+          });
+          return;
+        }
       }
 
       if (!navigator.onLine) {
-        const handled = await answerWithDeviceKnowledge(text, turnRecipient);
-        if (!handled) setTimeout(() => answerWithPrivateLocalMode(text, turnRecipient, 'offline', turnMode), 180);
+        const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+        if (deviceHandled) return;
+        showThinking(false);
+        appendBotBubble(
+          "I can discuss this question, but the full conversational engine is unavailable offline on this device. enable Private Mode on a supported device or reconnect to continue with this question.",
+          turnRecipient
+        );
         return;
       }
 
       if (routeDecision && routeDecision.route === 'cloud-deep' && turnMode !== 'study') {
-        const remainingLabel = currentUser
-          ? (isSubscribed ? "your Plus Ask Deeper allowance" : Math.max(0, userCredits) + " Ask Deeper question(s) remaining today")
-          : "your guest Ask Deeper allowance";
-        const useDeeper = window.confirm(
-          "This question needs deeper Bible/theology reasoning and may use " + remainingLabel + ".\n\nUse Ask Deeper?"
-        );
-        if (!useDeeper) {
-          routeDecision = { route:'cloud-standard', cloudMode:'conversation', reason:'ask-deeper-declined' };
+        if (!currentUser && localStorage.getItem("jesus_guest_interaction_used")) {
+          showThinking(false);
+          openPrivacyModal();
+          return;
+        }
+
+        if (currentUser && !isSubscribed && userCredits <= 0) {
+          showThinking(false);
+          openPlansModal();
+          return;
+        }
+
+        if (!isSubscribed) {
+          const remainingLabel = currentUser
+            ? Math.max(0, userCredits) + " Ask Deeper question(s) remaining today"
+            : "your 1 free guest Ask Deeper question";
+
+          const useDeeper = await requestAskDeeperChoice(remainingLabel);
+          if (!useDeeper) {
+            routeDecision = { route:'cloud-standard', cloudMode:'conversation', reason:'ask-deeper-declined' };
+          }
         }
       }
 
@@ -3204,8 +3440,17 @@
         }
 
         if (data.error === "SERVICE_DEGRADED") {
-          const handled = await answerWithDeviceKnowledge(text, turnRecipient);
-          if (!handled) answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback', turnMode);
+          const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+          if (deviceHandled) return;
+
+          const knowledgeHandled = await answerWithDeviceKnowledge(text, turnRecipient);
+          if (knowledgeHandled) return;
+
+          showThinking(false);
+          appendBotBubble(
+            "The full conversational engine is temporarily unavailable. This question is still within 1into1's scope, but I do not want to replace it with a generic prayer response. Please try again when the connection is available, or enable Private Mode on a supported device.",
+            turnRecipient
+          );
           return;
         }
 
@@ -3244,8 +3489,18 @@
         }
       } catch (err) {
         console.warn("Cloud conversation unavailable; continuing on device:", err);
-        const handled = await answerWithDeviceKnowledge(text, turnRecipient);
-        if (!handled) answerWithPrivateLocalMode(text, turnRecipient, 'network-fallback', turnMode);
+
+        const deviceHandled = await answerWithPreparedDeviceAI(text, turnRecipient);
+        if (deviceHandled) return;
+
+        const knowledgeHandled = await answerWithDeviceKnowledge(text, turnRecipient);
+        if (knowledgeHandled) return;
+
+        showThinking(false);
+        appendBotBubble(
+          "The full conversational engine is temporarily unavailable. This question is still within 1into1's scope, but I do not want to replace it with a canned devotional answer. Please try again when the connection is available, or enable Private Mode on a supported device.",
+          turnRecipient
+        );
       }
     }
 
@@ -3595,7 +3850,7 @@
           isSubscribed = false;
           userCredits = 5;
           currentUserName = "beloved";
-          userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
+          userGreeting.textContent = "Bring Any Question · Through Jesus & Scripture";
           authBtn.textContent = "Sign In";
           updateCreditUI();
           updateAuthDiscoveryUI();
@@ -3674,6 +3929,7 @@
     window.onload = function() {
       applyLaunchFeatureGates();
       restoreActiveChatFeed();
+      refreshDeviceAISetupUI();
       renderPlans();
       updateDailyRitualWidget();
       trackDailyStreak();
@@ -3714,7 +3970,7 @@
             isSubscribed = false;
             userCredits = 5;
             currentUserName = "beloved";
-            userGreeting.textContent = "Scripture Guidance & Daily Prayer Sanctuary";
+            userGreeting.textContent = "Bring Any Question · Through Jesus & Scripture";
             authBtn.textContent = "Sign In";
             entitlementsHaveResolved = true;
             updateCreditUI();
