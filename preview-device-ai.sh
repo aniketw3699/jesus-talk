@@ -189,45 +189,37 @@ npx --yes wrangler@4.141.0 deploy \
   --config wrangler.device-preview.jsonc
 
 echo
-echo "Checking the live frontend bundle points to the candidate API..."
-served_launch="$(curl -fsS "$PREVIEW_URL/launch-config.js" || true)"
-if ! printf '%s' "$served_launch" | grep -Fq "$API_VERSION_URL"; then
-  echo "FAIL: live preview frontend is not pointing to the candidate API Version URL."
+echo "Waiting for the brand-new preview hostname and assets to propagate..."
+preview_ready=0
+for i in {1..30}; do
+  served_launch="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/launch-config.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
+  served_index="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
+  served_knowledge="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/local-knowledge.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
+  served_router="$(curl -sS -H 'Cache-Control: no-cache' "$PREVIEW_URL/offline-core.js?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
+  served_headers="$(curl -sSI -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" 2>/dev/null || true)"
+
+  if printf '%s' "$served_launch" | grep -Fq "$API_VERSION_URL" && \
+     printf '%s' "$served_index" | grep -Fq 'Ask Anything · Jesus-Centered Guidance & Scripture' && \
+     printf '%s' "$served_knowledge" | grep -Fq 'version:"1.3.0"' && \
+     printf '%s' "$served_knowledge" | grep -Fq 'id:"st-michael-prayer"' && \
+     printf '%s' "$served_knowledge" | grep -Fq 'id:"world-end-date"' && \
+     printf '%s' "$served_knowledge" | grep -Fq 'id:"jesus-virgin-celibate"' && \
+     printf '%s' "$served_router" | grep -Fq 'version:"2.5.1"' && \
+     printf '%s' "$served_headers" | grep -qi '^cache-control: no-store'; then
+    preview_ready=1
+    break
+  fi
+
+  sleep 2
+done
+
+if [ "$preview_ready" -ne 1 ]; then
+  echo "FAIL: final preview hostname/assets did not become verifiably ready within the propagation window."
+  echo "The Worker deployment itself may still have succeeded; rerun this helper after Cloudflare DNS/assets finish propagating."
   exit 1
 fi
 
 echo "PASS: live preview frontend points to the non-deployed universal API candidate."
-
-echo
-echo "Verifying the browser-facing frontend is the FINAL fresh build..."
-served_index="$(curl -fsS -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" || true)"
-served_knowledge="$(curl -fsS -H 'Cache-Control: no-cache' "$PREVIEW_URL/local-knowledge.js?final=$(git rev-parse --short HEAD)" || true)"
-served_router="$(curl -fsS -H 'Cache-Control: no-cache' "$PREVIEW_URL/offline-core.js?final=$(git rev-parse --short HEAD)" || true)"
-served_headers="$(curl -fsSI -H 'Cache-Control: no-cache' "$PREVIEW_URL/?final=$(git rev-parse --short HEAD)" || true)"
-
-if ! printf '%s' "$served_index" | grep -Fq 'Ask Anything · Jesus-Centered Guidance & Scripture'; then
-  echo "FAIL: live preview index is stale."
-  exit 1
-fi
-
-if ! printf '%s' "$served_knowledge" | grep -Fq 'version:"1.3.0"' || \
-   ! printf '%s' "$served_knowledge" | grep -Fq 'id:"st-michael-prayer"' || \
-   ! printf '%s' "$served_knowledge" | grep -Fq 'id:"world-end-date"' || \
-   ! printf '%s' "$served_knowledge" | grep -Fq 'id:"jesus-virgin-celibate"'; then
-  echo "FAIL: live preview local knowledge is stale."
-  exit 1
-fi
-
-if ! printf '%s' "$served_router" | grep -Fq 'version:"2.5.1"'; then
-  echo "FAIL: live preview router is stale."
-  exit 1
-fi
-
-if ! printf '%s' "$served_headers" | grep -qi '^cache-control: no-store'; then
-  echo "FAIL: final preview is not disabling browser cache."
-  exit 1
-fi
-
 echo "PASS: live browser-facing index, Christian knowledge, and router are the latest build."
 echo "PASS: final preview disables browser caching and service-worker reuse."
 echo "PASS: live preview is using universal API candidate version 5.4.0."
