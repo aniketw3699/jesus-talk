@@ -437,3 +437,28 @@ Reason: Specialist subscription products already exist at modest prices and Word
 ### Patent-drawing / patent-illustration software
 Status: **REJECTED**
 Reason: New patent-specific automation products already exist while free general vector/CAD tools can satisfy manual drawing workflows; regulatory formatting alone is not enough moat.
+
+
+### Cross-app workspace save / project switching
+Examples checked: Workspace+, Ikuna, SpaceKeep, browser session managers.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: The pain is real, but multiple products already save/restore apps, files, windows and browser tabs. Not sufficiently new.
+
+### Cross-channel commitment / promise tracking
+Examples checked: Claryti, Oryne, Kept, Attrove, Project Campfire, MeetingTango.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: Multiple 2026 products already detect commitments across meetings, email and chat. Category is forming without us.
+
+### Universal AI-output verification / fact-check layer
+Examples checked: Aretify, Argus, Free Fact Checker, related provenance/verification tools.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: Multiple products already verify ChatGPT/Claude/Gemini outputs across platforms. Too crowded to call category creation.
+
+### Desktop problem/incident recorder / computer black box
+Examples checked: Jam, StepSnap, Support Step Recorder, ReplayPC, Rewindly, Bower and other rolling-buffer recorders.
+Status: **REJECTED / NEAR MISS**
+Reason: The support pain is real, but manual step recorders and always-on local rolling screen buffers are already cheap/free. A diagnostics bundle could differentiate, but the category is not empty enough.
+
+### Persistent system-wide undo
+Status: **LONG-TERM RESEARCH IDEA — NOT CURRENT BUILD**
+Reason: The conceptual pain is real and academic work has explored persistent system-wide undo, but true undo across closed applications requires deep application cooperation or unsafe reverse engineering. Too technically risky for the current constraints.
