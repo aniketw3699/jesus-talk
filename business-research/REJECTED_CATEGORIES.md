@@ -254,3 +254,186 @@ When a future chat receives this repository:
 3. Search genuinely different industries/workflows.
 4. If a new category is tested and fails, append it here immediately.
 5. Never call an old category "new" merely because the product angle is slightly renamed.
+
+
+---
+
+# Search Batch — 2026-09-29 (New Categories)
+
+The following categories were screened after the original ledger. Do not present them again as new discoveries.
+
+### Cabinet design / cut-list / CNC
+Status: **REJECTED**
+Reason: Strong free/new alternatives now include browser/open-source cabinet design and CNC tools; paid incumbents are already challenged on price.
+
+### Ebook / book formatting
+Status: **REJECTED**
+Reason: Paid products such as Atticus/Vellum coexist with strong free Kindle Create, Reedsy Studio, Calibre and Sigil.
+
+### Font management
+Status: **REJECTED**
+Reason: Low-cost paid tools plus capable free FontBase/core alternatives.
+
+### Optical Music Recognition (OMR)
+Status: **REJECTED**
+Reason: Paid local tools exist, but Audiveris provides a serious open-source OMR substitute.
+
+### FMEA / APQP / PPAP manufacturing quality
+Status: **REJECTED**
+Reason: Professional demand exists, but free/open-source quality-management/FMEA tools attack the core and the enterprise upside depends on integrations.
+
+### Calibration / gauge management
+Status: **REJECTED**
+Reason: Paid incumbents exist, but free tiers and free calibration-management products substantially weaken the disruption case.
+
+### Land surveying / field-to-finish / network adjustment
+Status: **NEAR MISS — ALREADY CHECKED**
+Reason: Users pay thousands for MicroSurvey-class software and local computation fits us, but free GNU Gama covers network adjustment while a full replacement requires many field formats, coordinate systems, CAD functions and hardware compatibility.
+Instruction: Do not surface as new; only reopen for a dedicated kill-test.
+
+### First Article Inspection / ballooned drawings / AS9102
+Status: **REJECTED**
+Reason: New local/offline cross-platform entrants already target automatic ballooning, GD&T/OCR and AS9102 output.
+
+### Tolerance stack-up
+Status: **REJECTED**
+Reason: Free web tools already provide meaningful tolerance-stack calculations/reports.
+
+### Commercial print-shop estimating / management
+Status: **REJECTED**
+Reason: Paid demand is real, but complete free/open-source print-shop CRM/estimating software exists.
+
+### Stone countertop slab layout / vein matching / nesting
+Status: **REJECTED / NEAR MISS**
+Reason: Very expensive incumbents exist, but several newer products already attack slab layout/nesting at roughly tens of dollars per month.
+
+### Window / door / fenestration manufacturing software
+Status: **REJECTED / NEAR MISS**
+Reason: Value is tightly tied to manufacturer/component catalogs, machinery and CNC integrations, creating an ongoing compatibility/support burden.
+
+### Staircase CAD/CAM
+Status: **REJECTED**
+Reason: Expensive incumbents exist, but free/cheap staircase design entrants now weaken the opportunity.
+
+### Weaving / Jacquard textile CAD
+Status: **REJECTED**
+Reason: Professional software is expensive, but AdaCAD and other open/free tooling attack the core design workflow.
+
+### Leather pattern CAD
+Status: **REJECTED**
+Reason: Multiple free/browser/open-source leather-pattern tools already exist.
+
+### Technical textiles / awning / marine-canvas CAD
+Status: **REJECTED / NEAR MISS**
+Reason: Paid software exists, but newer free/lower-price entrants already attack the same workflow.
+
+### Footwear CAD/CAM
+Status: **REJECTED / NEAR MISS**
+Reason: Established specialist systems plus newer low-price integrated 2D/3D footwear tools weaken the price/disruption wedge; specialist engineering remains high.
+
+### Flooring takeoff / carpet roll / seam optimization
+Status: **REJECTED**
+Reason: Paid incumbents exist, but a 2026 free/open-source browser flooring-takeoff product now attacks the core.
+
+### HVAC duct fabrication CAD/CAM
+Status: **REJECTED**
+Reason: Existing low-price/offline and free/open-source HVAC tools reduce the pricing gap while fabrication compatibility remains burdensome.
+
+### Wire-harness design / manufacturing
+Status: **REJECTED**
+Reason: Expensive enterprise incumbents exist, but 2026 entrants already offer free tiers and $15–$29/user/month professional harness design with offline/formboard/validation features.
+
+### Piping isometric / pipe-spool fabrication
+Status: **REJECTED**
+Reason: Expensive professional tools coexist with free/open-source PCF/isometric and personal-edition alternatives.
+
+### Pallet / container load optimization
+Status: **REJECTED**
+Reason: Strong free and low-cost load-planning tools already exist.
+
+### Jewelry CAD
+Status: **REJECTED / NEAR MISS**
+Reason: Professional suites cost thousands, but Blender plus JewelCraft and related free tooling provide a meaningful substitute; specialist geometry remains difficult.
+
+### Hydraulic / pneumatic circuit design & simulation
+Status: **REJECTED**
+Reason: Paid industrial suites exist, but current free/open-source simulation/design tools undermine the disruption case.
+
+### Animal-feed least-cost formulation
+Status: **REJECTED**
+Reason: Real paying market, but free/open-source and low-cost formulation tools already cover much of the core.
+
+### Rebar detailing / bar-bending schedules
+Status: **REJECTED**
+Reason: Free browser and FreeCAD-based BBS/reinforcement workflows weaken the opportunity.
+
+### Glass cutting optimization
+Status: **REJECTED**
+Reason: Multiple free and very low-cost optimizers are already available.
+
+### Pool / landscape / swimming-pool construction design
+Status: **ACTIVE KILL-TEST — ALREADY CHECKED**
+Reason: Strong professional willingness to pay and no clearly equivalent full free pool-construction package found in this pass. However, lower-cost one-time competitors already exist, so lower price alone is not differentiation.
+Potential wedge to test: cross-platform pool-specific parametric design + synchronized 2D/3D + automatic quantities + construction/permit plan generation + local-first ownership.
+Instruction: Do not call this a new discovery again; continue only as a deeper kill-test.
+
+### Nutrition-label / food-formulation software
+Status: **REJECTED**
+Reason: Professional subscriptions exist but capable free/basic recipe-to-label tools now support official food databases and many label formats.
+
+### Welding WPS / PQR / qualification management
+Status: **REJECTED / NEAR MISS**
+Reason: Willingness to pay exists, but free WPS tooling and new competitors already attack the gap; standards maintenance is substantial.
+
+### Irrigation design
+Status: **REJECTED**
+Reason: Expensive incumbents exist, but newer free/low-cost drawing and hydraulic-sizing tools undermine the pricing wedge.
+
+### Film budgeting / scheduling
+Status: **REJECTED**
+Reason: Mature products plus newer $19–$40/month alternatives leave insufficient price/differentiation room.
+
+### Warehouse slotting optimization
+Status: **REJECTED**
+Reason: Enterprise value is real, but a 2026 free-forever/low-price slotting product already targets CSV/Excel and major WMS exports.
+
+### Retail planogram / shelf-space planning
+Status: **REJECTED**
+Reason: Expensive paid software exists, but free unlimited and free-tier planogram products substantially cover the workflow.
+
+### Swept-path / vehicle-turning analysis
+Status: **REJECTED**
+Reason: Expensive incumbent exists, but exact low-cost/free competing products already provide vehicle libraries and CAD imports.
+
+### Stage / theatrical lighting design and visualization
+Status: **REJECTED**
+Reason: Mature perpetual-license professional tools and open-source/free lighting ecosystems reduce the disruption gap.
+
+### Traffic-control plan software
+Status: **REJECTED**
+Reason: Existing paid software is already being attacked by 2026 free/beta/pay-per-plan/low-subscription entrants.
+
+### CNC DNC / machine-program transfer
+Status: **REJECTED**
+Reason: Mature incumbent plus new $99-per-machine one-time, free, and low-price DNC alternatives make the market unattractive for our criteria.
+
+### Fire-sprinkler hydraulic calculation / design
+Status: **NEAR MISS — ALREADY CHECKED**
+Reason: Professional demand and local computation are attractive, but mature FHC is relatively affordable and supports many standards; safety-critical standards maintenance and liability are substantial.
+Instruction: Do not surface as new; only reopen for a dedicated kill-test.
+
+### Home-inspection report software
+Status: **REJECTED**
+Reason: Subscription incumbents are expensive, but 2026 offline-first/no-cloud and low one-time-price entrants already attack exactly the local/privacy/price wedge.
+
+### Monument / headstone design and lettering
+Status: **REJECTED**
+Reason: New specialist products already automate photo-to-lettering/CAD/cutter outputs on low per-job pricing; market breadth is also limited.
+
+### Marine-survey report software
+Status: **REJECTED**
+Reason: Specialist subscription products already exist at modest prices and Word/document workflows are a strong substitute; market is comparatively narrow.
+
+### Patent-drawing / patent-illustration software
+Status: **REJECTED**
+Reason: New patent-specific automation products already exist while free general vector/CAD tools can satisfy manual drawing workflows; regulatory formatting alone is not enough moat.
