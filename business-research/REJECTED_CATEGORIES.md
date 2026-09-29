@@ -513,3 +513,24 @@ Examples checked: AltStack, Greta Agency, Mana Studio, Proconnect, Upwork fixed-
 Status: **MODIFY / DO NOT USE GENERIC POSITIONING**
 Reason: The market and willingness to pay are real, but the exact offer "map one manual workflow and replace it with custom software in days" is already crowded. Fixed-price 7-day builds, internal-tool agencies, and AI automation studios are widely available. The main business risk is customer acquisition and trust, not software delivery.
 Instruction: Do not present a generic AI automation/custom-software studio as a differentiated new business. Only revisit with a sharply defined niche/outcome where the founder has domain credibility.
+
+
+### SOP / documentation drift detection
+Examples checked: ReccordSOP, SOPDrift, Pageloop, Promptless, Vidocu Pulse, Hyperdocs, BookPetal, LaunchBrightly and related tools.
+Status: **REJECTED AS NEW CATEGORY**
+Reason: The pain is real, but a fast-forming 2026 category already detects stale procedures/docs, compares workflows, refreshes screenshots and drafts updates.
+
+### Employee departure / knowledge handover
+Examples checked: ServiceNow Now Assist offboarding knowledge transfer, Flamekeeper, Exit Insights, OffboardSet and related knowledge-transfer tools.
+Status: **REJECTED AS NEW CATEGORY**
+Reason: Multiple products now extract tacit knowledge, generate handover packs and detect knowledge gaps during offboarding.
+
+### Supplier quote normalization / bid comparison
+Examples checked: QuoteCompare, AuraVMS, BidFlow, DocGlue, EstimateHawk, CostCrunch and related RFQ/bid-leveling products.
+Status: **REJECTED AS NEW CATEGORY**
+Reason: Strong pain, but 2026 already has many low-cost AI quote-normalization and bid-leveling products.
+
+### Creative Rights Passport / Creative Bill of Materials
+Status: **ACTIVE KILL-TEST — NEW HYPOTHESIS**
+Reason: Brands/agencies use stock photos, fonts, music, footage, talent releases and AI-generated assets, but proof of rights is fragmented. Enterprise rights-management systems exist, while SMB/agency workflows still often use spreadsheets/manual records. Hypothesis: automatically build a project-level rights manifest ("Creative BOM") that says what each asset is, where it came from, what license/release covers it, permitted media/territory/term, and whether the final deliverable is clear to publish.
+Instruction: Do not present again as a new discovery; continue only as a deeper kill-test.
