@@ -2,54 +2,55 @@
 
 Last updated: 2026-09-29
 
-## Decision after broad search
+## Latest tested business model
 
-The research strategy has changed again.
+**AI Custom Software / Workflow Replacement Studio**
 
-Do not keep searching indefinitely for a software category with zero competitors. The current recommendation is to enter a proven growing market with a clear wedge and validate before committing engineering effort.
+### Verdict: MODIFY — not attractive as a generic agency
 
-## Primary recommendation
+The demand is real:
+- global custom software development is a large and growing market;
+- AI adoption among SMBs is rising;
+- companies still struggle to integrate AI into real operations;
+- current custom software projects often sell for thousands to tens of thousands of dollars.
 
-**PracticeOS / Software Practice Simulator**
+But the proposed offer is already crowded:
+- AltStack sells custom workflow software delivered in 7 days;
+- Greta Agency sells internal tools that replace spreadsheets/email and ships in 3–7 days;
+- Mana Studio sells one-process AI automation from ₹25,000;
+- Upwork already has fixed-price one-workflow internal-tool offers around $1,500+;
+- many AI automation agencies pitch exactly the same "map the process, automate it, hand over ownership" model.
 
-Core promise:
+The primary bottleneck is client acquisition and trust, not engineering.
 
-> Record a real software workflow once, and automatically create a safe interactive practice environment where someone can learn, practise, make mistakes and be scored without touching the real production system.
+Community evidence shows some new automation agencies spend months getting a first paying client, and generic positioning performs poorly compared with a narrow outcome/niche.
 
-Why this is now the primary recommendation:
-- software training / digital adoption is a proven market;
-- SAP acquired WalkMe for ~$1.5B;
-- enterprise simulation platforms demonstrate high willingness to pay;
-- lower-cost documentation/demo tools generally do not provide a true practice sandbox;
-- the product is testable without specialist industry knowledge;
-- browser-only V1 is feasible;
-- simulations can largely run client-side, limiting infrastructure cost;
-- the direction fits software building plus teaching/content capabilities.
+## Practical conclusion
 
-The intended wedge is NOT generic e-learning authoring.
+Do NOT launch as:
+> We build any AI automation / custom software for any business.
 
-It is:
-**self-serve AI capture -> realistic software practice simulation -> scoring/scenarios.**
+If service-first is used, the only version worth testing is a **narrow domain-specific workflow replacement offer** where the founder already understands the work and can speak credibly to buyers.
 
-See:
-`PRIMARY_RECOMMENDATION_PRACTICEOS.md`
+### Best service wedge to test if we choose services
 
-## Previous invention hypotheses
+**Content / Marketing Operations Workflow Replacement**
 
-- SaaS Escape Hatch / Data Exit Layer — **REJECTED**
-- Universal Information Provenance — **MODIFY / NOT GO**
+Why:
+- the founder has deep content/marketing operating experience;
+- 2026 surveys show marketing teams still spend large amounts of time on production, coordination, revisions and approvals despite heavy AI adoption;
+- 81% of marketing leaders in one global study still switch between 2+ disconnected tools weekly;
+- a Knak study found 82% of enterprise marketing teams spend at least half their time on production and 85% missed at least one launch date due to workflow constraints;
+- the offer can target concrete workflows such as brief intake, approval, repurposing, publishing, compliance, reporting and content handoffs.
 
-## Next gate
+This is still a service business, not a defensible SaaS yet.
 
-Do not build a full platform.
+## Do not build a generic agency platform
 
-First prove one browser workflow can be converted into a realistic interactive practice sandbox with:
-- correct/incorrect action detection;
-- fake data;
-- hints;
-- scoring;
-- shareable URL.
+If the user wants a scalable software product rather than a service business, continue product search instead of forcing this model.
 
-Then validate with real software trainers / SaaS customer-education teams.
+## Previously tested
 
-If the proof or willingness-to-pay test fails, reject and resume search.
+- PracticeOS — USER REJECTED
+- SaaS Escape Hatch — REJECTED
+- Universal Information Provenance — MODIFY / NOT GO
