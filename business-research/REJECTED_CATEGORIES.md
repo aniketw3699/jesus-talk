@@ -462,3 +462,34 @@ Reason: The support pain is real, but manual step recorders and always-on local 
 ### Persistent system-wide undo
 Status: **LONG-TERM RESEARCH IDEA — NOT CURRENT BUILD**
 Reason: The conceptual pain is real and academic work has explored persistent system-wide undo, but true undo across closed applications requires deep application cooperation or unsafe reverse engineering. Too technically risky for the current constraints.
+
+
+### Universal file-dependency / safe move layer
+Examples checked: LinkTek LinkFixer Advanced, ReplaceMagic.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: Existing products already scan and repair links across Office, Adobe and CAD files after moves/renames/migrations.
+
+### Universal version control for arbitrary non-code files
+Examples checked: Cloudverest, Abstract, Zeplin and existing cloud/file version history.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: Multiple products already address version control for design/binary files; OS/cloud versioning is also a strong substitute.
+
+### Pre-share hidden-metadata sanitizer
+Examples checked: Microsoft Office Document Inspector and multiple free local metadata removers.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: Mature native/free functionality already covers the core risk.
+
+### Local AI-agent action firewall / rollback safety
+Examples checked: Unalome Agent Firewall, Cerberus, OpenAFW, Pipelock, Nvidia Open Agent Safety/OpenShell ecosystem.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: The pain is real and severe, but exact local/open-source agent-firewall products already exist and a major platform vendor is entering the area.
+
+### Cross-AI portable memory / context passport
+Examples checked: Universal Memory, Unifie, MemPad, ContextFS, Universal Memory Protocol and related MCP/local-memory projects.
+Status: **REJECTED AS CATEGORY-CREATION IDEA**
+Reason: Multiple open-source and commercial products already target portable memory across AI assistants and coding agents.
+
+### SaaS Escape Hatch / Data Exit Layer
+Status: **ACTIVE KILL-TEST — DO NOT PRESENT AS A NEW DISCOVERY AGAIN**
+Reason: New synthesis being tested: continuous customer-owned mirror + normalized open structure + restore proof + cross-app migration readiness. Existing backup and migration products are strong adjacent competition, so this is not yet a GO.
+See: `ACTIVE_SAAS_ESCAPE_HATCH_HYPOTHESIS.md`.
