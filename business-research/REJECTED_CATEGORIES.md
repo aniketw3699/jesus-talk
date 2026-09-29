@@ -493,3 +493,10 @@ Reason: Multiple open-source and commercial products already target portable mem
 Status: **ACTIVE KILL-TEST — DO NOT PRESENT AS A NEW DISCOVERY AGAIN**
 Reason: New synthesis being tested: continuous customer-owned mirror + normalized open structure + restore proof + cross-app migration readiness. Existing backup and migration products are strong adjacent competition, so this is not yet a GO.
 See: `ACTIVE_SAAS_ESCAPE_HATCH_HYPOTHESIS.md`.
+
+
+### SaaS Escape Hatch / Data Exit Layer
+Examples checked: Meltano, Import2, Rewind, Keepit, Skyvia, Afi, ExitCloud, OffVendor.
+Status: **REJECTED AFTER FULL KILL-TEST**
+Reason: The pain and willingness to pay are real, but the proposed category can largely be assembled from existing layers: open-source self-hosted replication (Meltano), backup platforms, cross-app migration (Import2), and exit-readiness/lock-in tools (ExitCloud/OffVendor). The only genuinely difficult remaining moat is semantic cross-SaaS migration fidelity, which creates heavy connector/API/support maintenance.
+Instruction: Do not surface again as a new category.
