@@ -2,41 +2,45 @@
 
 Last updated: 2026-09-29
 
-## Current instruction
+## Strategy changed
 
-Continue searching for genuinely **new software categories and businesses**. Always read `REJECTED_CATEGORIES.md` first and never resurface a listed category as a new discovery.
+The search is now **pain-first category creation**, not "find an existing category and undercut incumbents."
 
-## Latest broad search result
+Read:
+- `CATEGORY_CREATION_STRATEGY.md`
+- `ACTIVE_PROVENANCE_HYPOTHESIS.md`
+- `REJECTED_CATEGORIES.md`
 
-A large second batch was screened across manufacturing, CAD, construction, professional reporting, textiles, printing, surveying and optimization software.
+## Current strongest invention hypothesis
 
-Most were rejected because a comparable free/low-price entrant already exists, or because hardware/standards/integration burden destroys the low-operating-cost advantage.
+**Universal Information Provenance / Desktop Data Lineage / Evidence-Native Computing**
 
-### Current survivor for deeper kill-test
+Core idea:
+Every fact, number, quote, image or AI-assisted claim used in normal desktop work retains a traceable path back to its origin, even as it moves between browser/PDF -> Excel -> Word/PowerPoint and other applications.
 
-**Pool / swimming-pool construction design software — ACTIVE KILL-TEST**
+Why it survived the first category-creation pass:
+- the pain is horizontal (finding/defending where information came from);
+- vertical products demonstrate real willingness to pay;
+- existing solutions are fragmented by browser, Excel, audit, finance, data platforms or AI;
+- no dominant cross-app desktop provenance product was identified in the first pass;
+- a local-first implementation is plausible;
+- a normal user can test it without specialist industry expertise.
 
-Why it remains alive:
-- professional customers already pay meaningful recurring prices;
-- most design/calculation work can run locally;
-- no fully equivalent free professional pool-construction package was identified in the latest pass;
-- there is a possible non-price wedge around cross-platform ownership, parametric pool design, synchronized 2D/3D, quantities and construction/permit documents.
+It is NOT approved for building.
 
-Why it is NOT approved:
-- one-time lower-cost competitors already exist;
-- price alone will not win;
-- 3D, construction documents and asset libraries are substantial engineering;
-- we still need competitor-feature parity, customer-complaint, SEO-demand and technical-feasibility kill-tests.
+Next work is a deep kill-test:
+1. competitor map;
+2. user pain/review mining;
+3. exact feature gap;
+4. technical proof of source capture + destination lineage;
+5. pricing/willingness-to-pay validation;
+6. IP/privacy/security review;
+7. GO / MODIFY / REJECT.
 
-### Near misses (do not call new)
+## Ideas rejected in the first category-creation pass
 
-1. **Land surveying / field-to-finish** — customers pay thousands, but full compatibility with instruments, formats, coordinate systems and CAD is a large maintenance burden; GNU Gama covers network adjustment.
-2. **Fire-sprinkler hydraulic calculation/design** — paying demand/local computation fit, but mature affordable software plus safety standards/liability reduce attractiveness.
-
-## Rule
-
-No building yet. The next step is either:
-- kill-test the pool-construction category deeply, or
-- continue reverse-searching untouched categories in parallel.
-
-Every newly tested category must be added to `REJECTED_CATEGORIES.md` or marked ACTIVE/NEAR MISS before moving on.
+- cross-app workspace/session save;
+- commitment/promise tracking;
+- universal AI answer verifier;
+- generic desktop incident recorder;
+- persistent system-wide undo (technically too risky for now).
