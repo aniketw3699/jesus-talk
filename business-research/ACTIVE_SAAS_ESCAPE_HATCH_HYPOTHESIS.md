@@ -162,3 +162,85 @@ A meaningful proof would be:
 7. produce a report showing exactly what did and did not survive.
 
 If this cannot be done with high fidelity for a representative tool, reject before expanding.
+
+
+---
+
+# Kill-Test Result — 2026-09-29
+
+## Verdict: REJECT
+
+The SaaS Escape Hatch / Data Exit Layer idea fails the current category-creation requirement.
+
+### Why the underlying pain is real
+
+- Gartner published a 2026 Market Guide for SaaS Backup specifically because organizations have data-protection and recoverability gaps.
+- Gartner separately published research on escaping SaaS lock-in and switching costs.
+- Notion officially states that full workspace exports cannot instantly recreate a workspace.
+- HubSpot documents that moving between HubSpot accounts may require exporting data and recreating some assets.
+- CRM users continue to report mapping, historical activity, workflow and integration-loss problems during migration.
+
+### Why the idea fails as a new category
+
+The proposed product is effectively a combination of three already-existing layers:
+
+1. **Continuous customer-controlled data replication**
+   - Meltano is free/open-source, self-hosted, and offers 600+ connectors.
+   - It can extract from SaaS products such as HubSpot, Jira, Salesforce, Airtable, Monday and many others.
+   - It can load into Postgres, SQLite, S3, CSV/JSON/Parquet and other customer-controlled destinations.
+
+2. **Migration**
+   - Import2 supports 250+ apps and sells full cross-app migrations from $499, with professional service from $5,000.
+   - Many destination SaaS products already provide official migration tooling or partners.
+
+3. **Exit-readiness / lock-in scoring**
+   - ExitCloud already sells cloud exit-readiness assessments, lock-in scores and continuous assessments.
+   - OffVendor already provides exit-readiness, portability, switching-cost and egress tools.
+   - ExitCloud even offers a free/open-source local engine and self-hosted enterprise deployment.
+
+The proposed synthesis therefore does not create enough new category space.
+
+### Strongest competitive warning
+
+Meltano materially weakens the moat.
+
+A technically capable user can already self-host a free pipeline that continuously moves data from many SaaS APIs into storage they control. The difficult remaining part is semantic migration/restore fidelity — and that is exactly where Import2 and specialist migration providers already compete.
+
+### Economics / operating-cost finding
+
+Local/self-hosted architecture remains attractive and would keep infrastructure costs low.
+
+However, low infrastructure cost does NOT mean low business cost:
+- OAuth/app verification;
+- API-version changes;
+- schema changes;
+- connector breakage;
+- rate-limit handling;
+- migration mapping;
+- support;
+- edge cases across hundreds of SaaS products.
+
+Connector maintenance would become an ongoing labor cost and the main operational burden.
+
+### Willingness to pay
+
+Proven for:
+- SaaS backup;
+- migration;
+- regulated/cloud exit assessments.
+
+Not sufficiently proven for:
+- a general SMB "always exit-ready" product layered across many SaaS tools.
+
+Exit-readiness itself already has lower-priced/free tools, while buyers with urgent migration needs often pay for one-time migration rather than continuous portability insurance.
+
+### Final reason for rejection
+
+The idea is a useful product bundle, but not a sufficiently original category under the current strategy.
+
+It can be approximated today with:
+**Meltano/self-hosted ELT + backup/export + Import2/migration + exit-readiness tools.**
+
+The remaining differentiated layer would be very hard cross-SaaS semantic migration, which has high maintenance and support costs.
+
+**Decision: REJECT. Do not build. Do not surface again as a new opportunity.**
