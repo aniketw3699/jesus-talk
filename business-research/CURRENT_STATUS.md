@@ -2,45 +2,42 @@
 
 Last updated: 2026-09-29
 
-## Strategy changed
+## Current strategy
 
-The search is now **pain-first category creation**, not "find an existing category and undercut incumbents."
+Pain-first category creation.
 
-Read:
-- `CATEGORY_CREATION_STRATEGY.md`
-- `ACTIVE_PROVENANCE_HYPOTHESIS.md`
-- `REJECTED_CATEGORIES.md`
+## Latest tested idea
 
-## Current strongest invention hypothesis
+**Universal Information Provenance / Desktop Data Lineage**
 
-**Universal Information Provenance / Desktop Data Lineage / Evidence-Native Computing**
+### Kill-test verdict: MODIFY, NOT GO
 
-Core idea:
-Every fact, number, quote, image or AI-assisted claim used in normal desktop work retains a traceable path back to its origin, even as it moves between browser/PDF -> Excel -> Word/PowerPoint and other applications.
+The pain and paying behavior are strongly validated through adjacent products, but the broad category is not empty.
 
-Why it survived the first category-creation pass:
-- the pain is horizontal (finding/defending where information came from);
-- vertical products demonstrate real willingness to pay;
-- existing solutions are fragmented by browser, Excel, audit, finance, data platforms or AI;
-- no dominant cross-app desktop provenance product was identified in the first pass;
-- a local-first implementation is plausible;
-- a normal user can test it without specialist industry expertise.
+Important competitors/adjacent products identified:
+- Tregunta Lines Integrity — closest broad conceptual competitor; maps Excel/Word/PowerPoint/evidence/decisions.
+- DataSnipper / Evida / SnipCell / CellSource — source-document to Excel evidence lineage.
+- Macabacus / UpSlide / think-cell — Excel to PowerPoint/Word linked data.
+- Sourced / Clipora / Trace-Pilot — copied-content provenance.
+- GoFigr — code/data to figure provenance.
 
-It is NOT approved for building.
+Therefore the original claim "we would be the only player" is false.
 
-Next work is a deep kill-test:
-1. competitor map;
-2. user pain/review mining;
-3. exact feature gap;
-4. technical proof of source capture + destination lineage;
-5. pricing/willingness-to-pay validation;
-6. IP/privacy/security review;
-7. GO / MODIFY / REJECT.
+## Only surviving modification
 
-## Ideas rejected in the first category-creation pass
+**Automatic Source-to-Output Lineage for ordinary Office work**
 
-- cross-app workspace/session save;
-- commitment/promise tracking;
-- universal AI answer verifier;
-- generic desktop incident recorder;
-- persistent system-wide undo (technically too risky for now).
+Target chain:
+browser/PDF -> Excel/Word -> calculations/transformations -> PowerPoint -> one-click traceback to original evidence.
+
+This still has category-creation potential because no dominant product was found that clearly owns the complete ordinary-desktop chain.
+
+## Do not build yet
+
+Next gate:
+- prove the 6-step technical chain;
+- then test willingness to pay.
+
+If either fails, reject the provenance idea and continue pain-first invention search.
+
+See `ACTIVE_PROVENANCE_HYPOTHESIS.md` for full kill-test notes.
