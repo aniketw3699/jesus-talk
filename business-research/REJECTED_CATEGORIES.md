@@ -500,3 +500,9 @@ Examples checked: Meltano, Import2, Rewind, Keepit, Skyvia, Afi, ExitCloud, OffV
 Status: **REJECTED AFTER FULL KILL-TEST**
 Reason: The pain and willingness to pay are real, but the proposed category can largely be assembled from existing layers: open-source self-hosted replication (Meltano), backup platforms, cross-app migration (Import2), and exit-readiness/lock-in tools (ExitCloud/OffVendor). The only genuinely difficult remaining moat is semantic cross-SaaS migration fidelity, which creates heavy connector/API/support maintenance.
 Instruction: Do not surface again as a new category.
+
+
+### PracticeOS / Software Practice Simulator
+Status: **USER REJECTED / DO NOT RESURFACE**
+Reason: The user does not like this business direction.
+Instruction: Do not propose it again unless the user explicitly reopens it.
