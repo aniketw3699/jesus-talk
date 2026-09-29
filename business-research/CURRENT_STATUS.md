@@ -2,46 +2,54 @@
 
 Last updated: 2026-09-29
 
-## Current strategy
+## Decision after broad search
 
-Pain-first category creation.
+The research strategy has changed again.
 
-## Latest tested invention
+Do not keep searching indefinitely for a software category with zero competitors. The current recommendation is to enter a proven growing market with a clear wedge and validate before committing engineering effort.
 
-**SaaS Escape Hatch / Data Exit Layer**
+## Primary recommendation
 
-### Verdict: REJECT
+**PracticeOS / Software Practice Simulator**
 
-Why:
-- the pain is real;
-- customers pay for backup and migration;
-- local/customer-owned storage architecture fits our cost model;
-- BUT the proposed category is already decomposed into mature products.
+Core promise:
 
-Key findings:
-- Meltano provides a free/open-source self-hosted foundation with 600+ connectors and customer-controlled destinations.
-- Import2 already handles cross-app migration across 250+ applications.
-- ExitCloud and OffVendor already provide exit-readiness, lock-in scoring and portability assessment.
-- Traditional SaaS backup vendors already cover protection/recovery.
+> Record a real software workflow once, and automatically create a safe interactive practice environment where someone can learn, practise, make mistakes and be scored without touching the real production system.
 
-The difficult remaining moat would be semantic cross-SaaS restoration/migration fidelity. That creates exactly the connector/support burden we are trying to avoid.
+Why this is now the primary recommendation:
+- software training / digital adoption is a proven market;
+- SAP acquired WalkMe for ~$1.5B;
+- enterprise simulation platforms demonstrate high willingness to pay;
+- lower-cost documentation/demo tools generally do not provide a true practice sandbox;
+- the product is testable without specialist industry knowledge;
+- browser-only V1 is feasible;
+- simulations can largely run client-side, limiting infrastructure cost;
+- the direction fits software building plus teaching/content capabilities.
 
-Therefore do not build this product and do not call it a new category again.
+The intended wedge is NOT generic e-learning authoring.
 
-## Previously tested invention
+It is:
+**self-serve AI capture -> realistic software practice simulation -> scoring/scenarios.**
 
-**Universal Information Provenance / Desktop Data Lineage**
-Verdict: **MODIFY, NOT GO**
+See:
+`PRIMARY_RECOMMENDATION_PRACTICEOS.md`
 
-## Next instruction
+## Previous invention hypotheses
 
-Continue searching for a different large, recurring global pain.
+- SaaS Escape Hatch / Data Exit Layer — **REJECTED**
+- Universal Information Provenance — **MODIFY / NOT GO**
 
-New hypotheses should preferably:
-- be testable by an ordinary computer user;
-- avoid specialist physical industries;
-- have proof people spend money around the pain;
-- not be reproducible by combining a few existing free/open-source tools;
-- not require large server/GPU/storage costs;
-- not depend on maintaining hundreds of third-party connectors;
-- create a genuinely different workflow or software primitive rather than bundling existing categories.
+## Next gate
+
+Do not build a full platform.
+
+First prove one browser workflow can be converted into a realistic interactive practice sandbox with:
+- correct/incorrect action detection;
+- fake data;
+- hints;
+- scoring;
+- shareable URL.
+
+Then validate with real software trainers / SaaS customer-education teams.
+
+If the proof or willingness-to-pay test fails, reject and resume search.
