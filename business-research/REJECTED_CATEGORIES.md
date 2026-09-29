@@ -506,3 +506,10 @@ Instruction: Do not surface again as a new category.
 Status: **USER REJECTED / DO NOT RESURFACE**
 Reason: The user does not like this business direction.
 Instruction: Do not propose it again unless the user explicitly reopens it.
+
+
+### Generic AI Custom Software / Workflow Replacement Studio
+Examples checked: AltStack, Greta Agency, Mana Studio, Proconnect, Upwork fixed-price internal-tool offers, general AI automation agencies.
+Status: **MODIFY / DO NOT USE GENERIC POSITIONING**
+Reason: The market and willingness to pay are real, but the exact offer "map one manual workflow and replace it with custom software in days" is already crowded. Fixed-price 7-day builds, internal-tool agencies, and AI automation studios are widely available. The main business risk is customer acquisition and trust, not software delivery.
+Instruction: Do not present a generic AI automation/custom-software studio as a differentiated new business. Only revisit with a sharply defined niche/outcome where the founder has domain credibility.
