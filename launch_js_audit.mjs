@@ -30,7 +30,7 @@ for (const file of [
   parseScript(file, fs.readFileSync(file, "utf8"));
 }
 
-for (const file of ["index.html", "bible.html", "blessing.html"]) {
+for (const file of ["index.html", "jesus.html", "bible.html", "blessing.html"]) {
   const html = fs.readFileSync(file, "utf8");
   const regex = /<script(?![^>]*\bsrc=)(?![^>]*type=["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script>/gi;
   let match;
