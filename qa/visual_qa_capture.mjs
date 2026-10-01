@@ -46,7 +46,21 @@ async function inspectViewport(device, viewport) {
   });
 
   const response = await page.goto(BASE + "/", { waitUntil:"domcontentloaded", timeout:30000 });
-  record(device + " homepage HTTP", response && response.status() === 200, response ? response.status() : "no response");
+  record(device + " corporate homepage HTTP", response && response.status() === 200, response ? response.status() : "no response");
+  await page.waitForTimeout(300);
+  const corporate = await page.evaluate(() => ({
+    text:document.body.innerText || "",
+    vw:innerWidth,
+    bw:document.body.scrollWidth,
+    dw:document.documentElement.scrollWidth
+  }));
+  record(device + " corporate positioning renders", /Know what is proven before you approve the milestone/i.test(corporate.text));
+  record(device + " corporate $149 pilot renders", /\$149/i.test(corporate.text));
+  record(device + " corporate homepage has no horizontal overflow", Math.max(corporate.bw, corporate.dw) <= corporate.vw + 2);
+  await page.screenshot({ path:shotName(device,"corporate-home"), fullPage:true });
+
+  const jesusResponse = await page.goto(BASE + "/jesus.html", { waitUntil:"domcontentloaded", timeout:30000 });
+  record(device + " Jesus app HTTP", jesusResponse && jesusResponse.status() === 200, jesusResponse ? jesusResponse.status() : "no response");
   await page.waitForTimeout(1200);
 
   // First-time onboarding is part of the real guest experience. Test it
@@ -252,7 +266,7 @@ async function inspectViewport(device, viewport) {
   await page.screenshot({ path:shotName(device,"bible"), fullPage:true });
 
   // Service worker + offline reload on localhost.
-  await page.goto(BASE + "/", { waitUntil:"domcontentloaded", timeout:15000 }).catch(()=>{});
+  await page.goto(BASE + "/jesus.html", { waitUntil:"domcontentloaded", timeout:15000 }).catch(()=>{});
   await page.waitForTimeout(1200);
   const swReady = await page.evaluate(async () => {
     if (!("serviceWorker" in navigator)) return false;
