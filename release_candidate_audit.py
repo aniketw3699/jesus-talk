@@ -33,7 +33,7 @@ def main():
 
     launch = read("launch-config.js")
     billing = read("billing-config.js")
-    index = read("index.html")
+    index = read("jesus.html")
     terms = read("terms.html")
     firestore_workflow = read(".github/workflows/deploy_firestore_rules.yml")
     smoke_workflow = read(".github/workflows/production_smoke.yml")
@@ -72,7 +72,7 @@ def main():
         "nextTurnModeOverride",
     ]:
         if marker not in index:
-            failures.append(f"index.html: disruption marker missing -> {marker!r}")
+            failures.append(f"jesus.html: disruption marker missing -> {marker!r}")
 
     # Checkout must bind Lemon custom_data to the authenticated Firebase UID.
     for marker in [
@@ -81,7 +81,7 @@ def main():
         "if (!currentUser) { openPrivacyModal(); return; }",
     ]:
         if marker not in index:
-            failures.append(f"index.html: authenticated checkout binding missing -> {marker!r}")
+            failures.append(f"jesus.html: authenticated checkout binding missing -> {marker!r}")
 
     if "fair-use" not in terms.lower():
         failures.append("terms.html: cloud fair-use disclosure missing")
