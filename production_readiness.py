@@ -66,7 +66,7 @@ def main():
 
     launch = read("launch-config.js")
     billing = read("billing-config.js")
-    index = read("index.html")
+    index = read("jesus.html")
     api = read("api/index.py")
     rules = read("firestore.rules")
     firebase = read("firebase.json")
@@ -90,9 +90,9 @@ def main():
         failures.append("launch-config.js: production feature flags are missing")
 
     if "launch-config.js" not in index:
-        failures.append("index.html: launch-config.js is not loaded")
+        failures.append("jesus.html: launch-config.js is not loaded")
     if "DEVELOPER_EMAIL" in index:
-        failures.append("index.html: public developer-email bypass must not ship")
+        failures.append("jesus.html: public developer-email bypass must not ship")
 
     if 'DEVELOPER_EMAIL = os.getenv("DEVELOPER_EMAIL", "").strip()' not in api:
         failures.append("api/index.py: developer email must have an empty default")
