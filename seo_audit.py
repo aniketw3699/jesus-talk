@@ -12,6 +12,9 @@ DOMAIN = "https://www.1into1.com"
 
 CRITICAL = [
     "index.html",
+    "assurance.html",
+    "sample-review.html",
+    "jesus.html",
     "christian-prayer-app.html",
     "bible-study.html",
     "offline-bible.html",
