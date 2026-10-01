@@ -14,6 +14,10 @@ subprocess.run(["bash", "build-cloudflare.sh"], cwd=ROOT, check=True)
 
 required = [
     "index.html",
+    "jesus.html",
+    "assurance.html",
+    "sample-review.html",
+    "company.css",
     "404.html",
     "bible.html",
     "blessing.html",
@@ -70,9 +74,9 @@ bad_files = [
 if bad_files:
     raise SystemExit(f"FAIL: development/audit files leaked into dist: {bad_files}")
 
-index = (DIST / "index.html").read_text(encoding="utf-8")
-if 'src="/__/firebase/' in index:
-    raise SystemExit("FAIL: Firebase Hosting-relative SDK URLs remain in index.html")
+jesus = (DIST / "jesus.html").read_text(encoding="utf-8")
+if 'src="/__/firebase/' in jesus:
+    raise SystemExit("FAIL: Firebase Hosting-relative SDK URLs remain in jesus.html")
 
 firebase_markers = [
     "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
@@ -81,8 +85,8 @@ firebase_markers = [
     "https://jesus-chat-bd89f.firebaseapp.com/__/firebase/init.js",
 ]
 for marker in firebase_markers:
-    if marker not in index:
-        raise SystemExit(f"FAIL: expected host-independent Firebase marker missing: {marker}")
+    if marker not in jesus:
+        raise SystemExit(f"FAIL: expected host-independent Firebase marker missing from jesus.html: {marker}")
 
 sw = (DIST / "service-worker.js").read_text(encoding="utf-8")
 match = re.search(r"const APP_SHELL\s*=\s*\[(.*?)\];", sw, re.S)
