@@ -18,12 +18,6 @@
     <changefreq>monthly</changefreq>
     <priority>0.80</priority>
   </url>
-  <url>
-    <loc>https://www.1into1.com/jesus.html</loc>
-    <lastmod>2026-10-01</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.90</priority>
-  </url>
 
   <url>
     <loc>https://www.1into1.com/bible.html</loc>
