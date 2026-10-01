@@ -114,7 +114,7 @@ def main():
         if not canonical.startswith(DOMAIN):
             failures.append(f"{rel}: canonical is not on {DOMAIN}: {canonical!r}")
 
-        if rel != "index.html" and len(h1s) != 1:
+        if rel != "jesus.html" and len(h1s) != 1:
             failures.append(f"{rel}: expected exactly one H1, found {len(h1s)}")
         if 'name="robots" content="noindex' in text.lower():
             failures.append(f"{rel}: critical page contains noindex")
@@ -132,7 +132,7 @@ def main():
             failures.append(f"{rel}: BreadcrumbList structured data missing")
 
     # Site structure / non-orphan checks.
-    index = read("index.html")
+    index = read("jesus.html")
     for href in [
         "christian-prayer-app.html",
         "bible-study.html",
@@ -140,7 +140,7 @@ def main():
         "prayer-guides.html",
     ]:
         if href not in index:
-            failures.append(f"index.html: does not link to {href}")
+            failures.append(f"jesus.html: does not link to {href}")
 
     guide_index = read("prayer-guides.html")
     for href in [
