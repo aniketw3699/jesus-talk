@@ -1361,7 +1361,7 @@
     const LAUNCH_CONFIG = window.ONEINTOONE_LAUNCH_CONFIG || {};
     const FEATURE_FLAGS = LAUNCH_CONFIG.features || {};
     const BACKEND_API_URL = LAUNCH_CONFIG.backendApiUrl || "https://jesus-talk-dusky.vercel.app";
-    const APP_CANONICAL_URL = (LAUNCH_CONFIG.canonicalHost || "https://www.1into1.com").replace(/\\/+$/, "") + "/jesus.html";
+    const APP_CANONICAL_URL = (LAUNCH_CONFIG.canonicalHost || "https://www.1into1.com").replace(/\/+$/, "") + "/jesus.html";
 
     const BILLING_CONFIG = window.ONEINTOONE_BILLING_CONFIG || {};
     const LEMON_SQUEEZY_PLANS = [
