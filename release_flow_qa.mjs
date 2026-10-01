@@ -289,7 +289,7 @@ function functionBody(index, name) {
 }
 
 async function testIndexFlowContracts() {
-  const index = fs.readFileSync("index.html", "utf8");
+  const index = fs.readFileSync("jesus.html", "utf8");
 
   const submit = functionBody(index, "handleUserSubmit");
   const journal = functionBody(index, "openJournalModal");

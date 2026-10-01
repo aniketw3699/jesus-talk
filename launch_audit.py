@@ -90,7 +90,7 @@ def main():
     if "https://www.1into1.com/" not in sitemap:
         failures.append("sitemap.xml: final domain missing")
 
-    index = (ROOT / "index.html").read_text(encoding="utf-8")
+    index = (ROOT / "jesus.html").read_text(encoding="utf-8")
     for marker in [
         "1into1 with Jesus",
         "Ask Deeper",
@@ -102,7 +102,7 @@ def main():
         "Ask Deeper",
     ]:
         if marker not in index:
-            failures.append(f"index.html: required launch marker missing -> {marker!r}")
+            failures.append(f"jesus.html: required launch marker missing -> {marker!r}")
 
     api = (ROOT / "api" / "index.py").read_text(encoding="utf-8")
     if "PLUS_DAILY_FAIR_USE_LIMIT" not in api:

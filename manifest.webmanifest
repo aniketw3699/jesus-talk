@@ -1,8 +1,8 @@
 {
   "name": "1into1 with Jesus",
-  "short_name": "1into1",
+  "short_name": "1into1 Jesus",
   "description": "A private Scripture-guided prayer sanctuary that continues working offline.",
-  "start_url": "/",
+  "start_url": "/jesus.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f3eee6",
